@@ -50,8 +50,11 @@ This is the shared working agreement for people and AI agents contributing here.
 ```text
 Issue / owner:
 Goal and acceptance checks:
+Verification steps:
 In scope / out of scope:
 Files or interfaces:
 Dependencies / blockers:
 Branch / pull request:
 ```
+
+`Verification steps` are the commands to run or observable manual checks that demonstrate the acceptance checks. If they cannot be decided yet, state the missing prerequisite or decision.
