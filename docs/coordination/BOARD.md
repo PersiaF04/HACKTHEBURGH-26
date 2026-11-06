@@ -16,6 +16,7 @@ GitHub Issues are the team's single work queue. Do not maintain a duplicate task
 - Claude Code is the primary developer; Codex reviews pull requests and may use subagents for focused review. Other contributors can use their own agents on separate issues.
 - Merge after CI passes, Codex review findings are resolved, and the human issue owner approves.
 - Record only decisions that materially affect scope, architecture, user experience, dependencies, or shared interfaces in [`DECISIONS.md`](DECISIONS.md).
+- For local Codex/Claude or other model handoffs, use the optional inbox guidance in [`AGENT-MESSAGING.md`](AGENT-MESSAGING.md). GitHub Issues and PRs remain authoritative and visible to the whole team.
 
 ## Pull request handoff checklist
 

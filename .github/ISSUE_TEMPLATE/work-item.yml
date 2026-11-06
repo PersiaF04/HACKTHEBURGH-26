@@ -7,16 +7,16 @@ body:
     id: kind
     attributes:
       label: Type
-      description: After creating the issue, apply the matching GitHub label (feature, bug, fix, test, docs, chore, ci, or spike).
+      description: Apply the matching GitHub label to the issue after creating it. Use the same type label on its pull request.
       options:
         - Feature
         - Bug
         - Fix
         - Test
-        - Documentation
+        - Docs
         - Chore
         - CI
-        - Spike / investigation
+        - Spike
     validations:
       required: true
   - type: textarea

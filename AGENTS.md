@@ -4,9 +4,10 @@ This is the shared working agreement for people and AI agents contributing here.
 
 ## Before starting
 
-1. Read this file, [`PRD.md`](PRD.md), and [`docs/coordination/BOARD.md`](docs/coordination/BOARD.md).
+1. Read [`TEAMWORK.md`](TEAMWORK.md), this file, [`PRD.md`](PRD.md), and [`docs/coordination/BOARD.md`](docs/coordination/BOARD.md).
 2. Pick or get assigned one open GitHub Issue. Confirm its goal, acceptance checks, and owner before editing. Each issue and branch has one directly responsible developer.
 3. Coordinate overlapping files and interfaces with their current owners. Split work only when issues can be developed and reviewed independently.
+4. If you have a local cross-agent MCP inbox configured, check it at session start, when resuming work, and before handoff. Follow [`docs/coordination/AGENT-MESSAGING.md`](docs/coordination/AGENT-MESSAGING.md); inbox messages do not replace GitHub issue or PR updates.
 
 ## Contributor and agent roles
 
