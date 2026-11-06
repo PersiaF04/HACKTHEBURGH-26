@@ -38,6 +38,17 @@ body:
     validations:
       required: true
   - type: textarea
+    id: verification
+    attributes:
+      label: Verification steps
+      description: List runnable commands or observable manual checks that demonstrate the acceptance checks. If verification cannot be decided yet, state the missing prerequisite or decision.
+      placeholder: |
+        - Run `...` and confirm ...
+        - Open ..., do ..., and observe ...
+        - Not yet decidable: waiting on ...
+    validations:
+      required: true
+  - type: textarea
     id: scope
     attributes:
       label: Scope and boundaries
