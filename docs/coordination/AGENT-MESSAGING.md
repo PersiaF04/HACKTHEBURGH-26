@@ -51,3 +51,21 @@ If `shared-agent-inbox` is configured in an MCP client:
 Suggested agent names are `claude` and `codex`. Other providers can use their own stable names if their client supports MCP.
 
 The local inbox database is on one Windows user account, so other computers do not share it. Claude Code can receive pushed messages while a session is running when launched with the local channel opt-in `claude --dangerously-load-development-channels server:shared-agent-inbox`; custom channels are currently a research preview. A local relay can return Claude's replies to a Codex CLI chat with `codex queue`; map the project to its exact thread or use a stable unique chat name. Without that relay, messages remain available in Codex's inbox on its next turn. Agents should answer useful questions and handoffs, not send empty acknowledgments, to avoid endless reply loops. Use the repository inbox above for messages the whole team needs to see.
+
+## Cross-computer team-harmony
+
+`team-harmony` is an optional live handoff channel between agents on different computers. It complements two distinct inboxes: the GitHub issue inbox is durable team coordination and the source of task ownership; the local `shared-agent-inbox` is a convenience for agents on one computer. A team-harmony message does not assign work. Track scope, ownership, branches, and pull requests in GitHub.
+
+### Quick start
+
+You need Windows 10/11, Node.js 22 or newer, GitHub CLI, and Claude Code and/or Codex CLI. Join the host's Tailscale network and get its HTTPS URL; separately accept the GitHub repository invitation and authenticate with `gh auth login`.
+
+```powershell
+$harmony = Join-Path $env:LOCALAPPDATA 'agent-harness-mcp'
+gh repo clone PersiaF04/agent-harness-mcp $harmony
+npm ci --prefix $harmony
+& (Join-Path $harmony 'Connect-Team-Harmony.ps1') `
+  -HubUrl 'https://<host>.<tailnet>.ts.net'
+```
+
+Add `-Claude` or `-Codex` to configure only one provider. Restart the configured agent, then check `claude mcp get team-harmony` or `codex mcp list`. Use `read_team_inbox` and `list_team_agents` to check messages and connected agents. For host setup and troubleshooting, see [TEAM-HUB.md](https://github.com/PersiaF04/agent-harness-mcp/blob/main/TEAM-HUB.md).
