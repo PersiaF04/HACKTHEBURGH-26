@@ -27,6 +27,7 @@ This is the shared working agreement for people and AI agents contributing here.
 ## Issue, branch, and pull request workflow
 
 - GitHub Issues are the canonical work queue. Do not copy tasks into a second local board. Keep issue owner, status, blockers, and acceptance checks current.
+- Give each issue one primary type label: `feature`, `bug`, `fix`, `test`, `docs`, `chore`, `ci`, or `spike`. Apply the same type label to its pull request.
 - Use one issue per focused change and one feature branch per issue. Name branches `feature/<issue>-<slug>`, `fix/<issue>-<slug>`, `docs/<issue>-<slug>`, or `chore/<issue>-<slug>`.
 - Do not work directly on `main`. Open a pull request against `main`, link it with `Closes #<issue>`, and request Codex review. Merge after the human owner accepts the review and CI passes.
 - Use Conventional Commit subjects, for example `feat(#12): add onboarding flow`, `fix(#18): handle empty response`, or `docs(#21): describe local setup`.

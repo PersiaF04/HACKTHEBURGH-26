@@ -7,11 +7,15 @@ body:
     id: kind
     attributes:
       label: Type
+      description: After creating the issue, apply the matching GitHub label (feature, bug, fix, test, docs, chore, ci, or spike).
       options:
         - Feature
         - Bug
+        - Fix
+        - Test
         - Documentation
         - Chore
+        - CI
         - Spike / investigation
     validations:
       required: true

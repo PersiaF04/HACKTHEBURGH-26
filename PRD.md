@@ -20,10 +20,10 @@ What are we building, for whom, and what value will it provide? Fill this in aft
 Add or remove rows to match the team. Give each workstream a human owner and note the agent/tool they use. Each workstream should map to separately owned GitHub Issues and feature branches. Keep cross-cutting decisions and interfaces agreed in the decision log.
 
 | Contributor | Agent / tool | Responsibility or workstream | Issue IDs | Notes |
-|---|---|---|---|---|
-| TBD | TBD | TBD | TBD | |
-| TBD | TBD | TBD | TBD | |
-| TBD | TBD | TBD | TBD | |
+| --- | --- | --- | --- | --- |
+| TBD | TBD | TBD | TBD | TBD |
+| TBD | TBD | TBD | TBD | TBD |
+| TBD | TBD | TBD | TBD | TBD |
 
 Codex's default role is pull request review; Claude Code is the primary implementation agent. Other contributor-agent pairs can implement separate issues under the same workflow.
 
@@ -106,15 +106,15 @@ Record only choices the team has agreed. Keep the implementation as simple as po
 
 ## 11. Risks and open questions
 
-| Question or risk | Owner | Next step | Status |
-|---|---|---|---|
-| Which idea and primary user will we choose? | TBD | Agree as a team and update this PRD | Open |
+| Question or risk               | Owner | Next step                        | Status |
+| ------------------------------ | ----- | -------------------------------- | ------ |
+| Which idea and primary user?   | TBD   | Agree as a team; update this PRD | Open   |
 
 ## 12. Milestones
 
-| Milestone | Target | Exit check | Owner |
-|---|---|---|---|
-| Choose idea and user | TBD | Problem, user, and value statement agreed | TBD |
-| Define MVP and demo | TBD | Must-haves and acceptance checks agreed | TBD |
-| Build and integrate | TBD | One end-to-end flow works | TBD |
-| Rehearse demo | TBD | Demo rehearsed; fallback understood | TBD |
+| Milestone            | Target | Exit check                                | Owner |
+| -------------------- | ------ | ----------------------------------------- | ----- |
+| Choose idea and user | TBD    | Problem, user, and value statement agreed | TBD   |
+| Define MVP and demo  | TBD    | Must-haves and acceptance checks agreed   | TBD   |
+| Build and integrate  | TBD    | One end-to-end flow works                 | TBD   |
+| Rehearse demo        | TBD    | Demo rehearsed; fallback understood       | TBD   |
