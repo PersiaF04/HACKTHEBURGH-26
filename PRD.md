@@ -98,7 +98,7 @@ List tempting work that the team explicitly will not build for this event.
 
 ## 6. Requirements and acceptance
 
-Write one outcome per requirement, rank it P0/P1/P2, and describe behavior a user or reviewer can observe. Include normal and relevant failure cases. Link implementation Issues in the final column; do not prescribe internal design unless it is a real constraint.
+Write one outcome per requirement, rank it P0/P1/P2, and describe behavior a user or reviewer can observe. Include normal and relevant failure cases. Link implementation Issues in the `Issues` field; do not prescribe internal design unless it is a real constraint.
 
 ### R-1 [P0] Requirement title
 
@@ -177,7 +177,7 @@ Track uncertainty with a next action and an owner. Resolve high-impact assumptio
 - **Secrets / environment setup:** Store credentials in approved secret storage, never in Git
 - **Recovery / demo fallback:** State how to restore a working demo if deploy, network, or an external service fails
 
-## 13. Contributors and workstreams
+## 13. Contributor and agent roster
 
 Assign one human as directly responsible for each workstream. Name the agent they use, issue IDs, and any file or interface boundaries that prevent overlap. Keep issue ownership and progress in GitHub.
 
