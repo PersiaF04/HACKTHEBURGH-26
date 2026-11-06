@@ -1,0 +1,50 @@
+name: Work item
+description: Propose one independently ownable change
+title: ""
+labels: []
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - Feature
+        - Bug
+        - Documentation
+        - Chore
+        - Spike / investigation
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal and context
+      description: What should change, for whom, and why?
+      placeholder: State the user need or problem this issue addresses.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance checks
+      description: List observable results that show this issue is complete.
+      placeholder: |
+        - Given ..., when ..., then ...
+        - Given ..., when ..., then ...
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and boundaries
+      description: Note what is in scope, out of scope, and any affected modules or interfaces.
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and open questions
+      description: Link related issues or decisions. Say who needs to resolve each blocker.
+  - type: input
+    id: owner
+    attributes:
+      label: Human owner / implementing agent
+      description: Name the accountable contributor and agent, if known.
