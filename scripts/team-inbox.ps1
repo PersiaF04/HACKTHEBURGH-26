@@ -24,7 +24,7 @@ if ($ghExitCode -ne 0) {
 }
 
 $json = $response -join [Environment]::NewLine
-$items = @($json | ConvertFrom-Json)
+$items = $json | ConvertFrom-Json
 $trusted = @($items | Where-Object {
     $_.author_association -in @('OWNER', 'MEMBER', 'COLLABORATOR')
 })
