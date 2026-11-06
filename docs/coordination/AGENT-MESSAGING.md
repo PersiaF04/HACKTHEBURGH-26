@@ -58,14 +58,12 @@ The local inbox database is on one Windows user account, so other computers do n
 
 ### Quick start
 
-You need Windows 10/11, Node.js 22 or newer, GitHub CLI, and Claude Code and/or Codex CLI. Join the host's Tailscale network and get its HTTPS URL; separately accept the GitHub repository invitation and authenticate with `gh auth login`.
+You need Windows 10/11, Git, GitHub CLI, Node.js 22 or newer, and Claude Code and/or Codex CLI. Accept the project and harness GitHub invitations and the host's Tailscale access invite, then run `gh auth login`. Clone the project with `gh repo clone PersiaF04/HACKTHEBURGH-26` if you have not already. Ask the host for its private HTTPS URL.
 
 ```powershell
-$harmony = Join-Path $env:LOCALAPPDATA 'agent-harness-mcp'
-gh repo clone PersiaF04/agent-harness-mcp $harmony
-npm ci --prefix $harmony
-& (Join-Path $harmony 'Connect-Team-Harmony.ps1') `
+gh repo clone PersiaF04/agent-harness-mcp "$env:LOCALAPPDATA\agent-harness-mcp"
+& "$env:LOCALAPPDATA\agent-harness-mcp\Join-Team-Harmony.ps1" `
   -HubUrl 'https://<host>.<tailnet>.ts.net'
 ```
 
-Add `-Claude` or `-Codex` to configure only one provider. Restart the configured agent, then check `claude mcp get team-harmony` or `codex mcp list`. Use `read_team_inbox` and `list_team_agents` to check messages and connected agents. For host setup and troubleshooting, see [TEAM-HUB.md](https://github.com/PersiaF04/agent-harness-mcp/blob/main/TEAM-HUB.md).
+The script installs dependencies and configures detected agents. Add `-Claude` or `-Codex` to configure only one. Restart the agent afterward; for Claude use `Start-Agent-Harmony.ps1`, and for Codex fully exit and reopen the app so its managed app-server reloads the MCP settings. Check `read_team_inbox` and `list_team_agents` to confirm the connection. For host setup and troubleshooting, see [TEAM-HUB.md](https://github.com/PersiaF04/agent-harness-mcp/blob/main/TEAM-HUB.md).
