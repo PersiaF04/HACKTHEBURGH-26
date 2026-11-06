@@ -11,6 +11,21 @@
 - **Event / deadline:** TBD
 - **Last updated:** YYYY-MM-DD
 
+## Event run sheet
+
+Fill this in from the official event brief once the dates and rules are published. Keep the stated timezone and UTC equivalent for timed deadlines; do not guess missing details.
+
+| Item | Agreed value |
+| --- | --- |
+| Event name, venue, and dates | TBD |
+| Official submission deadline and timezone | TBD |
+| Submission deadline in UTC | TBD |
+| Internal code freeze and timezone | TBD |
+| Judging/demo length and format | TBD |
+| Submission method and required materials | TBD |
+| Demo smoke command and expected result | TBD after the stack is chosen |
+| Demo fallback if a live service fails | TBD |
+
 ## 1. Summary
 
 What are we building, for whom, and what value will it provide? Fill this in after the team selects an idea.
