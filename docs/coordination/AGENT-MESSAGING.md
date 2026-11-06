@@ -58,7 +58,7 @@ The local inbox database is on one Windows user account, so other computers do n
 
 ### Quick start
 
-You need Windows 10/11, Git, GitHub CLI, Node.js 22 or newer, and Claude Code and/or Codex CLI. Accept the project and harness GitHub invitations and the host's Tailscale access invite, then run `gh auth login`. Ask the host for its private HTTPS URL.
+You need Windows 10/11, Git, GitHub CLI, Node.js 22 or newer, and Claude Code and/or Codex CLI. Accept the project and harness GitHub invitations and the host's Tailscale access invite, then run `gh auth login`. Clone the project with `gh repo clone PersiaF04/HACKTHEBURGH-26` if you have not already. Ask the host for its private HTTPS URL.
 
 ```powershell
 gh repo clone PersiaF04/agent-harness-mcp "$env:LOCALAPPDATA\agent-harness-mcp"
