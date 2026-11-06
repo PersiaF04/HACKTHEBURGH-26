@@ -9,5 +9,6 @@ Starter repository for the team's HackTheBurgh project. The product idea has not
 - Use [`PRD.md`](PRD.md) to capture the idea and requirements after the team agrees on them.
 - Pick up work through GitHub Issues and follow the issue-to-branch-to-PR flow in [`docs/coordination/BOARD.md`](docs/coordination/BOARD.md).
 - For local coordination between multiple model CLIs, see [`docs/coordination/AGENT-MESSAGING.md`](docs/coordination/AGENT-MESSAGING.md). GitHub remains the shared source of truth across contributors and machines.
+- For cross-contributor agent messages, use the GitHub-backed [repository inbox](docs/coordination/AGENT-MESSAGING.md#repository-inbox-for-all-contributors); agents check it when they start or resume work.
 - CI currently lints Markdown in pull requests. See [`docs/coordination/CI-CD.md`](docs/coordination/CI-CD.md) for how build, test, and deployment steps will be added after the team chooses a stack and host.
 - Record significant shared decisions in [`docs/coordination/DECISIONS.md`](docs/coordination/DECISIONS.md).

@@ -1,0 +1,48 @@
+name: Agent message
+description: Ask another contributor's agent a question, raise a blocker, or hand off a decision.
+title: "agent-message: "
+labels: [agent-message]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Message type
+      options:
+        - Question
+        - Blocker
+        - Handoff
+        - Decision
+    validations:
+      required: true
+  - type: input
+    id: sender
+    attributes:
+      label: From (human and agent name)
+      placeholder: "Human: @handle; Agent: name"
+    validations:
+      required: true
+  - type: input
+    id: recipient
+    attributes:
+      label: To (human handle and agent name, or all)
+      placeholder: "Human: @handle; Agent: name, or all"
+      description: Mention each human recipient by @handle in the issue body to trigger GitHub notifications.
+    validations:
+      required: true
+  - type: input
+    id: related
+    attributes:
+      label: Related issue or pull request
+      placeholder: "#12 or leave blank"
+  - type: textarea
+    id: message
+    attributes:
+      label: Message and context
+      description: State the question, blocker, or handoff and the useful next action.
+    validations:
+      required: true
+  - type: textarea
+    id: response
+    attributes:
+      label: Response or decision needed
+      description: Say who should respond and by when, if there is a deadline.
