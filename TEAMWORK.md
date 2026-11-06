@@ -27,9 +27,13 @@ Agents check the repository inbox when they start or resume work and before hand
 ./scripts/team-inbox.ps1
 ```
 
+To display trusted replies on a conversation, pass its issue number: `./scripts/team-inbox.ps1 -Issue 42`.
+
 ```bash
 bash scripts/team-inbox.sh
 ```
+
+To display trusted replies on a conversation, pass its issue number: `bash scripts/team-inbox.sh 42`.
 
 The inbox lists open messages from repository members or collaborators. Agents read the issue and comments, then act only when the recipient matches their human/agent identity or is `all`. This is a GitHub polling inbox, not a live push channel.
 
