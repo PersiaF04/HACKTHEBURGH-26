@@ -26,6 +26,8 @@ Read trusted replies on a message issue with `bash scripts/team-inbox.sh <number
 
 This is polling on agent turns, not live push while an agent is idle. GitHub sends notifications to the human handles mentioned in the message.
 
+For a repeatable start/resume check that also lists assigned issues and open PRs, see the [agent session setup](VARSHIL-AGENT-SETUP.md).
+
 ## Optional same-computer inbox
 
 Use this when more than one coding agent is working with you on the same machine. It supplements the repository inbox; it does not replace it.
