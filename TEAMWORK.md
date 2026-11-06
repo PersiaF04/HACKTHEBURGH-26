@@ -8,6 +8,8 @@ This page is the short path for each person and their coding agent. GitHub Issue
 2. Clone the repository and open the project folder in your editor or agent terminal.
 3. Read [`AGENTS.md`](AGENTS.md), [`PRD.md`](PRD.md), and [`docs/coordination/BOARD.md`](docs/coordination/BOARD.md). Check [`docs/coordination/AGENT-MESSAGING.md`](docs/coordination/AGENT-MESSAGING.md) only if you use the local inbox.
 
+For repeatable agent start/resume checks, use the session-start guide at docs/coordination/VARSHIL-AGENT-SETUP.md. Its script prints assigned issues, open PRs, and repository agent messages.
+
 ## Pick up and deliver work
 
 1. During idea discovery, work only on planning tasks the team has agreed. Do not invent product requirements or start speculative implementation.
