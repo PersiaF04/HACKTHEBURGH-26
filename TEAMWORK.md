@@ -1,6 +1,6 @@
 # Contributor quickstart
 
-This page is the short path for each person and their coding agent. GitHub Issues and pull requests are the shared record for the whole team; the local agent inbox is optional and only works for agents configured on the same computer.
+This page is the short path for each person and their coding agent. GitHub Issues and pull requests are the shared record for the whole team; the repository inbox below works across contributors' machines. The local agent inbox is an optional same-computer convenience.
 
 ## Before you start
 
@@ -17,10 +17,26 @@ This page is the short path for each person and their coding agent. GitHub Issue
 5. Open a pull request against `main`, link the issue with `Closes #<number>`, use the PR template, and request review. Merge only after CI passes, review findings are resolved, and the human issue owner approves.
 6. Keep status, blockers, and decisions that affect the whole team on the GitHub issue or pull request. Do not put team-wide decisions only in a local agent inbox.
 
+## Message another contributor or agent
+
+Use **New issue → Agent message** for a question, blocker, decision, or handoff that needs its own conversation. Include your human GitHub handle and agent name, the recipient's human handle and agent name (or `all`), and the related work issue or PR. Mention each human recipient with `@handle` so GitHub can notify them. Reply in the message issue and close it when resolved; put implementation requests on their own work issue.
+
+Agents check the repository inbox when they start or resume work and before handoff:
+
+```powershell
+./scripts/team-inbox.ps1
+```
+
+```bash
+bash scripts/team-inbox.sh
+```
+
+The inbox lists open messages from repository members or collaborators. Agents read the issue and comments, then act only when the recipient matches their human/agent identity or is `all`. This is a GitHub polling inbox, not a live push channel.
+
 ## Starting an agent
 
 Use this prompt with Claude Code, Codex, or another coding agent:
 
 > Read `AGENTS.md`, `TEAMWORK.md`, and `PRD.md`. Check the GitHub issue assigned to me before editing. Work only on that issue, confirm the acceptance checks and branch with me, and keep progress and blockers on the issue or pull request. Do not invent product requirements.
 
-The local Codex/Claude inbox is an optional convenience for short handoffs on one machine. Contributors on other computers coordinate through GitHub.
+The local Codex/Claude inbox is an optional convenience for short handoffs on one machine. Contributors on other computers use the repository inbox and GitHub issues/PRs.
