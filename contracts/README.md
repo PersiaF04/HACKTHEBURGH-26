@@ -18,6 +18,7 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 | `farms.json` | A | Waste Map | Wind BMUs: `id`, `name`, `region`, `lat`, `lon`, `capacity_mw` |
 | `curtailment_daily.json` | A | Waste Map, Under the Hood | Daily totals and the NESO reconciliation |
 | `replay/<date>.json` | A | Waste Map (replay), hardware | Per half-hour, per farm: planned, instructed and curtailed output and cost |
+| `replay/index.json` | A | Waste Map (day picker, Live mode) | Which replay days exist (`days`) and where live data is (`live`: a file name under `replay/` or an absolute https URL) |
 | `iceberg.json` | A | The Iceberg | Visible vs hidden constraint cost over a window |
 | `dfs_requests.json` | A | Help Wanted | NESO DFS `Upwards`/`System` requirements, procured volume and prices |
 | `forecast.json` | B | Tomorrow, Under the Hood | Half-hourly forecasts plus backtest scores and a reliability curve |
