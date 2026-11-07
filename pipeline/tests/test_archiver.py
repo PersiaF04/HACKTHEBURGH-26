@@ -1,6 +1,7 @@
 import datetime as dt
 import gzip
 import json
+from pathlib import Path
 
 from turnup.archiver import BoalfJob, NesoSnapshotJob, State, run_once
 
@@ -93,3 +94,36 @@ def test_failing_job_is_logged_not_raised(tmp_path):
     assert results["boom"].startswith("error")
     assert results["boalf"] == "ok (1 new)"
     assert json.loads((tmp_path / "state.json").read_text())["errors"]["boom"]["error"] == "network down"
+
+
+def test_boalf_failed_append_is_retried_not_lost(tmp_path, monkeypatch):
+    state = State(tmp_path / "state.json")
+    job = BoalfJob(tmp_path, state, fetch=lambda p: [row(1), row(2)])
+    real_open = Path.open
+
+    def failing_open(self, mode="r", *a, **k):
+        if mode == "a":
+            raise OSError("disk full")
+        return real_open(self, mode, *a, **k)
+
+    monkeypatch.setattr(Path, "open", failing_open)
+    try:
+        job.run(NOW)
+    except OSError:
+        pass
+    monkeypatch.setattr(Path, "open", real_open)
+    assert job.run(NOW) == 2  # nothing was marked seen by the failed attempt
+    lines = (tmp_path / "boalf" / f"{NOW:%Y-%m-%d}.jsonl").read_text(encoding="utf-8").splitlines()
+    assert [json.loads(x)["acceptanceNumber"] for x in lines] == [1, 2]
+
+
+def test_boalf_recovers_incomplete_final_line(tmp_path):
+    state = State(tmp_path / "state.json")
+    BoalfJob(tmp_path, state, fetch=lambda p: [row(1)]).run(NOW)
+    path = tmp_path / "boalf" / f"{NOW:%Y-%m-%d}.jsonl"
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write('{"acceptanceNumber": 2, "bmUnit"')  # interrupted write
+    job = BoalfJob(tmp_path, state, fetch=lambda p: [row(1), row(2)])
+    assert job.run(NOW) == 1
+    rows = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines()]
+    assert [r["acceptanceNumber"] for r in rows] == [1, 2]

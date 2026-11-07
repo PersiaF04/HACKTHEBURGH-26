@@ -100,23 +100,46 @@ class BoalfJob:
             self._seen = {day: keys}
         return self._seen[day]
 
+    @staticmethod
+    def _repair_tail(path: Path) -> None:
+        """Drop an incomplete final record left by an interrupted append."""
+        if not path.exists() or path.stat().st_size == 0:
+            return
+        with path.open("rb+") as fh:
+            fh.seek(-1, os.SEEK_END)
+            if fh.read(1) == b"\n":
+                return
+            fh.seek(0)
+            data = fh.read()
+            cut = data.rfind(b"\n") + 1  # 0 when the file holds only a partial line
+            fh.truncate(cut)
+            log.warning("boalf: truncated incomplete final record in %s", path.name)
+
     def run(self, now: dt.datetime) -> int:
         rows = self.fetch({"from": iso(now - self.lookback), "to": iso(now)})
         fetched_at = iso(now)
         day = now.strftime("%Y-%m-%d")
         seen = self._seen_for(day)
-        new = []
+        new, keys = [], []
+        batch: set[str] = set()
         for row in rows:
             key = boalf_key(row)
-            if key in seen:
+            if key in seen or key in batch:
                 continue
-            seen.add(key)
+            batch.add(key)
+            keys.append(key)
             new.append({**row, "fetched_at": fetched_at})
         if new:
             self.root.mkdir(parents=True, exist_ok=True)
-            with (self.root / f"{day}.jsonl").open("a", encoding="utf-8") as fh:
-                for row in new:
-                    fh.write(json.dumps(row, separators=(",", ":")) + "\n")
+            path = self.root / f"{day}.jsonl"
+            self._repair_tail(path)
+            payload = "".join(json.dumps(row, separators=(",", ":")) + "\n" for row in new)
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(payload)
+                fh.flush()
+                os.fsync(fh.fileno())
+            # Only now are the rows persisted; a failed append leaves them unseen for the retry.
+            seen.update(keys)
         self.state.data.setdefault("boalf", {})["last_run"] = fetched_at
         self.state.data["boalf"]["last_new_rows"] = len(new)
         return len(new)
