@@ -16,6 +16,13 @@ export interface DfsRequest {
 }
 export interface DfsRequests { meta: Meta; requests: DfsRequest[] }
 export interface Farms { meta: Meta; farms: Farm[] }
+export interface PolicyResult { gbp: number; mwh: number }
+export interface CopilotSlot { start_utc: string; action: string; bid_gbp_per_mwh: number | null }
+export interface CopilotDay { date: string; policies: { naive: PolicyResult; ours: PolicyResult; oracle: PolicyResult }; schedule: CopilotSlot[] }
+export interface Copilot {
+  meta: Meta; load: { type: string; capacity_mw: number; zone: string }; days: CopilotDay[];
+  summary: { pct_of_oracle: number; gross_settlement_gbp: number; caveat: string };
+}
 
 type State<T> = { data: T | null; error: string | null };
 
