@@ -237,12 +237,18 @@ def morning_update_backtest(rows: list[Row], wind: dict, test_start: str = TEST_
     wind forecast is stamped on the target day (not a day-ahead vintage), so this is NOT the "tomorrow"
     model and is reported separately.
     """
-    keep = {(r.date, r.sp) for r in rows if r.sp >= MORNING_FIRST_SP and (r.date, r.sp) in wind}
+    keep = {(r.date, r.sp) for r in rows if r.sp >= MORNING_FIRST_SP and (r.date, r.sp) in wind
+            and r.date >= test_start}
+    if not keep:
+        return {"available": False}
     main_rows = [r for r in rows if (r.date, r.sp) in keep or r.date < test_start]
     wind_rows = [Row(r.date, r.sp, r.util, wind[(r.date, r.sp)] * 10000.0 if (r.date, r.sp) in wind else None, r.y)
                  for r in main_rows]
-    main = {(p["date"], p["sp"]): p for p in backtest_predictions(main_rows, test_start) if (p["date"], p["sp"]) in keep}
-    withw = {(p["date"], p["sp"]): p for p in backtest_predictions(wind_rows, test_start) if (p["date"], p["sp"]) in keep}
+    try:
+        main = {(p["date"], p["sp"]): p for p in backtest_predictions(main_rows, test_start) if (p["date"], p["sp"]) in keep}
+        withw = {(p["date"], p["sp"]): p for p in backtest_predictions(wind_rows, test_start) if (p["date"], p["sp"]) in keep}
+    except RuntimeError:       # not enough history to score any fold
+        return {"available": False}
     common = sorted(set(main) & set(withw))
     if not common:
         return {"available": False}
