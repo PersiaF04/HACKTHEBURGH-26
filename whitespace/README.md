@@ -72,3 +72,11 @@ test: {"<T>": {
 ```
 
 Ranking uses the model's log-odds (Platt is monotone, so ranks are unchanged); calibration uses the Platt probabilities. Rows are permuted with a seeded permutation before ranking so exact ties (common for integer baselines) do not follow canonical pair order. Features: current weight, the six baseline scores (log1p), log paper counts, three-year paper-count growth and concept age (min/max of the two concepts). Embedding and cosine features are out of scope until the embedding model exists.
+
+## Map, gaps and meta export (issue #162)
+
+`pipeline/export_map_gaps.py` turns pipeline objects into the frontend's files (`map-<year>.json`, `gaps.json`, `gap-details.json`, `concepts.json`, `meta.json`), shaped like the types in `whitespace/web/src/api.ts`. `build_export(works, years, predictor, ...)` returns them; `write_export` writes them. `trained_predictor(train(...))` supplies calibrated `p_link` from works dated on or before each year only.
+
+- **Layout** is a projection, not a similarity measure: truncated SVD (numpy, fixed seed) of the positive-PMI co-occurrence matrix at the final snapshot, scaled to [-1, 1]. One layout serves every year, so each map file carries `layout_year`; counts, growth and edges use only that year's snapshot, but x/y do come from the final snapshot.
+- **Gap score** is `p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) * (1 + gap_rate_a + gap_rate_b)`. Cosine (no embeddings) and gap rate (no open-problem mining) are omitted while missing, `meta` and `gaps.json` state the formula used, and the score is not a probability. Gaps rank the top pairs by `p_link` (default pool 2000).
+- **Papers** are exported as id, year and link only. No abstract text. `meta` headline numbers are copied from a real backtest dict, otherwise null; NaN becomes null.
