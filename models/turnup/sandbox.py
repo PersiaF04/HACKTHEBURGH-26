@@ -17,12 +17,18 @@ VALUE_GRID = (0.0, 50.0, 100.0, 150.0, 200.0)
 
 SCORING_RULE = [
     "Inputs: a load (capacity_mw, zone, value_gbp_per_mwh, max_periods) and a schedule of [sp, bid_gbp_per_mwh].",
-    "Take the schedule in ascending sp order. Let accepted = 0, gross = 0, energy = 0, mwh_period = capacity_mw * 0.5.",
+    "Take the schedule in ascending sp order. Let accepted = 0, gross = 0, energy = 0, wind_matched = 0, mwh_period = capacity_mw * 0.5.",
     "For each [sp, bid]: stop if accepted >= max_periods. Look up that day's half-hour sp.",
     "Skip it unless ALL hold: request is true; caps_mw[zone] >= capacity_mw; ceiling_gbp_per_mwh[zone] is not null; "
     "mid_gbp_per_mwh is not null; bid <= ceiling_gbp_per_mwh[zone].",
-    "Otherwise it is accepted: gross += bid * mwh_period; energy += mid_gbp_per_mwh * mwh_period; accepted += 1.",
+    "Otherwise it is accepted: gross += bid * mwh_period; energy += mid_gbp_per_mwh * mwh_period; accepted += 1; "
+    "wind_matched += min(mwh_period, curtailed_mwh).",
     "mwh = accepted * mwh_period. value_gbp = value_gbp_per_mwh * mwh. net_gbp = gross + value_gbp - energy.",
+    "mwh is the electricity the LOAD buys and uses in the half-hours NESO would have accepted, assuming full delivery. "
+    "It is NOT proof that the same MWh of curtailed wind was absorbed.",
+    "wind_matched_mwh is an APPROXIMATE upper bound on how much of that could have been otherwise-curtailed wind: in each accepted "
+    "half-hour the lesser of the load's use and the Scottish wind turned down in that half-hour (curtailed_mwh). It ignores which "
+    "farms or zone the wind is in (the zone-to-region mapping is unconfirmed), and assumes no other load competes for the wind.",
     "Use IEEE doubles and the order above so results match to the cent. Compare with a tolerance of 0.005.",
 ]
 
@@ -46,11 +52,15 @@ def day_inputs(m: C.Market, curtail: dict, day: str) -> dict:
 
 
 def score_schedule(day: dict, load: dict, schedule: list) -> dict:
-    """Reference scorer; the plain-words rule is SCORING_RULE. ``schedule`` is a list of [sp, bid]."""
+    """Reference scorer; the plain-words rule is SCORING_RULE. ``schedule`` is a list of [sp, bid].
+
+    ``mwh`` is the load's own consumption (full delivery assumed). ``wind_matched_mwh`` is a separate,
+    approximate upper bound on how much of it could have been otherwise-curtailed Scottish wind.
+    """
     zone, mw = load["zone"], load["capacity_mw"]
     budget, value = load["max_periods"], load["value_gbp_per_mwh"]
     mwh_period = mw * 0.5
-    gross = energy = 0.0
+    gross = energy = wind_matched = 0.0
     accepted = 0
     for sp, bid in sorted(schedule, key=lambda s: s[0]):
         if accepted >= budget:
@@ -61,11 +71,12 @@ def score_schedule(day: dict, load: dict, schedule: list) -> dict:
             continue
         gross += bid * mwh_period
         energy += mid * mwh_period
+        wind_matched += min(mwh_period, hh["curtailed_mwh"])
         accepted += 1
     mwh = accepted * mwh_period
     value_gbp = value * mwh
-    return {"mwh": mwh, "gross_gbp": gross, "energy_cost_gbp": energy, "value_gbp": value_gbp,
-            "net_gbp": gross + value_gbp - energy, "accepted_half_hours": accepted}
+    return {"mwh": mwh, "wind_matched_mwh": wind_matched, "gross_gbp": gross, "energy_cost_gbp": energy,
+            "value_gbp": value_gbp, "net_gbp": gross + value_gbp - energy, "accepted_half_hours": accepted}
 
 
 def policy_schedules(m: C.Market, day: str, event_days: list[str], zone: str, value: float,
