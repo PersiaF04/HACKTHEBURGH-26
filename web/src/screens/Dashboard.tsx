@@ -151,20 +151,26 @@ export function Dashboard() {
   const windowLine = useMemo(() => {
     const ds = (daily.data?.days ?? []).filter((d) => d.curtailed_mwh != null);
     if (!ds.length) return null;
-    return `${fmtEnergy(ds.reduce((s, d) => s + (d.curtailed_mwh ?? 0), 0))} switched off across ${ds.length} days with data, ${fmtDay(ds[0].date).replace(/ \d{4}$/, "")} to ${fmtDay(ds[ds.length - 1].date)}.`;
+    return `${fmtEnergy(ds.reduce((s, d) => s + (d.curtailed_mwh ?? 0), 0))} of accepted turn-down across ${ds.length} days with data, ${fmtDay(ds[0].date).replace(/ \d{4}$/, "")} to ${fmtDay(ds[ds.length - 1].date)}.${daily.data?.validation?.n_days ? ` Reconciled against NESO over a ${daily.data.validation.n_days}-day window.` : ""}`;
   }, [daily.data]);
   const dayLine = useMemo(() => {
     if (!series.off.length || !replay.data || isLive) return null;
     const peak = series.off.reduce((b, v, k) => (v > series.off[b] ? k : b), 0);
     const paid = series.cumGbp[series.cumGbp.length - 1];
-    return `${shortDay(replay.data.date)}: up to ${series.off[peak]} farms off at once, ${fmtEnergy(dayTotal)} lost${paid ? `, ${fmtGbp(paid)} paid` : ""}.`;
+    return `${shortDay(replay.data.date)}: up to ${series.off[peak]} farms with accepted bids at once, ${fmtEnergy(dayTotal)} accepted turn-down${paid ? `, ${fmtGbp(paid)} paid` : ""}.`;
   }, [series, replay.data, isLive, dayTotal]);
+  // Two published series measure this day differently, so the figures on screen say which is which.
+  const sourceNote = useMemo(() => {
+    const other = daily.data?.days.find((d) => d.date === replay.data?.date)?.curtailed_mwh;
+    if (isLive || other == null || !dayTotal) return null;
+    return `Whole day: ${fmtEnergy(dayTotal)} from Elexon accepted bid volumes (shown here). NESO's wind volumes series says ${fmtEnergy(other)}.`;
+  }, [daily.data, replay.data, isLive, dayTotal]);
   const cableLine = useMemo(() => {
     const bs = (replay.data?.periods ?? []).map(boundaryOf).filter((b): b is NonNullable<typeof b> => b != null);
     if (!bs.length) return null;
     const lo = Math.min(...bs.map((b) => b.limit)), hi = Math.max(...bs.map((b) => b.limit));
     const flows = bs.map((b) => b.flow);
-    return `Cables south: published limit ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW; NESO day-ahead forecast ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW wanting to flow. Above the limit signals potential constraint pressure. Not outturn.`;
+    return `Cables south: published limit ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW; NESO day-ahead forecast flow ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW. Above the limit signals potential constraint pressure, not proof. Not outturn.`;
   }, [replay.data]);
 
   const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null), [farms.data]);
@@ -193,7 +199,7 @@ export function Dashboard() {
       <header className="dash-top">
         <div className="dash-brand">
           <h1 className="dash-title">Turn Up Scotland</h1>
-          <p className="dash-lede">When Scotland's cables south are full, NESO pays wind farms to switch off. <span className="dash-lede-key">Orange = paid to stop right now.</span></p>
+          <p className="dash-lede">When Scotland's cables south are full, NESO pays wind farms to switch off. <span className="dash-lede-key">Orange = NESO accepted a bid to turn down.</span></p>
         </div>
         <SectionNav />
       </header>
@@ -202,14 +208,15 @@ export function Dashboard() {
         <div className="dash-kpis">
           <Kpi value={fmtEnergy(series.cumMwh[at])} label="wind wasted so far" hint={period ? `by ${fmtTime(period.start_utc)}` : undefined} tone="stopped" tip={homesTip(series.cumMwh[at])} />
           <Kpi value={fmtGbp(series.cumGbp[at])} label="paid to wind so far" hint={isLive && series.cumGbp[at] == null ? "settles next morning" : undefined} />
-          <Kpi value={period ? `${series.off[at]}` : "—"} label={`of ${total || "—"} farms off now`} />
-          <Kpi value={fill ? fmtFill(fill.fill) : "—"} label="of NESO's call answered" hint={fill ? `${fmtDay(fill.from).replace(/ \d{4}$/, "")}–${fmtDay(fill.to)}` : undefined} />
+          <Kpi value={period ? `${series.off[at]}` : "—"} label={`of ${total || "—"} farms with accepted bids now`} />
+          <Kpi value={fill ? fmtFill(fill.fill) : "—"} label="of requested turn-up procured" hint={fill ? `all requests, ${fmtDay(fill.from).replace(/ \d{4}$/, "")}–${fmtDay(fill.to)}` : undefined} />
         </div>
+        {sourceNote && <p className="dash-kpi-note">{sourceNote}</p>}
         <section className="dash-explain">
           <h2>What's going on</h2>
           <p>Scotland has far more wind than it uses. The surplus travels to England over a handful of high-voltage cables, and on windy days they are full.</p>
           <h2>Why it's a problem</h2>
-          <p>Then NESO, the grid operator, pays wind farms to switch off and pays gas plants in England to switch on. Bill payers fund both: clean power is thrown away and gas is burned.</p>
+          <p>Then NESO, the grid operator, pays wind farms to turn down. It also pays gas plants to turn up, and a far larger sum is spent managing the constraint overall. These are parallel measures, not additive.</p>
         </section>
         <AskingCard data={dfs.data} date={date} />
         <BillCard data={iceberg.data} />
@@ -236,10 +243,10 @@ export function Dashboard() {
                 <span className="dash-clock-day">
                   {isLive ? <><b className="dash-live-tag">Live</b> estimate · {shortDay(date)}</> : <>{shortDay(date)} · replay, retrospective</>}
                 </span>
-                {isLive && series.off[at] === 0 && <span className="dash-clock-day">No farms are paid to switch off right now. Try a replay day.</span>}
+                {isLive && series.off[at] === 0 && <span className="dash-clock-day">No farms have an accepted bid right now. Try a replay day.</span>}
               </div>
               <DashMap farms={placed} period={period} showLines={showLines} lines={grid}
-                label={`Wind farm states at ${fmtTime(period.start_utc)} on ${fmtDay(date)}: ${series.off[at]} of ${total} paid to switch off`}
+                label={`Wind farm states at ${fmtTime(period.start_utc)} on ${fmtDay(date)}: ${series.off[at]} of ${total} with an accepted bid to turn down`}
                 pin={pin} pinOn={onNow} onMovePin={setPin} />
               <MapLegend unplaced={farms.data.farms.length - placed.length} />
               {showLines && grid.length > 0 && (
@@ -258,15 +265,15 @@ export function Dashboard() {
         {boundary && showLines && (
           <p className="dash-pipe-note">
             <strong>Cables south: {boundary.flow > boundary.limit ? `${(boundary.flow / boundary.limit).toFixed(1)}× over the limit` : `${Math.round((boundary.flow / boundary.limit) * 100)}% full`} (estimate).</strong>{" "}
-            NESO day-ahead forecast: {fmtNum(boundary.flow)} MW wanting to flow; published limit {fmtNum(boundary.limit)} MW. Forecast demand on the cables vs their limit, not outturn. Above the limit signals potential constraint pressure.
+            NESO day-ahead forecast flow: {fmtNum(boundary.flow)} MW; published limit {fmtNum(boundary.limit)} MW. Forecast demand on the cables vs their limit, not outturn. Above the limit signals potential constraint pressure, not proof.
           </p>
         )}
 
         <section className={`dash-time${coachOn("timeline")}`} aria-label="The day, half-hour by half-hour">
           <div className="dash-time-head">
-            <h2 className="dash-time-title">Wind switched off</h2>
+            <h2 className="dash-time-title">Accepted turn-down bids</h2>
             <ul className="dash-time-key">
-              <li><i className="tk tk-area" aria-hidden="true" />MWh off</li>
+              <li><i className="tk tk-area" aria-hidden="true" />MWh accepted</li>
               <li title="NESO's Demand Flexibility Service (DFS) requests"><i className="tk tk-ask" aria-hidden="true" />NESO asked</li>
               <li><i className="tk tk-ready" aria-hidden="true" />Copilot ready</li>
               {hasProb && <li title="Walk-forward: the model saw only earlier days"><i className="tk tk-prob" aria-hidden="true" />Forecast chance</li>}

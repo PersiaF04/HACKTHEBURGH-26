@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { SCOTLAND_PATH } from "../assets/scotland";
 import { fmtEnergy, fmtGbp, fmtNum, type FarmPeriod, type FarmState, type GridLine, type ReplayPeriod } from "../data";
 import { boundaryOf } from "../sandbox";
-import { project, STATE_LABEL, type PlacedFarm } from "../screens/WasteMap";
+import { project, type PlacedFarm } from "../screens/WasteMap";
+
+// What the data verifies: a bid was accepted. It does not show delivered turn-down.
+const STATE_TEXT: Record<FarmState, string> = {
+  generating: "Generating", instructed: "Accepted bid to turn down", unavailable: "Unavailable (not paid)", unknown: "No planned output",
+};
 
 // The map is tilted by a small perspective projection rather than CSS 3D, so turbines stay upright and clicks map exactly.
 // Input is the 520x640 space of WasteMap's project(); north recedes from the viewer.
@@ -61,11 +66,11 @@ function FarmDetail({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPer
         </div>
         {pinned && <button type="button" className="dm-card-close" onClick={onClose} aria-label="Unpin farm details">×</button>}
       </div>
-      <div className={`dm-card-state st-${s}`}><Glyph state={s} />{STATE_LABEL[s]}</div>
+      <div className={`dm-card-state st-${s}`}><Glyph state={s} />{STATE_TEXT[s]}</div>
       <dl>
         <dt>Capacity</dt><dd>{farm.capacity_mw == null ? "—" : `${fmtNum(farm.capacity_mw)} MW`}</dd>
         <dt>Planned output</dt><dd>{p?.pn_mw == null ? "—" : `${fmtNum(p.pn_mw)} MW`}</dd>
-        <dt>Switched off, this half-hour</dt><dd>{fmtEnergy(p?.curtailed_mwh)}</dd>
+        <dt>Accepted turn-down, this half-hour</dt><dd>{fmtEnergy(p?.curtailed_mwh)}</dd>
         <dt>Paid, this half-hour</dt><dd>{fmtGbp(p?.paid_gbp)}</dd>
       </dl>
     </div>
@@ -177,10 +182,10 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
               Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit (estimate)` : `  ${Math.round(ratio * 100)}% full (estimate)`}</tspan>}
             </text>
             <text className="dm-pipe-sub" x={262} y={637}>
-              {boundary ? `NESO forecast: ${fmtNum(boundary.flow)} MW wanting to flow; limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
+              {boundary ? `NESO day-ahead forecast flow: ${fmtNum(boundary.flow)} MW; published limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
             </text>
             {boundary && <text className="dm-pipe-sub" x={262} y={651}>Forecast demand on the cables vs their limit, not outturn.</text>}
-            {boundary && over && <text className="dm-pipe-sub" x={262} y={665}>Above the limit signals potential constraint pressure.</text>}
+            {boundary && over && <text className="dm-pipe-sub" x={262} y={665}>Above the limit signals potential constraint pressure, not proof.</text>}
           </g>
         )}
 
@@ -224,9 +229,9 @@ function Glyph({ state }: { state: FarmState }) {
 export function MapLegend({ unplaced }: { unplaced: number }) {
   return (
     <ul className="dm-legend" aria-label="Map key">
-      <li><Glyph state="generating" />Generating</li>
-      <li><Glyph state="instructed" />Paid to switch off</li>
-      <li><Glyph state="unavailable" />Outage</li>
+      <li><Glyph state="generating" />{STATE_TEXT.generating}</li>
+      <li><Glyph state="instructed" />{STATE_TEXT.instructed}</li>
+      <li><Glyph state="unavailable" />{STATE_TEXT.unavailable}</li>
       <li className="dm-legend-note">Each turbine is a wind farm; bigger means more capacity.{unplaced > 0 && ` ${unplaced} not yet located.`}</li>
     </ul>
   );

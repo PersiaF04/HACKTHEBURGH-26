@@ -26,8 +26,8 @@ const money = (v: number) => (v >= 1e9 ? `£${(v / 1e9).toFixed(2)}bn` : `£${Ma
 export function BillCard({ data }: { data: Iceberg | null }) {
   if (!data) return null;
   const rows = [
-    { k: "wind", label: "Paid to wind to stop", v: data.wind_bids_gbp },
-    { k: "gas", label: "Gas turn-up offers", v: data.ccgt_offers_gbp },
+    { k: "wind", label: "Paid to Scottish wind to stop", v: data.wind_bids_gbp },
+    { k: "gas", label: "CCGT offers (include energy balancing)", v: data.ccgt_offers_gbp },
     { k: "neso", label: "NESO constraint cost", v: data.neso_thermal_gbp },
   ];
   const max = Math.max(...rows.map((r) => r.v));
@@ -61,7 +61,7 @@ export function AskingCard({ data, date }: { data: DfsRequests | null; date: str
   const show: DfsRequest[] = today.length ? today : lastEvent;
   const peakProc = Math.max(...show.map((r) => r.procured_mw ?? 0));
   return (
-    <RailCard eyebrow="NESO is asking · retrospective" title={`NESO asked for ~${fmtNum(roughly(required / 2))} MWh. It got ~${fmtNum(roughly(procured / 2))}.`} href="#help" link="Help wanted">
+    <RailCard eyebrow="NESO is asking · retrospective" title={`NESO asked for ~${fmtNum(roughly(required / 2))} MWh. ~${fmtNum(roughly(procured / 2))} MWh was procured.`} href="#help" link="Help wanted">
       <div className="rc-gauge" role="img" aria-label={`Procured ${fmtNum(procured / 2)} MWh of ${fmtNum(required / 2)} MWh requested`}>
         <div className="rc-gauge-track"><span style={{ width: `${Math.max(fill * 100, 0.8)}%` }} /></div>
         <div className="rc-gauge-legend"><span>{fmtFill(fill)} of requested turn-up procured</span><span>{fmtDay(sorted[0].start_utc.slice(0, 10)).replace(/ \d{4}$/, "")}–{fmtDay(last.start_utc.slice(0, 10))}</span></div>
@@ -99,7 +99,7 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
   const label = data.mode === "same_day_replay" ? `Forecast replay · ${shortDay(ps[0].start_utc)}` : `Tomorrow · ${shortDay(ps[0].start_utc)}`;
   return (
     <RailCard eyebrow={`${label} · model forecast`} href="#tomorrow" link="Predictions" className={headline && !calm ? "rc-long" : ""}
-      title={calm ? "Tomorrow looks calm — no waste expected"
+      title={calm ? "Tomorrow looks calm — little or no wasted wind expected"
         : headline ?? (hasP && pMax > 0 ? `${Math.round(pMax * 100)}% chance NESO asks for turn-up` : "No turn-up request expected")}>
       <svg className="rc-spark" viewBox={`0 0 ${W} ${H + 14}`} role="img"
         aria-label={`Forecast for ${n} half-hours. Peak chance of a turn-up request ${Math.round(pMax * 100)} percent. Median curtailment ${fmtNum(total)} MWh in total.`}>
@@ -111,7 +111,7 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
         ))}
       </svg>
       <p className="rc-note">
-        <i className="rc-k rc-k-p" aria-hidden="true" />Chance NESO asks{peakIdx.length > 0 && <> up to {Math.round(pMax * 100)}%, {hhmm(ps[peakIdx[0]].start_utc)}–{hhmm(plus30(ps[peakIdx[peakIdx.length - 1]].start_utc))}</>}
+        <i className="rc-k rc-k-p" aria-hidden="true" />Chance NESO asks{peakIdx.length > 0 && <> up to {Math.round(pMax * 100)}%, {hhmm(ps[peakIdx[0]].start_utc)}–{hhmm(ps[peakIdx[peakIdx.length - 1]].start_utc)} UTC</>}
         <i className="rc-k rc-k-c" aria-hidden="true" />median switch-off {total ? `${fmtNum(total)} MWh` : "none"}
       </p>
     </RailCard>

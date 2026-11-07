@@ -58,7 +58,7 @@ export function Timeline({ points, at, onSeek }: { points: TimelinePoint[]; at: 
     onSeek(Math.max(0, Math.min(n - 1, to)));
   };
   const cur = points[at];
-  const valueText = cur ? `${hhmm(cur.start_utc)} UTC, ${fmtNum(cur.mwh)} MWh switched off${cur.asked ? ", NESO turn-up request open" : ""}${cur.ready != null ? ", copilot ready" : ""}` : "";
+  const valueText = cur ? `${hhmm(cur.start_utc)} UTC, ${fmtNum(cur.mwh)} MWh of accepted turn-down${cur.asked ? ", NESO turn-up request open" : ""}${cur.ready != null ? ", copilot ready" : ""}` : "";
 
   return (
     <div className="tl-plot" ref={ref}>

@@ -88,7 +88,7 @@ export function PlaceLoad({ settings, onChange, result, onNow, pot, dayLabel }: 
           </details>
         </>
       ) : (
-        <p className="pl-note">NESO made no call for extra demand on this day, so a flexible load had nothing to answer. Pick another day.</p>
+        <p className="pl-note">No bid of yours would have been accepted on this day. Pick another day.</p>
       )}
     </section>
   );
