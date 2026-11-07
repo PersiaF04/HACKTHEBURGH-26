@@ -93,3 +93,57 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
 .table th, .table td { padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--hairline); }
 .table th { font-size: 13px; color: var(--muted); font-weight: 600; }
 .table tr:last-child td { border-bottom: 0; }
+
+/* Tomorrow + Under the Hood */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chart { margin: 0 0 20px; padding: 20px 20px 16px; }
+.chart svg, .reliability svg { width: 100%; height: auto; display: block; overflow: visible; }
+.grid line { stroke: var(--hairline); }
+.grid text, .tick { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.axis-title { fill: var(--muted); font-size: 12px; font-weight: 600; }
+.hit { fill: transparent; }
+.hit:hover { fill: color-mix(in srgb, var(--text) 5%, transparent); }
+.fc-band { fill: color-mix(in srgb, var(--wind) 28%, transparent); }
+.fc-median { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+.fc-heavy { fill: color-mix(in srgb, var(--stopped) 78%, var(--text)); }
+.fc-turnup { fill: none; stroke: var(--neso); stroke-width: 2; stroke-dasharray: 6 4; }
+.key { display: inline-block; width: 18px; height: 10px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+.key-band { background: color-mix(in srgb, var(--wind) 28%, transparent); }
+.key-line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; }
+.key-bar { width: 8px; background: color-mix(in srgb, var(--stopped) 78%, var(--text)); }
+.key-dash, .key-neso { height: 0; border-top: 2px dashed var(--neso); border-radius: 0; }
+.key-ours { height: 0; border-top: 2px solid color-mix(in srgb, var(--stopped) 75%, var(--text)); border-radius: 0; }
+.fc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
+.fc-head p { margin: 0; }
+.retro { padding: 8px 14px; border-radius: 12px; font-size: 14px; max-width: 620px;
+  background: color-mix(in srgb, var(--stopped) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--stopped) 45%, transparent); }
+.retro strong { margin-right: 6px; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px; }
+.section-title { margin: 44px 0 6px; font-size: 28px; letter-spacing: -0.02em; }
+.section-lede { margin: 0 0 20px; max-width: 760px; }
+.backtest { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.metric { margin: 0; padding: 20px; }
+.metric h3 { margin: 0; font-size: 17px; }
+.metric > p { margin: 2px 0 14px; }
+.metric-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.metric-rows li { display: grid; grid-template-areas: "name value" "track track"; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 14px; }
+.metric-name { grid-area: name; color: var(--muted); }
+.metric-value { grid-area: value; font-variant-numeric: tabular-nums; font-weight: 600; }
+.metric-track { grid-area: track; height: 6px; border-radius: 999px; background: var(--hairline); overflow: hidden; }
+.metric-bar { display: block; height: 100%; border-radius: 999px; background: var(--outage); }
+.metric-rows .ours .metric-name { color: var(--text); font-weight: 600; }
+.metric-rows .ours .metric-bar { background: var(--accent); }
+.reliability figcaption { margin-top: 8px; }
+.diag { stroke: var(--muted); stroke-dasharray: 4 4; }
+.rel-line { fill: none; stroke: var(--accent); stroke-width: 2; }
+.rel-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+.hood-ours { fill: none; stroke: color-mix(in srgb, var(--stopped) 75%, var(--text)); stroke-width: 1.75; stroke-linejoin: round; }
+.hood-neso { fill: none; stroke: var(--neso); stroke-width: 1.5; stroke-dasharray: 5 3; stroke-linejoin: round; }
+.hood-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .hood-grid { grid-template-columns: 1fr; } }
+.method, .reconcile { padding: 24px; }
+.method h2, .reconcile h2 { margin: 0 0 12px; font-size: 21px; letter-spacing: -0.01em; }
+.method dl { margin: 0; }
+.method dt { font-weight: 600; margin-top: 14px; }
+.method dt:first-of-type { margin-top: 0; }
+.method dd { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.reconcile .table th, .reconcile .table td { padding: 10px 12px; }
