@@ -15,7 +15,7 @@ Every figure was recomputed from `data/public/` on `main` (generated 2026-11-07)
 | # | Sec | Screen recording (exact app state) | Voice-over | On-screen caption | Source of numbers |
 | --- | --- | --- | --- | --- | --- |
 | 1 | 0:00 to 0:08 (8) | Title card "Turn Up Scotland" on dark, then cut to **The Waste** (`#waste`) with **27 Oct 2026** chosen in the day picker, scrubber at 00:00, nothing playing. | "When the cables south are full, Scotland pays wind farms to switch off." | Turn Up Scotland | None. |
-| 2 | 0:08 to 0:22 (14) | Same screen. Press **Play** and let the day run to the end; the farms grey out and the counters climb. Hold the last frame 3 seconds on the end-of-day totals. | "On 27 October, 168 gigawatt-hours of Scottish wind was curtailed, and about £6.4 million was paid to switch it off. One day." | 27 Oct 2026: 168 GWh curtailed, about £6.4M paid to wind | `curtailment_daily.json`: 168,351 MWh and £6,424,730, the largest of 220 days. |
+| 2 | 0:08 to 0:22 (14) | Same screen. Press **Play** and let the day run to the end; the farms grey out and the counters climb. Hold the last frame 3 seconds on the end-of-day totals. | "On 27 October, 168 gigawatt-hours of Scottish wind was curtailed, and about £6.4 million was paid to switch it off. One day." | 27 Oct 2026: 168 GWh curtailed, about £6.4M paid to wind | `curtailment_daily.json`: 168,351 MWh and £6,424,730, the largest of the 192 days with data. |
 | 3 | 0:22 to 0:34 (12) | Same screen, only if the build shows the SCOTEX lines: scrub to 12:00 UTC and hover the border line. If the build does not show them, skip this shot and extend shot 2. | "NESO's day-ahead forecast had more flow wanting to go south than the limit allowed, all day. That signals potential constraint pressure. It is a forecast, not a measurement." | Day-ahead forecast flow vs limit. Potential pressure, not proof. | `replay/2026-10-27.json`: forecast flow 10,234 to 12,713 MW, above the limit in all 48 half-hours; limit 4,850 MW early, then 2,800 MW. |
 | 4 | 0:34 to 0:46 (12) | **Hidden Bill** (`#iceberg`), no interaction. Slow push in from the wind bar to the two bars below the waterline. | "The £188 million paid to wind is the visible part. Gas turn-up offers and NESO's own constraint cost are each about £1.8 billion over the same 210 days. They overlap, so you cannot add them." | £188M to wind. About £1.8B and £1.8B beneath. Parallel measures, not a sum. | `iceberg.json`: 187,995,768; 1,814,407,407; 1,787,705,531; 210 days. |
 | 5 | 0:46 to 1:00 (14) | **Help Wanted** (`#help`). Point at the fill bar, then the zone caption. | "Since October, NESO has asked flexible demand to switch on. Across 30 requests it asked for 81,000 megawatt-hours and procured about 38. Zones are NESO's IDs, not places." | Asked: 81,000 MWh. Procured: about 38 MWh (0.046%). | `dfs_requests.json`: 81,000 MWh required and 37.65 MWh procured over 30 events, 324 half-hours, 8 to 31 Oct. |
@@ -50,7 +50,7 @@ When the transmission lines out of Scotland are full, NESO pays wind farms to st
 
 Turn Up Scotland is a seven-screen web app built only on public NESO and Elexon data.
 
-- **The Waste** replays a day farm by farm. On 27 Oct 2026, 168 GWh was curtailed and about £6.4M paid to wind; from 1 Apr to 6 Nov the series sums to about 7.12 TWh.
+- **The Waste** replays a day farm by farm. On 27 Oct 2026, 168 GWh was curtailed and about £6.4M paid to wind; from 1 Apr to 6 Nov the recorded days sum to about 7.12 TWh (192 of 220 days have data, so it is a floor).
 - **Hidden Bill** sets £188M paid to wind against two parallel measures over the same 210 days: £1.8B of gas turn-up offers and £1.8B of NESO's published thermal constraint cost. They overlap and are not added.
 - **Help Wanted** shows the 30 DFS turn-up requests since 8 October: 81,000 MWh asked for, about 38 procured. Zones are NESO IDs, not places.
 - **Tomorrow** gives a half-hourly day-ahead curtailment forecast (P10, P50, P90), the chance of a heavy period and of a turn-up request, with a chronological backtest beside every score.
@@ -120,8 +120,8 @@ We make three hidden layers visible, each checked against a published source.
 
 | Figure | Value | File and field |
 | --- | --- | --- |
-| 27 Oct curtailed and paid | 168,351 MWh; £6,424,730; largest of 220 days | `data/public/curtailment_daily.json` `days[]` |
-| Curtailed 1 Apr to 6 Nov | 7,116,615 MWh (about 7.12 TWh), 220 days | `data/public/curtailment_daily.json`, sum of `curtailed_mwh` |
+| 27 Oct curtailed and paid | 168,351 MWh; £6,424,730; largest of the 192 days with data | `data/public/curtailment_daily.json` `days[]` |
+| Curtailed 1 Apr to 6 Nov | 7,116,615 MWh (about 7.12 TWh), recorded across 192 of 220 days (28 have no figure; a floor) | `data/public/curtailment_daily.json`, sum of `curtailed_mwh` |
 | Correlation with NESO, volume ratio | 0.915; 0.837; 186 days to 29 Oct | `data/public/curtailment_daily.json` `validation` |
 | Days not reconciling | 76 of 220 (10 with no NESO figure) | Under the Hood table, from `data/public/curtailment_daily.json` (carried from `DEMO.md`; not recomputed here) |
 | SCOTEX 27 Oct | forecast flow 10,234 to 12,713 MW; limit 4,850 then 2,800 MW; flow above limit in 48 of 48 half-hours | `data/public/replay/2026-10-27.json` `periods[].scotex_flow_mw`, `scotex_limit_mw` |
