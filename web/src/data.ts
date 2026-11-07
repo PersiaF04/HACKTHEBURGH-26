@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Types mirror contracts/README.md (data contract v1).
-export interface Meta { source: string[]; generated_utc: string; retrospective: boolean; fixture?: boolean }
+export interface Meta { source: string[]; generated_utc: string; retrospective: boolean; fixture?: boolean; target_note?: string }
 export interface Farm { id: string; name: string; region: string; lat: number | null; lon: number | null; capacity_mw: number | null }
 export type FarmState = "generating" | "instructed" | "unavailable" | "unknown";
 export interface FarmPeriod { pn_mw: number | null; level_mw: number | null; curtailed_mwh: number | null; paid_gbp: number | null; state: FarmState }
@@ -16,6 +16,26 @@ export interface DfsRequest {
 }
 export interface DfsRequests { meta: Meta; requests: DfsRequest[] }
 export interface Farms { meta: Meta; farms: Farm[] }
+// Optional fields from the model lane (#48). When they are present, `gbp` is net: settlement + site value - electricity.
+export interface PolicyResult {
+  gbp: number; mwh: number;
+  gross_settlement_gbp?: number; energy_cost_gbp?: number; value_gbp?: number; accepted_periods?: number; bid_periods?: number;
+}
+export type PolicyNet = { naive: number; ours: number; oracle?: number };
+export interface CopilotSensitivityPoint { value_gbp_per_mwh: number; net_gbp: PolicyNet; pct_of_oracle?: number }
+export interface CopilotSlot { start_utc: string; action: string; bid_gbp_per_mwh: number | null }
+export interface CopilotDay { date: string; policies: { naive: PolicyResult; ours: PolicyResult; oracle: PolicyResult }; schedule: CopilotSlot[] }
+export interface Copilot {
+  meta: Meta & { scored_days?: number; warmup_days?: number };
+  load: { type: string; capacity_mw: number; zone: string; value_gbp_per_mwh?: number; max_periods_per_day?: number };
+  days: CopilotDay[];
+  summary: {
+    pct_of_oracle: number; gross_settlement_gbp: number; caveat: string;
+    energy_cost_gbp?: number; net_gbp?: PolicyNet; break_even_value_gbp_per_mwh?: Partial<PolicyNet>;
+    ours_beats_naive_at_values_gbp_per_mwh?: number[];
+  };
+  sensitivity?: CopilotSensitivityPoint[];
+}
 
 type State<T> = { data: T | null; error: string | null };
 
@@ -43,3 +63,18 @@ export const fmtEnergy = (mwh: number | null | undefined) => {
   return `${num.format(mwh)} MWh`;
 };
 export const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+export interface ForecastPeriod {
+  start_utc: string; curtailed_mwh_p10: number | null; curtailed_mwh_p50: number | null; curtailed_mwh_p90: number | null;
+  p_heavy: number | null; p_turnup_request?: number | null;
+}
+export interface ReliabilityBin { bin: number; predicted: number; observed: number; n: number }
+export interface Forecast {
+  meta: Meta; issued_utc: string; mode?: "next_day" | "same_day_replay"; periods: ForecastPeriod[];
+  backtest: {
+    test_window: [string, string]; n_periods: number;
+    mae_mwh: { model: number; persistence: number; training_mean: number; headroom_rule?: number };
+    brier_heavy: { model: number; persistence: number; prior: number; headroom_rule?: number };
+    auc_heavy: { model: number; persistence: number; headroom_rule?: number };
+    reliability: ReliabilityBin[];
+  };
+}
