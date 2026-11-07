@@ -145,3 +145,30 @@ def national_wind_forecast(refresh: bool = False) -> dict[tuple[str, int], float
                 for r in fetch.datastore_all(rid) if str(r["Date"])[:10] >= "2025-04-01"]
     return {(str(d)[:10], int(sp)): f / c
             for d, sp, f, c in fetch.cached("national_wind_hist", refresh, build) if f is not None and c}
+
+
+def market_index(days: list[str], refresh: bool = False) -> dict[tuple[str, int], float]:
+    """Wholesale market index price, GBP/MWh per half-hour, volume-weighted across data providers.
+
+    Used as the Copilot's electricity price proxy. It is a market index, not any site's tariff.
+    """
+    from .timeutil import iso_z, parse_date, sp_start_utc
+    import datetime as dt
+
+    def build():
+        out = {}
+        for d in days:
+            t0 = sp_start_utc(parse_date(d), 1)
+            t1 = t0 + dt.timedelta(hours=24)
+            url = f"{fetch.ELEXON}/balancing/pricing/market-index?from={iso_z(t0)}&to={iso_z(t1)}&format=json"
+            for r in fetch.get_json(url)["data"]:
+                if r.get("volume") and r["volume"] > 0 and r.get("price") is not None:
+                    out.setdefault(f"{d}|{r['settlementPeriod']}", []).append([r["price"], r["volume"]])
+        return out
+    raw = fetch.cached("market_index_" + "_".join([days[0], days[-1], str(len(days))]) if days else "market_index_none",
+                       refresh, build)
+    prices = {}
+    for key, lst in raw.items():
+        d, sp = key.split("|")
+        prices[(d, int(sp))] = sum(p * v for p, v in lst) / sum(v for _, v in lst)
+    return prices
