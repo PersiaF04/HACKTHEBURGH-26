@@ -25,6 +25,9 @@ from . import fetch, http, sources
 log = logging.getLogger("turnup.live")
 INTERVAL_SECONDS = 300
 SCOTEX_MAX_AGE_SECONDS = 3600
+# Periods that started within this window are re-downloaded every refresh (bypassing the permanent cache), so a
+# response cached while still empty or incomplete cannot stay stale; older periods are settled and stay cached.
+REFRESH_WINDOW = dt.timedelta(hours=2)
 GIST_STATE = bf.REPO_ROOT / "data" / "cache" / "live_gist.json"  # gitignored; holds the gist id
 
 
@@ -88,8 +91,9 @@ def build_live(now: dt.datetime, farm_ids: set[str], physical=fetch.elexon_physi
             break
         end = start + dt.timedelta(minutes=30)
         seg = {"PN": collections.defaultdict(list), "MELS": collections.defaultdict(list)}
+        fresh = start > now - REFRESH_WINDOW
         for ds in seg:
-            for r in physical(ds, day, sp):
+            for r in physical(ds, day, sp, refresh=fresh):
                 if r["bmUnit"] in farm_ids:
                     seg[ds][r["bmUnit"]].append(r)
         farms = {}

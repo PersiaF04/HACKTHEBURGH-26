@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Types mirror contracts/README.md (data contract v1).
-export interface Meta { source: string[]; generated_utc: string; retrospective: boolean; fixture?: boolean; target_note?: string }
+export interface Meta { source: string[]; generated_utc: string; retrospective: boolean; fixture?: boolean; target_note?: string; live?: boolean }
 export interface Farm { id: string; name: string; region: string; lat: number | null; lon: number | null; capacity_mw: number | null }
 export type FarmState = "generating" | "instructed" | "unavailable" | "unknown";
 export interface FarmPeriod { pn_mw: number | null; level_mw: number | null; curtailed_mwh: number | null; paid_gbp: number | null; state: FarmState }
