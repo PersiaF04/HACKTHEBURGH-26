@@ -243,7 +243,7 @@
       {
        "id": "T_SGRWO-6",
        "name": "Seagreen 6",
-       "curtailed_mwh": 8230.3
+       "curtailed_mwh": 7921.4
       }
      ]
     }
@@ -253,7 +253,7 @@
      {
       "id": "T_SGRWO-6",
       "name": "Seagreen 6",
-      "curtailed_mwh": 8230.3
+      "curtailed_mwh": 7921.4
      }
     ]
    }
@@ -278,17 +278,17 @@
       {
        "id": "T_SGRWO-6",
        "name": "Seagreen 6",
-       "curtailed_mwh": 8374.9
+       "curtailed_mwh": 8247.3
       },
       {
-       "id": "T_MOWEO-2",
-       "name": "Moray Firth Eastern 2",
-       "curtailed_mwh": 6695.9
+       "id": "T_SGRWO-1",
+       "name": "Seagreen 1",
+       "curtailed_mwh": 6384.9
       },
       {
-       "id": "T_MOWEO-3",
-       "name": "Moray Firth Eastern 3",
-       "curtailed_mwh": 6527.9
+       "id": "T_MOWWO-4",
+       "name": "Moray West 4",
+       "curtailed_mwh": 6347.3
       }
      ]
     }
@@ -298,17 +298,17 @@
      {
       "id": "T_SGRWO-6",
       "name": "Seagreen 6",
-      "curtailed_mwh": 8374.9
+      "curtailed_mwh": 8247.3
      },
      {
-      "id": "T_MOWEO-2",
-      "name": "Moray Firth Eastern 2",
-      "curtailed_mwh": 6695.9
+      "id": "T_SGRWO-1",
+      "name": "Seagreen 1",
+      "curtailed_mwh": 6384.9
      },
      {
-      "id": "T_MOWEO-3",
-      "name": "Moray Firth Eastern 3",
-      "curtailed_mwh": 6527.9
+      "id": "T_MOWWO-4",
+      "name": "Moray West 4",
+      "curtailed_mwh": 6347.3
      }
     ]
    }
@@ -333,7 +333,7 @@
       {
        "id": "T_SGRWO-6",
        "name": "Seagreen 6",
-       "curtailed_mwh": 10016.4
+       "curtailed_mwh": 8552.7
       }
      ]
     }
@@ -343,7 +343,7 @@
      {
       "id": "T_SGRWO-6",
       "name": "Seagreen 6",
-      "curtailed_mwh": 10016.4
+      "curtailed_mwh": 8552.7
      }
     ]
    }
@@ -715,7 +715,7 @@
       {
        "id": "T_SGRWO-6",
        "name": "Seagreen 6",
-       "curtailed_mwh": 8230.3
+       "curtailed_mwh": 7921.4
       }
      ]
     }
