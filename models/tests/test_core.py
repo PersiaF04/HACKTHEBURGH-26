@@ -192,3 +192,40 @@ def test_choose_target_never_calls_a_past_or_current_day_next_day():
 def test_choose_target_ignores_incomplete_future_snapshots():
     util = {**_snapshot("2026-11-07"), **_snapshot("2026-11-08", n=20)}
     assert F.choose_target(util, "2026-11-07") == ("2026-11-07", "same_day_replay")
+
+
+# ---- model selection (issue #58) ----------------------------------------------------------------
+import build_forecast as BF  # noqa: E402
+
+
+def test_select_prefers_flows_when_a_future_flows_snapshot_exists():
+    flows = _snapshot("2026-11-07", "2026-11-08")
+    wind = _snapshot("2026-11-08", "2026-11-09")
+    assert BF.select(flows, wind, "2026-11-07") == ("2026-11-08", "next_day", BF.FLOW)
+
+
+def test_select_falls_back_to_the_wind_forecast_for_the_next_day():
+    flows = _snapshot("2026-11-06", "2026-11-07")
+    wind = _snapshot("2026-11-07", "2026-11-08")
+    assert BF.select(flows, wind, "2026-11-07") == ("2026-11-08", "next_day", BF.WIND)
+
+
+def test_select_is_same_day_replay_when_nothing_covers_a_future_day():
+    flows = _snapshot("2026-11-06", "2026-11-07")
+    wind = _snapshot("2026-11-06", "2026-11-07")
+    assert BF.select(flows, wind, "2026-11-07") == ("2026-11-07", "same_day_replay", BF.FLOW)
+    assert BF.select(flows, {}, "2026-11-07") == ("2026-11-07", "same_day_replay", BF.FLOW)
+
+
+def test_headroom_baseline_is_omitted_when_the_feature_is_not_a_flow_utilisation():
+    rows, _ = synthetic_rows()
+    with_h = F.backtest(rows, test_start="2026-06-01", with_headroom=True)
+    without = F.backtest(rows, test_start="2026-06-01", with_headroom=False)
+    assert "headroom_rule" in with_h["mae_mwh"] and "headroom_rule" in with_h["auc_heavy"]
+    assert not any("headroom_rule" in without[k] for k in ("mae_mwh", "brier_heavy", "auc_heavy"))
+    assert without["mae_mwh"]["model"] == with_h["mae_mwh"]["model"]
+
+
+def test_leakage_note_names_the_vintage_problem_for_the_wind_model():
+    assert "later" in BF.leakage_note(BF.WIND) and "optimistic" in BF.leakage_note(BF.WIND)
+    assert "vintage is unknown" in BF.leakage_note(BF.FLOW)
