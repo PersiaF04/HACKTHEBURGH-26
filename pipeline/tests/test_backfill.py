@@ -118,3 +118,13 @@ def test_scotex_series_converts_local_time_and_clock_change():
     periods = [{"start_utc": "2026-10-13T23:00:00Z"}, {"start_utc": "2026-10-13T23:30:00Z"}]
     assert b.add_scotex(periods, s) == 1
     assert periods[0]["scotex_flow_mw"] == 4984 and periods[1]["scotex_limit_mw"] is None
+
+
+def test_scotex_lookup_failure_gives_null_fields_not_an_abort(monkeypatch):
+    def boom(refresh=False):
+        raise RuntimeError("NESO unreachable")
+    monkeypatch.setattr(b, "scotex_lookup", boom)
+    assert b.scotex_lookup_or_empty() == {}
+    periods = [{"start_utc": "2026-10-14T00:00:00Z"}]
+    assert b.add_scotex(periods, b.scotex_lookup_or_empty()) == 0
+    assert periods[0]["scotex_limit_mw"] is None and periods[0]["scotex_flow_mw"] is None

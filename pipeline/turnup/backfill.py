@@ -299,8 +299,10 @@ def build_daily_and_iceberg(start: str = WINDOW_START, end: str = WINDOW_END) ->
 
 FLOWS_RESOURCE = "38a18ec1-9e40-465d-93fb-301e80fd1352"
 SCOTEX_NOTE = ("scotex_limit_mw / scotex_flow_mw: NESO day-ahead constraint flows and limits for the SCOTEX "
-               "boundary (Scotland to England). flow is NESO's day-ahead forecast of the flow the market wants; "
-               "when it exceeds the limit, the excess must be turned down. Latest published values, not outturn.")
+               "boundary (Scotland to England). flow is NESO's day-ahead scheduled-flow forecast, made before later "
+               "changes and without expected constraint actions. When the flow is above the limit it signals "
+               "potential constraint pressure; it is not a measured flow and does not prove how much was turned "
+               "down. Latest published values, not outturn.")
 
 
 def scotex_series(rows: list[dict]) -> dict[str, tuple[float | None, float | None]]:
@@ -329,6 +331,15 @@ def scotex_lookup(refresh: bool = False) -> dict[str, tuple[float | None, float 
     rows = fetch.neso_resource("day-ahead-constraint-flows-and-limits", resource_id=FLOWS_RESOURCE,
                                refresh=refresh)
     return scotex_series(rows)
+
+
+def scotex_lookup_or_empty(refresh: bool = False) -> dict:
+    """The SCOTEX lookup, or an empty one if NESO cannot be reached: the fields are optional (null)."""
+    try:
+        return scotex_lookup(refresh)
+    except Exception as exc:  # noqa: BLE001 - optional supplementary data must not stop replay generation
+        log.warning("SCOTEX unavailable (%s); writing null scotex fields", exc)
+        return {}
 
 
 def add_scotex(periods: list[dict], scotex: dict[str, tuple[float | None, float | None]]) -> int:
@@ -470,7 +481,7 @@ def build_replay(day: str, farm_ids: set[str], scotex: dict | None = None) -> di
                           "paid_gbp": round(cash.get((fid, sp), 0.0), 2),
                           "state": classify(pn, mel, curtailed)}
         periods.append({"sp": sp, "start_utc": iso_z(start), "farms": farms})
-    add_scotex(periods, scotex if scotex is not None else scotex_lookup())
+    add_scotex(periods, scotex if scotex is not None else scotex_lookup_or_empty())
     return {"meta": meta(["Elexon PN", "Elexon MELS", "Elexon indicative volumes (bids)",
                           "Elexon indicative cashflows (bids)",
                           "NESO day-ahead constraint flows and limits (SCOTEX)"],
@@ -516,7 +527,7 @@ def run(only: set[str]) -> None:
                         key=lambda d: -d["curtailed_mwh"])
         days = list(REPLAY_FIXED_DAYS)
         days += [d["date"] for d in ranked if d["date"] not in days][:REPLAY_EXTRA_DAYS]
-        scotex = scotex_lookup()
+        scotex = scotex_lookup_or_empty()
         for day in days:
             write_json(f"replay/{day}.json", build_replay(day, scot_ids, scotex), compact=True)
         write_replay_index()

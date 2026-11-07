@@ -58,4 +58,4 @@ With `--publish`, the poller uploads `live.json` after each refresh to an unlist
 
 ### Cables south (SCOTEX)
 
-Each replay period, and each live period, carries optional `scotex_limit_mw` and `scotex_flow_mw` from NESO's day-ahead constraint flows and limits dataset. NESO publishes them in UK local time; `scotex_series` converts them to UTC, including the repeated hour when the clocks go back. They are NESO's latest published day-ahead values, not measured outturn.
+Each replay period, and each live period, carries optional `scotex_limit_mw` and `scotex_flow_mw` from NESO's day-ahead constraint flows and limits dataset. NESO publishes them in UK local time; `scotex_series` converts them to UTC, including the repeated hour when the clocks go back. They are NESO's latest published day-ahead forecast values, not measured outturn. A flow above the limit signals potential constraint pressure; it does not prove how much was turned down. If NESO cannot be reached when replays are rebuilt, the fields are written as null and the build carries on.
