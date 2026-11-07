@@ -42,6 +42,7 @@ import numpy as np
 from . import backtest
 from .common import HORIZON_YEARS, LINK_THRESHOLD, MIN_PAPERS, Work, assert_purged
 from .concepts import CEILING_FRACTION, MAX_CONCEPTS, extract_phrases, select_vocabulary
+from .export_backtest import select_hits_misses
 
 log = logging.getLogger("whitespace.run_real")
 
@@ -351,6 +352,17 @@ def _write_manifest(out: Path, manifest: dict) -> None:
     (out / "run_manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
 
 
+def _examples(out: Path, config: RunConfig, artifacts: dict) -> dict:
+    """Top hits and misses per test origin from the runner's guarded artifacts (ids, scores, years)."""
+    result = {}
+    for key, art in artifacts.items():
+        hits, misses, note = select_hits_misses(
+            art["calibrated_score"], art["labels"], art["pairs"],
+            works=load_works(out, int(key)), horizon=config.horizon, origin=int(key))
+        result[key] = {"hits": hits, "misses": misses, "hits_note": note}
+    return result
+
+
 def run(corpus: Path, out: Path, config: RunConfig, *, caches_only: bool = False, dry_run: bool = False,
         override_one_shot: bool = False, origins: list[int] | None = None) -> dict:
     """Run the pipeline; returns the manifest (and writes it). ``metrics.json`` is written unless ``caches_only``."""
@@ -384,7 +396,12 @@ def run(corpus: Path, out: Path, config: RunConfig, *, caches_only: bool = False
             "backtest", backtest.run_backtest, lambda t: load_works(out, t), bt, guard=guard,
             override_one_shot=override_one_shot,
             data_label="dry-run synthetic (not data)" if dry_run else "real OpenAlex corpus",
-            generator=None)
+            generator=None, return_test_artifacts=True)
+        # the guarded artifacts are used here, once, to pick the example hits and misses (ids only);
+        # they are not JSON and are not kept, so nothing downstream re-reads a test label
+        artifacts = metrics.pop("artifacts", {})
+        (out / "backtest_examples.json").write_text(
+            json.dumps(_examples(out, config, artifacts), indent=1), encoding="utf-8")
         (out / "metrics.json").write_text(json.dumps(metrics, indent=1, default=float), encoding="utf-8")
         manifest["status"] = "complete"
         manifest["one_shot_override_used"] = metrics["one_shot_override_used"]
