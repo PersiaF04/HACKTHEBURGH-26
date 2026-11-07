@@ -4,7 +4,7 @@ The `Vercel preview` GitHub Actions workflow deploys same-repository pull reques
 
 ## Required repository secret
 
-Add `VERCEL_TOKEN` under **Settings → Secrets and variables → Actions** for this repository. Create the token in Vercel for the `persia3` team and grant it project deployment access to `whitespace`. Do not commit the token or put it in a workflow file.
+Add `VERCEL_TOKEN` under **Settings → Secrets and variables → Actions** for this repository. Create a standard account token at [Vercel Account Settings → Tokens](https://vercel.com/account/tokens) that can access the `persia3` team and `whitespace` project. The Vercel CLI uses an account token; a GitHub login connection or project environment variable is not a CLI token. Do not commit the token or put it in a workflow file.
 
 The workflow links to Vercel project `whitespace` in team `persia3` and runs from the repository root. The Vercel project is configured with `whitespace/web` as its root directory.
 
