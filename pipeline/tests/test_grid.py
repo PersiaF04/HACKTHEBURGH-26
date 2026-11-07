@@ -45,4 +45,8 @@ def test_committed_grid_file_shape():
     for l in g["lines"]:
         assert l["kv"] in (275, 400, 600) and len(l["coords"]) >= 2
         assert all(-9 < x < 0 and 53 < y < 60 for x, y in l["coords"])
-    assert any(l["id"] == "western-link" for l in g["lines"])
+    wl = next(l for l in g["lines"] if l["id"] == "western-link")
+    assert wl["southbound_link"] and not wl["crosses_border"] and wl["schematic"]
+    assert g["meta"]["attribution_url"].startswith("https://www.openstreetmap.org/")
+    assert g["counts"]["osm_ways"] == g["counts"]["lines"] - 1
+    assert g["counts"]["crossing_border"] == sum(l["crosses_border"] for l in g["lines"])

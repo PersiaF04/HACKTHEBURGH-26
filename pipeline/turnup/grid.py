@@ -4,7 +4,8 @@ Geometry comes from OpenStreetMap (ODbL, (c) OpenStreetMap contributors) through
 275 kV and 400 kV overhead lines from the Scottish mainland to 54.3 N in the north of England. Each line is
 tagged ``crosses_border`` when it spans or touches the Scotland-England border, so the web app can animate the
 flow across the Scotland-England boundary (SCOTEX) against NESO's limit. The Western HVDC link is a
-schematic straight line between its two converter stations because its subsea route is not mapped here.
+schematic route between its two converter stations (``southbound_link``, not ``crosses_border``) because its
+subsea route is not mapped here.
 
 Per-line flow is not published anywhere, so this file carries geometry only; the app scales the
 animation with ``scotex_flow_mw`` and ``scotex_limit_mw`` from the replay periods.
@@ -30,14 +31,17 @@ OVERPASS = "https://overpass-api.de/api/interpreter"
 QUERY = ('[out:json][timeout:120];way["power"="line"]'
          '["voltage"~"^(400000|275000|400000;275000|275000;400000)$"](54.3,-5.9,60.9,-0.7);out geom tags;')
 ATTRIBUTION = "Power line geometry (c) OpenStreetMap contributors, ODbL"
+LICENSE_URL = "https://www.openstreetmap.org/copyright"
 
 # Approximate Anglo-Scottish border as (lon, lat) so lines can be classed north or south of it.
 BORDER = [(-3.65, 54.96), (-3.06, 54.99), (-2.60, 55.30), (-2.25, 55.45), (-2.05, 55.79), (-1.9, 55.9)]
 
-# Western Link (HVDC, 2.2 GW): Hunterston to Flintshire Bridge. Schematic route.
+# Western Link (HVDC, 2.2 GW): Hunterston to Flintshire Bridge in Wales. Schematic subsea route. It does not
+# cross the Scotland-England land border, so it is not flagged crosses_border; southbound_link marks it as a
+# Scotland-to-south interconnector. Whether NESO counts its flow in SCOTEX is not confirmed here.
 HVDC = [{"id": "western-link", "name": "Western Link (HVDC, subsea)", "kv": 600, "capacity_mw": 2250,
          "coords": [[-4.898, 55.723], [-4.95, 55.2], [-4.4, 54.4], [-3.65, 53.55], [-3.07, 53.23]],
-         "crosses_border": True, "schematic": True}]
+         "crosses_border": False, "southbound_link": True, "schematic": True}]
 
 
 BORDER_TOUCH = 0.03  # degrees of latitude: a line this close to the border counts as a crossing circuit
@@ -120,15 +124,16 @@ def build(refresh: bool = False) -> dict:
     lines = build_lines(fetch_osm(refresh)) + HVDC
     crossing = [l for l in lines if l["crosses_border"]]
     return {
-        "meta": {"source": ["OpenStreetMap via Overpass API"], "attribution": ATTRIBUTION,
+        "meta": {"source": ["OpenStreetMap via Overpass API"], "attribution": ATTRIBUTION, "attribution_url": LICENSE_URL,
                  "generated_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  "retrospective": False,
                  "note": ("Geometry only: no per-line flow is published. Scale animation with scotex_flow_mw and "
                           "scotex_limit_mw. Lines are simplified and the border test is approximate. The Western Link "
-                          "route is schematic.")},
+                          "route is schematic and is not part of the border-crossing set.")},
         "border": [list(p) for p in BORDER],
-        "counts": {"lines": len(lines), "kv400": sum(l["kv"] == 400 for l in lines),
-                   "kv275": sum(l["kv"] == 275 for l in lines), "crossing_border": len(crossing)},
+        "counts": {"lines": len(lines), "osm_ways": len(lines) - len(HVDC),
+                   "kv400": sum(l["kv"] == 400 for l in lines), "kv275": sum(l["kv"] == 275 for l in lines),
+                   "crossing_border": len(crossing)},
         "lines": lines,
     }
 
