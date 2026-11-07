@@ -23,7 +23,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from . import cache, fetch, geo
-from .backfill_config import REPLAY_FIXED_DAYS, WINDOW_END, WINDOW_START
+from .backfill_config import REPLAY_EXTRA_DAYS, REPLAY_FIXED_DAYS, WINDOW_END, WINDOW_START
 
 log = logging.getLogger("turnup.backfill")
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -430,9 +430,16 @@ def build_replay(day: str, farm_ids: set[str]) -> dict:
             "date": day, "periods": periods}
 
 
+def write_replay_index() -> Path:
+    """replay/index.json: the replay days on disk, so the map's day picker can list them."""
+    days = sorted(p.stem for p in (PUBLIC / "replay").glob("*.json") if p.stem not in ("index", "live"))
+    return write_json("replay/index.json", {"meta": meta(["data/public/replay/*.json"]),
+                                            "days": days, "live": "live.json"})
+
+
 # ---------------------------------------------------------------- entry point
 
-STEPS = ("farms", "daily", "dfs", "replay")
+STEPS = ("farms", "daily", "dfs", "replay", "index")
 
 
 def run(only: set[str]) -> None:
@@ -446,6 +453,8 @@ def run(only: set[str]) -> None:
         if "daily" in only:
             write_json("curtailment_daily.json", daily)
             write_json("iceberg.json", iceberg)
+    if "index" in only and "replay" not in only:
+        write_replay_index()
     if "dfs" in only:
         write_json("dfs_requests.json", build_dfs())
     if "replay" in only:
@@ -454,12 +463,10 @@ def run(only: set[str]) -> None:
         ranked = sorted((d for d in daily["days"] if d["curtailed_mwh"] is not None),
                         key=lambda d: -d["curtailed_mwh"])
         days = list(REPLAY_FIXED_DAYS)
-        for d in ranked:
-            if d["date"] not in days:
-                days.append(d["date"])
-                break
+        days += [d["date"] for d in ranked if d["date"] not in days][:REPLAY_EXTRA_DAYS]
         for day in days:
             write_json(f"replay/{day}.json", build_replay(day, scot_ids), compact=True)
+        write_replay_index()
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -43,7 +43,7 @@ Each `.meta.json` holds `fetched_at`, the source's `last_modified`, the URL and 
 | `curtailment_daily.json` | NESO Wind BOA Volumes 2026/27; Elexon indicative bid cashflows; NESO Constraint Breakdown 2026-2027 | NESO BOA volumes are average MW per half hour, so MWh = MW / 2. Scottish means NESO Region North or South Scotland. `validation` compares our volume with NESO thermal constraint volume. |
 | `iceberg.json` | Elexon indicative cashflows (Scottish wind bids, GB CCGT offers); NESO Constraint Breakdown | A magnitude comparison, not a sum: CCGT offers also include energy balancing. |
 | `dfs_requests.json` | NESO DFS Service Requirement and DFS Utilisation Report | Live, Upwards, System requests only. `procured_mw` sums Accepted, Live utilisation rows for the same event and half hour. |
-| `replay/<date>.json` | Elexon PN, MELS, indicative bid volumes and cashflows | 14 October 2026 plus the heaviest other curtailment day. One entry per Scottish wind BMU per period. Written compact to keep the file small. |
+| `replay/<date>.json` | Elexon PN, MELS, indicative bid volumes and cashflows | 14 October 2026 plus the two heaviest other curtailment days. `replay/index.json` lists the days on disk. One entry per Scottish wind BMU per period. Written compact to keep the file small. |
 
 Replay `state` rules: `instructed` when the farm has an accepted bid in the period; `unavailable` when PN is more than max(1 MW, 5%) above MEL, or PN and MEL are both about 0 (a declared outage); `unknown` when PN is missing, or PN is about 0 while MEL is not (the farm planned no output before gate closure, which is not a paid action); otherwise `generating`. `level_mw` is PN minus twice the curtailed MWh, floored at 0.
 
