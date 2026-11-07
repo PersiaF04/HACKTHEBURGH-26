@@ -128,3 +128,11 @@ def test_scotex_lookup_failure_gives_null_fields_not_an_abort(monkeypatch):
     periods = [{"start_utc": "2026-10-14T00:00:00Z"}]
     assert b.add_scotex(periods, b.scotex_lookup_or_empty()) == 0
     assert periods[0]["scotex_limit_mw"] is None and periods[0]["scotex_flow_mw"] is None
+
+
+def test_tagged_volumes_keeps_only_the_settled_rows():
+    rows = [{"dataType": t, "totalVolumeAccepted": -3.0} for t in ("Original", "Original-Priced", "Re-priced", "Tagged")]
+    rows.append({"totalVolumeAccepted": -1.0})  # no dataType: kept
+    kept = b.tagged_volumes(rows)
+    assert [r.get("dataType") for r in kept] == ["Tagged", None]
+    assert sum(r["totalVolumeAccepted"] for r in kept) == -4.0

@@ -5,10 +5,11 @@ export interface Meta { source: string[]; generated_utc: string; retrospective: 
 export interface Farm { id: string; name: string; region: string; lat: number | null; lon: number | null; capacity_mw: number | null }
 export type FarmState = "generating" | "instructed" | "unavailable" | "unknown";
 export interface FarmPeriod { pn_mw: number | null; level_mw: number | null; curtailed_mwh: number | null; paid_gbp: number | null; state: FarmState }
-export interface ReplayPeriod { sp: number; start_utc: string; farms: Record<string, FarmPeriod> }
+// scotex_*: optional (#80). NESO day-ahead SCOTEX limit and forecast flow, not outturn; null when NESO has no value.
+export interface ReplayPeriod { sp: number; start_utc: string; farms: Record<string, FarmPeriod>; scotex_limit_mw?: number | null; scotex_flow_mw?: number | null }
 export interface Replay { meta: Meta; date: string; periods: ReplayPeriod[] }
 export interface CurtailmentDay { date: string; curtailed_mwh: number | null; wind_paid_gbp: number | null; neso_thermal_mwh: number | null; neso_thermal_gbp: number | null }
-export interface CurtailmentDaily { meta: Meta; days: CurtailmentDay[]; validation: { window: [string, string]; volume_ratio: number; volume_corr_daily: number } }
+export interface CurtailmentDaily { meta: Meta; days: CurtailmentDay[]; validation: { window: [string, string]; n_days?: number; volume_ratio: number; volume_corr_daily: number } }
 export interface Iceberg { meta: Meta; window: [string, string]; days: number; wind_bids_gbp: number; ccgt_offers_gbp: number; neso_thermal_gbp: number; ccgt_vs_neso_corr_daily: number; note: string }
 export interface DfsRequest {
   event_id: string; start_utc: string; end_utc: string; direction: string; tag: string; required_mw: number;
@@ -77,4 +78,23 @@ export interface Forecast {
     auc_heavy: { model: number; persistence: number; headroom_rule?: number };
     reliability: ReliabilityBin[];
   };
+}
+// Optional grid.json (lane A, #88). Line geometry only: flow per line is not published. `coords` are [lon, lat] pairs.
+export interface GridLine { id: string; kv?: number; coords: [number, number][]; crosses_border?: boolean; schematic?: boolean; southbound_link?: boolean }
+export interface GridFile { meta: Meta & { attribution?: string; attribution_url?: string }; lines: GridLine[] }
+// Optional dashboard.json (lane B, #74/#81). Summaries for the map dashboard; the app must work without it.
+export interface DashboardCopilotCall {
+  status: "scored" | "not_scored"; reason?: string; note?: string;
+  ready_windows_utc?: [string, string][]; ready_half_hours?: number;
+  bid_gbp_per_mwh?: number | null; bid_range_gbp_per_mwh?: [number, number] | null;
+  net_gbp?: { naive: number; ours: number; oracle: number }; pct_of_oracle?: number | null; caveat?: string;
+}
+export interface DashboardSummary {
+  meta: Meta;
+  tomorrow?: {
+    target_date: string; mode: "next_day" | "same_day_replay"; headline: string;
+    facts: { peak_p_request: number | null; total_p50_mwh: number | null; request_window_utc?: [string, string] | null };
+    request_probability: { start_utc: string; p_turnup_request: number | null }[]; caveat?: string;
+  };
+  replay_days?: { date: string; request_probability?: { start_utc: string; p_turnup_request: number | null; actual_request?: boolean }[]; copilot?: DashboardCopilotCall }[];
 }
