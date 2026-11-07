@@ -1,268 +1,329 @@
-# Product requirements document: Turn Up Scotland
+# Product requirements and technical specification: Whitespace
 
-> The idea was chosen on 2026-11-07 after spikes #19–#25. The evidence and research are in [#25](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/25). `Open` marks a decision that still has an owner and a next check.
-> Current team status: [STATUS.md](docs/coordination/STATUS.md), added for [issue #37](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/37) (refreshed about every two hours and after PR merges).
+> **Status:** Spike / project reset in progress. **Product owner:** Persia (PersiaF04).
+> **Updated:** 2026-11-07. This PRD replaces the former Turn Up Scotland product direction.
+> **Evidence and open decisions:** issue #122. Targets below are not results until measured.
 
-## Status and ownership
+## 1. Summary
 
-- **Status:** Building
-- **Product name:** Turn Up Scotland (working title; "Where Did the Wind Go?")
-- **Product owner / final decision maker:** Persia (`PersiaF04`)
-- **Contributors and agents:** See the roster in section 13
-- **Event:** HackTheBurgh XIII, Edinburgh, 7–8 Nov 2026
-- **Last updated:** 2026-11-07
-- **Last agreed by / date:** Persia, 2026-11-07. Varshil and sanamorii to confirm on #26.
+Whitespace is a research-discovery tool for AI/ML literature. It turns a historical paper corpus into a concept graph that changes over time. It aims to predict which concept pairs not yet linked by the product's co-occurrence rule will become linked within three years, and to surface open-problem statements from abstracts. Predictions must be evaluated out of sample before being presented as useful forecasts.
 
-## Team agreement gate
+The product also shows which papers have linked code, using the archived Papers with Code paper-to-code data. That coverage is a lower bound: the archive is incomplete and historical, and a missing link does not prove that no implementation exists.
 
-- [x] A specific user, their problem, and the evidence for it are stated (sections 2 and 9; #25).
-- [x] The proposed solution and one end-to-end demo journey are understandable (sections 3 and 7).
-- [x] Must-have scope, non-goals, and what to cut first are explicit (section 5).
-- [x] Success can be checked through observable behavior or measured outcomes (sections 4 and 6).
-- [x] Event rules, constraints, risks, and major assumptions have owners (run sheet, sections 8 and 11).
-- [ ] Contributors agree on workstream boundaries and shared interfaces (section 10, `contracts/`). **Varshil and sanamorii confirm on #26.**
-- [x] The product owner records approval above and sets the PRD status to `Team-approved`. Status is `Building` at Persia's request.
+**One-liner:** “See where research is going, and the questions nobody has answered yet.”
 
-## Event run sheet
+## 2. Problem
 
-| Item | Agreed value / source |
+- **Too much to read:** researchers cannot keep up with the volume and pace of new literature.
+- **Search only finds what exists:** ordinary search does not rank combinations that are not yet connected in observed literature.
+- **Open problems are scattered:** authors state limitations and future work across many abstracts; these are difficult to aggregate.
+- **Code coverage is hard to see:** paper-to-repository links are incomplete and scattered, making it difficult to identify areas where published work has little linked code.
+
+## 3. Users
+
+| User | Need |
 | --- | --- |
-| Event name, venue, and dates | HackTheBurgh XIII, Edinburgh, 7–8 Nov 2026, 24 hours ([listing](https://createwith.com/event/edinburgh-hacktheburgh-xiii-nov-2026)) |
-| Official rules and judging criteria | Tracks: HRT "Best Use of Data for Predictions & Decision Making"; G-Research "Make the invisible visible". **Detailed criteria are not published**, so we check at the sponsor workshops (K-1). |
-| Submission deadline and stated timezone | Sun 8 Nov 2026, 12:00 GMT (Devpost, per #25) |
-| Submission deadline in UTC | 2026-11-08 12:00 UTC |
-| Internal code freeze and timezone | 2026-11-08 07:00 UTC. Bug fixes only after this. Submit by 11:00 UTC. |
-| Demo duration and presentation format | Open. Plan a 3-minute live demo plus a recorded video (section 7). |
-| Submission method and required materials | Devpost project: description, video and repository link. Confirm the list on Devpost (owner: Persia). |
-| Demo smoke command and expected result | `npm --prefix web run build && npm --prefix web run preview`, then all six screens render from `data/public/` or the fixtures with no network |
-| Fallback if a live service or network fails | Replay mode from committed JSON (R-7), plus a pre-recorded video |
-
-## 1. Product summary
-
-**Summary:** Scotland pays wind farms to switch off when the cables south are full. It threw away about 7.3 TWh in seven months. Wind turn-down payments were about £193m, while CCGT turn-up offers and NESO's thermal constraint-cost measure were each about £1.78bn over the same window. These are parallel measures of system cost, not an additive breakdown or proof of who ultimately paid. NESO now asks for flexible demand to absorb that power, and almost none arrives. Turn Up Scotland shows the hidden waste and its true cost. It forecasts when NESO will ask for help, and tells a flexible load operator when to be ready and what to bid.
-
-## 2. Problem, users, and evidence
-
-| User / stakeholder | Context and need | Current alternative and gap | Evidence / source |
-| --- | --- | --- | --- |
-| **Primary user:** operations lead of a flexible load behind Scotland's grid constraints (electrolyser, data centre, heat network with storage) or an aggregator | Decides each day which half-hours to be ready for, and what to bid into NESO's Demand Flexibility Service (DFS) | NESO's raw datasets are scattered and there is no forecast of requests. Requests go unanswered: **0.2% of 500 MW turn-up requests were filled in Oct 2026** | NESO `demand-flexibility` dataset; #25 deep dive |
-| Secondary: energy-policy audience (journalists, analysts, the public) | Understand the waste and who pays for it | Headlines quote payments to wind (about £193m). Parallel system-cost measures (CCGT turn-up offers and NESO thermal constraint cost, each about £1.78bn) are rarely shown. These are not an additive breakdown | Elexon cashflows vs NESO Constraint Breakdown, 201 days, daily corr 0.94 (#25) |
-
-**Out of scope for the first version:** households and small loads (the DFS threshold and baselines differ), trading desks, and regions outside GB.
-
-## 3. Proposed experience
-
-1. **See the waste.** The user opens the Waste Map and scrubs through a stormy day. Turbines grey out when NESO pays them to stop, and counters show GWh wasted and £ paid.
-2. **See the hidden bill.** The Iceberg shows payments to wind above the waterline and the much larger constraint cost below it.
-3. **See the unanswered call.** Help Wanted lists NESO's turn-up requests and how little was filled.
-4. **See tomorrow.** Tomorrow shows forecast curtailment and the chance of a request for each half-hour, with the backtest beside it.
-5. **Act.** In Flex Copilot the user picks their load and sees a recommended readiness and bid schedule, plus how naive, ours and perfect-hindsight policies would have done.
-6. **Trust it.** Under the Hood shows how each number was rebuilt and checked against NESO, including the days that don't reconcile.
-
-Empty and error states: if a data file is missing, the screen falls back to a labelled sample. If live data is quiet (calm weather), the app shows a "Live: no curtailment right now" banner and offers replay.
+| PhD / MSc student | Choose a novel, timely thesis or dissertation topic |
+| Researcher | Spot emerging directions and avoid areas that are already saturated |
+| Lab lead / supervisor | Decide which directions to pursue or recommend |
 
 ## 4. Goals and success measures
 
-| ID | Outcome | Measure / pass condition | Baseline | Target | Evidence source / owner |
-| --- | --- | --- | --- | --- | --- |
-| G-1 | Credible reconstruction of the hidden waste | Daily volume correlation vs NESO thermal constraints | n/a | ≥ 0.9 (0.91 already measured in #25) | `curtailment_daily.json` validation; lane A |
-| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,224, Brier 0.471 (3,168 half-hours, 1 Sep to 5 Nov 2026, retrospective; corrected in #40) | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
-| G-3 | The decision adds value over naive | Copilot `pct_of_oracle` vs naive on the same replay days and costs | Naive policy | Higher than naive, reported honestly | `copilot.json`; lane B |
-| G-4 | The demo never breaks | All six screens render offline from committed JSON | n/a | Smoke command passes at code freeze | Lane C |
+| Goal | Metric | Target / reporting rule |
+| --- | --- | --- |
+| Accurate predictions | Precision@100 on a 2020 → 2021–2023 temporal backtest | Beat the strongest specified baseline by a clearly reported margin; report honestly if it does not |
+| Trustworthy probabilities | Calibration and proper scores on the full eligible candidate population | Close to diagonal; show base rate and PR-AUC as well as ROC-AUC |
+| Useful research guidance | Ranked gaps with score components and supporting papers | Return top 50 in under 1 second after artifacts load |
+| Reliable demo | Precomputed artifacts | No live external calls during judging |
+| Correct code links | Precision of paper-to-repository matching on 100 hand-checked pairs | At least 90%; show measured result and sampling protocol on Evidence |
 
-## 5. Scope and priorities
+None of these targets is met until measured and recorded.
 
-### P0: must work in the demo
+## 5. Features
 
-- Six screens: Waste Map (with replay), Iceberg, Help Wanted, Tomorrow, Flex Copilot, Under the Hood.
-- A backfilled pipeline producing every contract file for at least two storm days.
-- A curtailment forecast with an honest chronological backtest, plus the Copilot's naive, ours and oracle comparison.
-- Offline replay mode and a recorded video.
-
-### P1: include if time allows
-
-- Live mode (5-minute refresh) and the snapshot archiver feeding as-of forecasts.
-- Per-zone request probability.
-- Static deploy to one public URL.
-- Tiger Data (Timescale) for storage (sponsor fit).
-
-### P2: optional polish
-
-- A desk-turbine mirror and an ESP32 relay load.
-- The "You're the operator" judge game.
-- A QR load picker.
-
-### Non-goals
-
-- Live trading or submitting real DFS bids.
-- Claims of guaranteed revenue, avoided CO₂ from curtailed MWh alone, or "Scotland" for DFS zones before they're confirmed.
-- DfC (2028) beyond a labelled scenario.
-- User accounts, authentication, or storing personal data.
-
-**Cut order if time is short:** P2, then live mode, then the Tiger Data migration, then per-zone probability. Keep the P0 spine.
-
-## 6. Requirements and acceptance
-
-### R-1 [P0] Waste Map with replay
-
-- **User / reason:** see the hidden waste.
-- **Behavior:** a map of wind farms. A scrubber plays a replay day by half-hour and farms change state (`generating`, `instructed`, `unavailable`). Counters show MWh and £.
-- **Acceptance checks:**
-  - Given a replay file, when the user scrubs, then farm states and counters update for that half-hour.
-  - Given a farm with no coordinates, then it is listed but not drawn, and a count of undrawn farms is shown.
-- **How verified:** demo step 1; manual check against one Elexon half-hour.
-- **Dependencies / owner:** lane A data (#27); lane C UI (#31).
-- **Issues:** #27, #31
-
-### R-2 [P0] The Iceberg
-
-- **Behavior:** shows wind payments vs NESO constraint cost vs CCGT turn-up over the stated window, captioned "magnitude, not additive".
-- **Acceptance checks:** given `iceberg.json`, when shown, then all three figures appear with their window and sources.
-- **Issues:** #27, #31
-
-### R-3 [P0] Help Wanted
-
-- **Behavior:** lists DFS `Upwards`/`System` requests with required vs procured MW, accepted price and auction-close-to-delivery time.
-- **Acceptance checks:** given `dfs_requests.json`, when shown, then the fill rate is computed from the data and zones are labelled by ID.
-- **Issues:** #27, #31
-
-### R-4 [P0] Tomorrow forecast
-
-- **Behavior:** half-hourly p10, p50 and p90 curtailment plus P(heavy), and P(request) when available. A backtest strip shows the model and baselines.
-- **Acceptance checks:** given `forecast.json`, then every metric shows its baseline next to it; given `retrospective: true`, then a "retrospective" label is visible.
-- **Issues:** #29, #32
-
-### R-5 [P0] Flex Copilot
-
-- **Behavior:** pick load type, MW and zone. It shows the schedule and naive, ours and oracle results, with `pct_of_oracle` and caveats.
-- **Acceptance checks:** given `copilot.json`, then all three policies come from the same days and costs, and gross settlement is shown apart from energy cost.
-- **Issues:** #30, #32
-
-### R-6 [P0] Under the Hood
-
-- **Behavior:** shows reconstruction validation, the outage vs instruction method, and the data-quality days that don't reconcile.
-- **Acceptance checks:** given `curtailment_daily.json`, then the correlation and ratio are shown with their window.
-- **Issues:** #27, #29, #32
-
-### R-7 [P0] Offline replay reliability
-
-- **Behavior:** the app runs from committed JSON with no network, and falls back to fixtures per file.
-- **Acceptance checks:** given no network, when the smoke command runs, then all six screens render.
-- **Issues:** #28, #31
-
-### R-8 [P1] Live mode
-
-- **Behavior:** refreshes `replay/live.json` every 5 minutes. A calm-weather banner appears when nothing is being curtailed.
-- **Issues:** #28
-
-### R-9 [P2] Hardware and judge interaction
-
-- **Behavior:** the desk turbine mirrors one farm's state, a relay lamp follows the Copilot's schedule, plus the judge game and the QR picker.
-- **Issues:** #33
-
-## 7. Demo and judging proof
-
-| Demo step | User-visible behavior | Requirement / judging criterion | Proof or measure |
+| ID | Feature | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
-| 1. Waste Map (0:00–0:20) | Storm day replay, turbines stop, counters rise | R-1; G-Research: what's hidden | Reconstruction vs NESO, corr 0.91 |
-| 2. Iceberg (0:20–0:45) | £193m vs £1.78bn | R-2; G-Research: the hidden bill | Cashflows vs Constraint Breakdown, corr 0.94 |
-| 3. Help Wanted (0:45–1:05) | 500 MW asked, 0.2% filled | R-3; G-Research: what we can do | NESO DFS dataset |
-| 4. Tomorrow plus Copilot (1:05–1:50) | Forecast, bid schedule, % of oracle | R-4, R-5; HRT: prediction leading to an automated decision | Chronological backtest vs baselines |
-| 5. Judge game (1:50–2:30, P2) | A judge's calls vs the model | R-9; HRT: decision quality | Same scoring as the Copilot |
-| 6. Under the Hood (2:30–3:00) | Validation and honest gaps | R-6; rigour | Data-quality panel |
+| F1 | Research map | MVP | About 3,000–6,000 concepts in 2D, sized by paper count and coloured by growth; smooth pan and zoom |
+| F2 | Time slider | MVP | Moving from 2015 to 2026 updates visible concepts and links in under 200 ms |
+| F3 | Paper and concept search | MVP | Hybrid semantic and keyword search returns papers and concepts; map moves to the result |
+| F4 | Gap finder | MVP | Rank unlinked pairs with P(link), interval, momentum, novelty, stated-gap rate and gap score; filter by area and minimum P |
+| F5 | Gap detail | MVP | Show score breakdown, three closest papers on each side, shared neighbours and authors' stated open problems |
+| F6 | Open-problems explorer | MVP | For each concept, show stated-gap rate over time and “future work,” “limitation” and “open problem” sentences linked to papers |
+| F7 | Evidence page | MVP | Show Precision@k against three baselines, calibration, base rate, PR-AUC and hits/misses tables |
+| F8 | Concept trend forecast | Stretch | Show paper share over time with an 80% interval against a naive forecast |
+| F9 | Research-question generator | Stretch | A local LLM drafts three questions for a gap from retrieved abstracts; each sentence is checked against sources and marked grounded or not, with citations |
+| F10 | Start from my paper | Stretch | Paste an abstract to find nearby concepts and adjacent gaps |
+| F11 | Code coverage view | MVP | Heatmap of concept × year coloured by code_rate; clicking a dark cell moves to that concept's papers with no linked code |
+| F12 | Build-on readiness | Stretch | Show last-commit date and stars only if a separate source is approved, precomputed and validated; otherwise show archive-provided links without staleness claims |
 
-## 8. Constraints and quality requirements
+## 6. Non-goals
 
-| Area | Agreed constraint or target | Reason / source | How verified |
+- Startup, hackathon-project or commercial data.
+- Full-text PDF parsing or fields outside AI/ML literature.
+- User accounts or saved state.
+- Live ingestion or external calls during judging.
+- Paid APIs.
+- Claims that a missing Papers with Code link proves no implementation exists.
+
+## 7. Main user flow
+
+1. Search a research area or paste an abstract.
+2. The map moves to that area. Move the time slider to see how it changed.
+3. Open Gap Finder for that area and select a highly ranked pair.
+4. Read its score breakdown, supporting papers and stated open problems.
+5. Optionally draft research questions, then open Evidence to see the backtest and calibration.
+6. Open Code Coverage to inspect linked-code coverage, its historical limits and the sampled link-precision check.
+
+## 8. Assumptions, risks and open questions
+
+| Assumption / risk | Impact if wrong | Treatment |
+| --- | --- | --- |
+| A “link” means co-occurrence in at least three papers | Proxy may not represent ideas being studied together meaningfully | State the operational definition and test sensitivity to alternative thresholds |
+| Citation/popularity sampling favours older papers | Trends, concepts and links may be biased toward older or highly cited work | Report per-year counts and sampling rules; add a random sample if time allows |
+| Keywords are noisy and incomplete | Concept labels and links may be unreliable | Normalise keywords, merge near-duplicates, and fall back to OpenAlex topics when needed |
+| Future leakage | Vocabulary, embeddings, graph structure or labels can encode future knowledge | Rebuild each snapshot from data available by T; purge overlapping three-year label windows; audit feature timestamps |
+| Candidate subsampling changes probabilities | A 10:1 negative sample can inflate probabilities and distort metrics | Calibrate and evaluate on all eligible candidates, or apply and document a valid sampling correction |
+| Papers with Code coverage is incomplete and historical | A “no code” statement can be false | Treat code_rate as a lower bound, identify archive snapshot date, and say “no linked code in this archive” |
+| Paper-to-code matching can be wrong | False links undermine the code-coverage view | Prefer DOI/arXiv identifiers; validate title fallback on a stratified sample of 100 pairs and report precision |
+| OpenAlex access, topic IDs, quota and terms may change | Collection may fail or exceed limits | Verify official API docs/terms in spike #122 before ingestion; keep credentials out of Git |
+| Topic labels and metadata can be revised after a paper's publication | Rebuilding a graph from publication years does not recreate what was known at T | Pin the topic-assignment vintage and downloaded records. Mark current topic labels as exogenous, not historically as-of. Exclude mutable fields such as current citation counts from historical features unless an as-of snapshot exists; document field-level availability |
+| Compute and model stack may exceed event budget | Full corpus or NLP models may not finish in time | Time-box ingestion and embedding checkpoints; use the cut order in Part C |
+| Code-freeze timing | Last-minute changes could invalidate the frozen test and submission | Product owner set the internal code freeze to 10:30 UTC on Sunday 8 November 2026. Freeze code, data and configuration before the single held-out evaluation run |
+
+## Part B: technical specification
+
+## 9. Architecture
+
+OpenAlex → ingest → papers.parquet
+
+- → embed (MiniLM) → FAISS
+- → concepts → yearly co-occurrence graphs
+- → open-problem mining (regex + BART-MNLI)
+- → features → LightGBM link model → backtest → gap score
+- → precomputed Parquet and JSON artifacts
+- → read-only FastAPI (DuckDB, FAISS in memory)
+- → React + Vite + deck.gl UI
+- → optional local Ollama for questions
+
+All judging paths use precomputed artifacts. The optional LLM feature is local and stretch; it is not on the MVP critical path.
+
+## 10. Stack
+
+| Layer | Proposed technology |
+| --- | --- |
+| Pipeline | Python 3.11, Polars, DuckDB, NetworkX or igraph, LightGBM, scikit-learn, UMAP |
+| NLP | all-MiniLM-L6-v2 (or SPECTER2 on available GPU), KeyBERT, facebook/bart-large-mnli |
+| Search | FAISS IndexFlatIP and BM25, combined with reciprocal rank fusion |
+| Optional LLM | Ollama qwen2.5:7b-instruct; nli-deberta-v3-small to check output |
+| API | FastAPI, uvicorn |
+| Web | React, TypeScript, Vite, Tailwind, deck.gl, Recharts, Zustand |
+
+The spike must verify each proposed model and dependency can be installed and run within available hardware and event time. Do not add every proposed dependency before its lane is approved.
+
+## 11. Data ingestion
+
+- **Proposed endpoint:** GET [api.openalex.org/works](https://api.openalex.org/works).
+- **Proposed filter:** primary topic subfield 1702 (Artificial Intelligence), publication year 2010 onward, article, preprint and conference-paper types, and abstract availability. Pre-2015 records are required to provide multiple fit origins for the 2020 backtest; the visible product time slider may still begin in 2015. A live check confirmed subfield 1702 is Artificial Intelligence. This selects works currently assigned that primary subfield; do not describe it as all AI/ML literature. Freeze the exact filter, type scope and retrieval date with each dataset snapshot.
+- **Proposed fields:** id, title, publication year/date, cited-by count, abstract inverted index, keywords, primary topic and topics.
+- **Proposed query:** cursor pagination and up to 100 records per page. The API maximum is 100; do not assume 200 is allowed.
+- **Live estimate from 7 Nov 2026:** the article/preprint filter returned 717,139 works across 2015–2026 (including partial 2026); 529,502 through 2025. This is not the final corpus size: the selected scope starts in 2010 and conference papers are important in AI/ML, while that type was excluded from this count. Re-count the agreed year and work-type scope before setting corpus size; do not retain the initial ~180,000 estimate without measurement. Counts move with the service and topic assignments. Capture the exact query, retrieval date and result count in the artifact manifest.
+- Basic OpenAlex queries are available without a key. A free verified key currently provides a $1 daily API budget; at the documented per-call price this is roughly 10,000 list calls, subject to request-rate and result limits. Separately, ordinary page-number paging is limited to the first 10,000 results, and a key is needed to cursor-page beyond that. Verify current budgets, prices and rate limits before downloading; do not conflate requests with results.
+- Cursor paging is limited to 100 records per request. At the article/preprint estimate, API paging is thousands of requests; compare the official snapshot for bulk ingestion and respect OpenAlex guidance against large cursor downloads.
+- For bulk data, compare the API with the official OpenAlex snapshot. Do not plan a large cursor download without checking current service guidance and quota.
+- Rebuild abstracts from the inverted index, drop abstracts under 50 words, and checkpoint Parquet files.
+- OpenAlex records are CC0 per the current API overview. Verify current API key requirements, quota, endpoint pricing, rate limits, reuse terms and topic ID from official OpenAlex sources. Never put an API key in Git or shared messages.
+- Artifact manifest must include the complete query, filters and work-type scope; retrieval date and snapshot/topic-assignment vintage; input-file hashes; exact source/version for embeddings and classifier weights; deduplication and abstract reconstruction rules; random seeds; and which feature fields are genuinely available as of each prediction origin. Current citation counts or current topic assignments are not historical snapshots merely because the associated paper is old.
+- Avoid relying on the search endpoint until current pricing and behavior are verified.
+
+## 12. Data model (artifacts/)
+
+| File | Columns / contents |
+| --- | --- |
+| papers.parquet | id, year, date, title, abstract, cites, keywords[], topic_id |
+| paper_emb.npy, faiss.index | 384-dimensional normalised embeddings |
+| concepts.parquet | concept_id, label, first_year, n_total, embedding, x, y |
+| paper_concepts.parquet | paper_id, concept_id |
+| counts.parquet | concept_id, year, n_papers, share |
+| edges.parquet | a, b, first_linked_year, n_cooccur_by_year |
+| open_problems.parquet | paper_id, concept_ids[], sentence, type, confidence |
+| predictions.parquet | a, b, p_link, p_lo, p_hi, momentum, novelty, gap_rate, gap_score |
+| forecast.parquet | concept_id, year, yhat, lo, hi (stretch) |
+| metrics.json | AUC, average precision, Precision@k, base rate, calibration bins, hits and misses |
+| paper_code.parquet | paper_id, arxiv_id, repo_url, is_official, match_method (DOI or title); last_commit and stars only if separately sourced |
+
+## 13. Pipeline and evaluation
+
+### Concepts and graphs
+
+- Normalise keywords and merge near-duplicates when cosine similarity exceeds 0.92. Keep concepts with at least 30 papers, targeting 3,000–6,000 concepts.
+- A concept embedding is the mean of its paper embeddings.
+- Build cumulative graph G_T using only eligible papers available at snapshot T.
+- An edge becomes linked once the pair co-occurs in at least three papers.
+- Recompute vocabulary, concepts, embeddings and graphs from papers available by each snapshot T. Do not use a vocabulary learned from later years.
+- Freeze/deduplicate paper versions and state the corpus sampling frame. Current OpenAlex topic assignments may not represent labels known at historical T.
+
+### Candidates and features at snapshot T
+
+- Candidates are two-hop neighbours plus each concept's 50 nearest embedding neighbours, excluding pairs already linked at T.
+- With the operational edge threshold of three co-occurrences, candidate pairs with 0, 1 or 2 co-occurrences at T remain eligible. Report these strata separately: a pair with weight 1 or 2 is not an established edge, and its label is whether it first crosses the threshold during the forecast horizon. Audit how this choice changes the base rate and popularity-baseline rankings before fixing the headline metric.
+- Sample negatives 10:1 for training only. Calibration and metrics use the full eligible candidate population, not the sampled set, unless a valid sampling correction is applied and described.
+- Proposed features: degree and three-year growth; common neighbours, Jaccard, Adamic–Adar, resource allocation, preferential attachment; cosine similarity; path length capped at 4; concept age; paper-count growth; gap rate.
+- Audit each feature for publication-time availability. A feature derived from a later snapshot must not enter an earlier prediction.
+- Define the eligible pair universe as pairs of concepts meeting the agreed minimum support at T, where both concepts exist by T and pair weight is below three. Measure candidate recall as the share of all future-positive pairs in this universe included by the candidate generator. Rankings and all candidate-level metrics apply only to this declared universe.
+
+### Link model and backtest
+
+- Label: for a candidate pair with fewer than three co-occurrences at T, whether it first reaches the three-paper co-occurrence threshold within T+1 to T+3. Pairs with one or two prior co-occurrences are “not yet established,” not “never studied.” Specify whether within-year paper order is available; otherwise the outcome is annual, not event-time.
+- The requested test is origin T=2020, with outcomes in 2021–2023. The user has confirmed that the corpus should include pre-2015 data to support this split.
+- Purge every split boundary. With inclusive annual outcome windows T+1 through T+3, require `max(T_fit) + 3 <= min(T_calibration)` and `max(T_calibration) + 3 <= min(T_test)`. For a first test origin of 2020, the latest calibration origin is 2017 and the latest fit origin is 2014. Include enough pre-2015 history to provide several fit origins (proposed minimum span 2010–2014); confirm eligible paper counts and disjoint windows before calling the backtest leakage-safe. Record the chosen split and evidence on issue #122.
+- The first evaluation origin also constrains concept/model tuning. Freeze and version data, concept extraction, candidate generation and model choices before inspecting the held-out test. Rebuilding snapshot-specific concepts, embeddings and graphs using papers available on or before each origin does not make mutable source metadata historical: use only feature values known at the origin or explicitly label them exogenous/retrospective. Run the held-out test once only after the owner confirms a runnable design and the code/data snapshot are frozen.
+- Produce base rate, ROC-AUC, PR-AUC/average precision, Precision@k, calibration and hits/misses. Compare preferential attachment, Adamic–Adar and cosine similarity on the same candidate set.
+- Produce top 20 hits with the paper or year in which each pair crosses the threshold, and top 10 misses. If only annual counts are available, do not imply an exact event-time or unique paper caused the threshold crossing.
+- Use 20 bootstrap models for p_lo and p_hi only if their interpretation and coverage are validated. State whether intervals describe model uncertainty, temporal variability or another quantity.
+- Production scoring may retrain with snapshots through 2023 to score the 2026 graph. This is separate from the held-out backtest and must be labelled.
+- If the model does not beat a simple baseline, report that result rather than hiding it.
+
+### Open-problem mining and gap score
+
+- Sentence-split abstracts, then use a regex prefilter for phrases such as future work, remains unclear/open/unexplored, has not been, little is known, limitation, open problem/question, and we leave.
+- Apply a zero-shot classifier and keep candidates above confidence 0.6. Before calling this useful, evaluate sentence-level precision and recall on a separately annotated sample, record how disagreements are adjudicated, and link every displayed sentence to its source paper and abstract context. Report measured results; no acceptable threshold has been selected yet.
+- Gap rate is the share of a concept's papers that contain a stated open problem.
+- Proposed score: p_link × sigmoid(growth_a + growth_b) × (1 − max(cosine, neighbour_overlap)) × (1 + gap_rate_a + gap_rate_b).
+- Show every score component next to the score. Do not describe the combined gap score as a probability.
+- Show code readiness separately: share of a concept's papers with a linked repository. It is a lower bound and must not be multiplied into gap_score.
+
+### Layout and code layer
+
+- Layout uses a 2D UMAP of concept embeddings; explain that distance is a projection, not a definitive measure of research similarity.
+- Load the archived Papers with Code paper-to-code dataset after verifying source, per-file revision/vintage, schema, license and reuse conditions. Its dataset card reports 300,161 rows and a 2025-07-28 snapshot; current hub metadata and repository commit dates differ. Pin the exact revision SHA and inspect each file's maximum dates before stating coverage vintage. The card reports CC-BY-SA-4.0; cite and comply with that license. The distributed artifact and UI must retain appropriate source attribution, the license identifier/link and required notices; review whether any redistributed derived table is an adaptation before release.
+- Match papers to repositories using arXiv DOI identifiers when available; title matching is fallback, not proof of identity.
+- The selected archived file has 300,161 rows per its dataset card and no last-commit or stars fields. Pin its dataset revision and inspect the actual file. Last-commit/stars require a separate source and are out of scope unless approved.
+- For each concept and year, compute code_rate as the share of papers with a linked repository in the archive.
+- A dark heatmap cell means low recorded code coverage in this archive, not that no code exists.
+- Validate precision on a stratified 100-pair sample with a written adjudication rule. Freeze the sample seed and strata (including identifier-based vs title-fallback matches), have reviewers judge whether each paper/repository pair is an identity match using the original paper and repository metadata, and resolve disagreements before scoring. Report sample composition, correct matches, precision and an uncertainty interval on Evidence; do not generalise the result beyond this sample design.
+
+## 14. API
+
+| Method | Route | Response |
+| --- | --- | --- |
+| GET | /api/meta | Year range, counts, headline metrics |
+| GET | /api/map?year= | Concept points and predicted edges above a threshold |
+| GET | /api/search?q=&k=20 | papers[], concepts[], focus:{x,y} |
+| GET | /api/concept/{id} | Counts by year, forecast, top papers, open problems, neighbours |
+| GET | /api/gaps?concepts=&min_p=&sort=&limit=50 | Ranked pairs with score components |
+| GET | /api/gap/{a}/{b} | Detail, closest papers on each side, shared neighbours, open problems |
+| GET | /api/open-problems?concept=&type= | Sentences linked to their papers |
+| GET | /api/backtest | Contents of metrics.json |
+| POST | /api/questions {a,b} | Streamed SSE research questions, each with grounded status and sources (stretch) |
+| POST | /api/from-abstract {text} | Nearest concepts and adjacent gaps (stretch) |
+| GET | /api/coverage?year= | code_rate per concept and year, plus dark cells |
+
+Every route except the two stretch POST routes should return in under 300 ms after data structures are loaded.
+
+## 15. Frontend and repository layout
+
+**Routes:** / (Explore), /gaps, /open-problems, /evidence, /coverage. Gap detail opens as a drawer.
+
+**Components:** MapCanvas, TimeSlider, SearchBar, ConceptPanel, GapTable, GapDrawer, ScoreBreakdown, OpenProblemList, TrendChart, BacktestCharts, QuestionStream.
+
+**State (Zustand):** year, selectedConcepts, focus, openGap.
+
+Build the web app against web/mock/*.json following the API contract from hour one. No live API is needed for the UI demo.
+
+**Proposed repository layout:**
+
+    whitespace/
+      pipeline/ ingest embed concepts graphs features linkpred backtest
+                open_problems score umap_layout forecast
+      api/      main search questions
+      web/      src/{pages,components,store,api.ts} mock/
+      artifacts/ Makefile README.md
+
+## Part C: research update (7 Nov)
+
+## 16. Why now
+
+Papers with Code is reported to have shut down in July 2025, with its domain redirecting to Hugging Face Trending Papers. Its final paper-to-code dump is the proposed source for the code layer. The exact shutdown date is not yet confirmed; current site redirects and the public archive is a final snapshot retrieved 2025-07-28. Verify source, schema, license and reuse conditions in issue #122 before making claims.
+
+Existing tools each cover part of the problem: Connected Papers, ResearchRabbit and Litmaps map citation relationships; Elicit, Consensus and Scite support literature search or synthesis; paper pages can link repositories. Whitespace's proposed differentiator is future co-occurrence prediction with a backtest, an open-problem view and historical code coverage. This comparison is a product hypothesis to validate, not a claim that no other tool has similar features.
+
+## 17. Prior art: ERLA (referred to as MAGI in the initial brief)
+
+The official IC Hack 26 entry is titled ERLA. It describes recursively spawned Semantic Scholar research agents, paper summaries, a HaluGate grounding-validation pipeline, and hypothesis generation; the entry claims at least 95% groundedness for summaries that pass. It lists citation-graph traversal as future work. No linked source repository was found, so implementation and performance claims beyond the submission are unverified. The proposed distinction is temporal link prediction with an out-of-sample evaluation and a code-coverage view—a difference in emphasis, not a claim ERLA could never add these features. F9's grounding check is related; credit ERLA accurately.
+
+**Proposed pitch line:** “ERLA explores literature with hallucination-checked summaries. We forecast where research is heading, backtested, and show where it has no code.” In product copy qualify the last phrase as “no linked code in this archive.”
+
+## 18. Framing by track
+
+- **HRT:** the supplied brief names “Best Use of Data for Predictions & Decision Making.” The official HackTheBurgh XIII site does not confirm the exact track prompt; verify it with the sponsor/workshop before using it as official wording. Lead with the decision (“which gap should I spend my thesis on?”), time-split backtest and calibration.
+- **G-Research:** the supplied brief names “Make the invisible visible.” The official HackTheBurgh XIII site does not confirm the exact track prompt; verify it with the sponsor/workshop. Lead with the map, time slider and coverage view.
+- Use the same evidence and limitations for both tracks; change the opening framing, not the facts.
+
+## 19. Evaluation additions
+
+- Report the base rate (share of eligible candidate pairs that link within three years) beside every ranking metric.
+- Report PR-AUC/average precision as well as ROC-AUC because positives are expected to be rare.
+- Headline evidence: Precision@100 against preferential attachment, Adamic–Adar and cosine; calibration; code-link precision; and a computed coverage fact, such as the share of fastest-growing concepts since 2020 with no linked code in the archive.
+- If results do not beat a baseline, report that plainly.
+
+## 20. Timeline and checkpoints
+
+The supplied Part C plan begins 21:30 Saturday and targets Sunday's 12:00 submission deadline. The official HackTheBurgh itinerary says hacking begins Saturday at 12:00 and submissions close Sunday at 12:00. The product owner set the internal code freeze to **10:30 UTC on Sunday 8 November 2026**. Freeze code, data and configuration before the single held-out test. The event Code of Conduct says only work built during the official hackathon period is eligible for prizes and requires disclosure of AI use and pre-existing code or external contributions.
+
+| Checkpoint | Pipeline / ML | Backend | Frontend / pitch |
 | --- | --- | --- | --- |
-| Event rules / time / team skills | 24-hour build, 3 developers and 5 agents; freeze 07:00 UTC | Event | Milestones (section 14) |
-| Platform / device / connectivity | Desktop browser for the demo. Must work offline from committed JSON. | Venue Wi-Fi risk; calm weather | R-7 smoke check |
-| Reliability / performance | Each screen interactive in under 2 s on a laptop. Replay scrubbing is smooth at 48 half-hours × about 200 farms. | Demo quality | Manual check |
-| Accessibility / usability | **Apple-style design:** clarity, deference (content first, restrained chrome), depth (purposeful motion). System font stack, generous whitespace, light and dark modes, WCAG AA contrast, keyboard-operable scrubber, no colour-only states. | Team design direction | Lane C review |
-| Privacy / security / data retention | Public datasets only, no personal data, no credentials in Git | AGENTS.md | Review |
-| Cost / usage limits | Keyless public APIs, polite rate limits. Tiger Data trial only if a human signs up. | Data rights | Lane A |
+| 21:30–00:30 | Get OpenAlex API key; ingest; embeddings; concepts | Load Papers with Code dump; code join; mock JSON for each route | Map and time slider on mock data |
+| 00:30 | Freeze the measured corpus size and year/type scope in the manifest. Any reduction must retain enough pre-2015 fit origins for the purged 2020 test; do not cut to 2018–2026 and still claim that backtest. If the split is infeasible, return to the owner with evidence before changing it. | — | — |
+| 00:30–03:00 | Yearly graphs, candidates, features; first LightGBM and baselines | FastAPI routes on real artifacts; open-problem mining | Gap finder, gap detail |
+| 03:00 | If model does not beat Adamic–Adar on 2019, lead with calibration and map; do not claim a win | — | — |
+| 03:00–06:00 | Calibration, bootstrap; stagger compute jobs | Coverage data; hand-check 100 code links | Coverage view, Evidence page |
+| 06:00–08:00 | Gap score; top hits and misses | Static export; offline mode | Wire real data; polish |
+| 08:00–10:30 | Freeze query, corpus manifest, split and model configuration; prepare results and limitations | Prepare immutable artifacts | Rehearse and prepare submission |
+| 10:30 UTC | Code freeze; run the held-out 2020 test once and write metrics.json | Freeze data/artifact snapshot | No feature changes after this point |
+| 10:30–11:30 | Publish results and limitations | Deploy; README with one command | Rehearse three times; submit by 11:30 |
+| 12:30 | Judging | — | — |
 
-Engineering follows AGENTS.md: KISS, small modules, no speculative abstractions, and a static front end reading JSON rather than a bespoke backend.
+## 21. Cut order
 
-## 9. Data and external services
+Cut first: F9 question generator, F8 trend forecast, F10 start from my paper, F12 build-on readiness.
 
-| Source / service | Purpose and data used | Access / rights / cost | Failure fallback |
-| --- | --- | --- | --- |
-| NESO Wind BOA Volumes | Curtailed volume per wind unit (MW, so MWh = /2) | Keyless, NESO Open Data Licence | Committed JSON |
-| Elexon Insights (BOALF, PN, MELS, BOD, indicative cashflows) | Instructions, availability, £ | Keyless, Elexon open data | Committed JSON |
-| NESO Constraint Breakdown | Validation reference | Keyless, NESO ODL | Committed JSON |
-| NESO day-ahead constraint flows and limits | Forecast features (headroom) | Keyless; snapshot vintage unknown, so results are retrospective | Archiver from tonight (#28) |
-| NESO Day Ahead Wind BMU Forecast | Farm region; wind feature | Keyless | Committed JSON |
-| NESO `demand-flexibility` (DFS) | Requests, procurement, prices | Keyless | Committed JSON |
-| Tiger Data (P1) | Time-series storage (sponsor) | 30-day trial, a human signs up | DuckDB or Parquet locally |
+Never cut: map with time slider, Gap Finder, Evidence page and F11 code-coverage view.
 
-No AI model produces numbers. If an LLM is used for narration (P2), it never produces figures.
+## 22. Proposed three-minute demo
 
-## 10. Technical approach and shared boundaries
+- **0:00–0:20 — hook:** “Papers with Code shut down in 2025. Search shows what exists; it cannot show what is missing.” Use only after shutdown and archive facts are verified.
+- **0:20–1:20 — map:** move the time slider from 2015 to 2026, open Code Coverage and click a dark cell.
+- **1:20–2:20 — gap:** open Gap Finder, select the top gap, inspect score components and authors' open problems, then show Evidence: Precision@100 against baselines and calibration.
+- **2:20–2:50 — limitations:** co-occurrence is a proxy; code links are a lower bound; MAGI/ERLA is prior art.
+- **2:50–3:00 — close:** “See where research is going, and what nobody has built yet.” Qualify code claims as “no linked code in this archive.”
 
-| Decision area | Agreed choice / status | Owner | Related decision or contract |
-| --- | --- | --- | --- |
-| Client / interface | React + Vite + TypeScript static app in `web/`, reading JSON | Lane C | D-001 |
-| Server / data | Python pipeline (`pipeline/`) and models (`models/`), writing contract JSON to `data/public/`. No bespoke API server for P0. | Lanes A and B | D-001 |
-| External services | Keyless NESO and Elexon APIs; Tiger Data P1 | Lane A | Section 9 |
-| Deployment / demo setup | Local `vite preview` for the demo; static host P1 | Lane C | Run sheet |
-| Shared interface needed for parallel work | `contracts/README.md`, with fixtures in `contracts/fixtures/` | All three lane owners approve changes | [contracts](contracts/README.md) |
+## 23. Likely judge questions
 
-**Folder ownership:** lane A `pipeline/`; lane B `models/`; lane C `web/` and `hardware/`. `data/public/` holds generated files written only by their producing lane. Changes to `contracts/` need a PR approved by all three lane owners. CI runs Markdown lint and each lane's checks (`npm run build` for web, `pytest` for Python lanes once they exist).
+| Question | Proposed answer |
+| --- | --- |
+| Doesn't your concept list leak the future? | For each historical snapshot, concepts, embeddings and graphs are rebuilt from papers available by that date. Show the exact pipeline and tests. |
+| Are probabilities meaningful after 10:1 negative sampling? | Calibration and scoring use all eligible candidates, not the training sample; show base rate and calibration plot. |
+| Why not use preferential attachment? | It is a baseline. Show the same test rows for it and the model. |
+| What does a “link” mean? | Co-occurrence in at least three papers, an operational proxy for “studied together.” |
+| Doesn't taking top-cited papers bias it? | It can favour older papers. State the sampling rule and show per-year counts. |
+| How is this different from MAGI? | MAGI/ERLA explores and summarises literature. Whitespace proposes a backtested temporal forecast and a map of recorded code coverage. Verify before the pitch. |
+| Does a dark cell mean there is no code? | No. It means the archive has a low recorded link rate; unlisted implementations may exist. |
 
-## 11. Assumptions, risks, and open questions
+## 24. Submission checklist
 
-| Assumption, risk, or question | Impact if wrong | Next check / decision | Owner | Due / status |
-| --- | --- | --- | --- | --- |
-| K-1: Sponsors value this framing | Misaligned pitch | Attend the G-Research workshop (17:00) and post the criteria on #26 | A human the team names (Persia to assign) | 2026-11-07 17:00 / Open |
-| K-2: DFS zones Z1–Z3 are Scottish | Wrong claim on screen | NESO DFS terms or the Ofgem pack; until then, show zone IDs | Lane B | Open |
-| K-3: Flows snapshot vintage unknown | Leakage in the backtest | Label results retrospective; archiver from tonight | Lanes A and B | Open |
-| K-4: Calm weather at demo time | No live action | Replay first (R-7) | Lane C | Mitigated |
-| K-5: Reproduce one DFS settlement before showing £ | Wrong money claims | Keep full-delivery assumption visible; validate accepted and settled cost separately | Lane B | **Partly verified:** PR #48 reproduces accepted-cost arithmetic in the checked sample, but settled cost is about 39% of accepted cost. Do not present gross accepted cost as income. |
-| K-6: Hardware parts on hand | P2 cut | Ask at the venue | Persia | Open |
-| K-7: Tiger Data signup | Sponsor fit | A human signs up for the trial if wanted | Varshil | Open |
+- Confirm submission platform and whether one project may enter both tracks; do not assume prior-year rules are current.
+- Public repository with a README and one command to run the demo from precomputed artifacts.
+- Results table, Limitations section and Prior Art section naming MAGI/ERLA, Papers with Code and SciCoQA.
+- Two-minute backup video; submit by 11:30 only if the official deadline remains 12:00.
 
-## 12. CI, delivery, and recovery
+## Research sources to cite in spike #122
 
-- **Local setup / run command:** `npm --prefix web ci && npm --prefix web run dev` (web). Python lanes document their own commands in `pipeline/README.md` and `models/README.md`.
-- **CI checks required for a PR:** Markdown lint, Web build, Pipeline tests (when `pipeline/` changes) and Model tests (when `models/` changes). See `docs/coordination/CI-CD.md`.
-- **Demo smoke check:** see the run sheet.
-- **Deployment target / trigger:** Vercel is the agreed static host, deploying the `main` branch after the project is connected. Configure the project root as `web/`, the build command as `npm run build`, and the output directory as `dist`. Keep Vercel's option to include files outside the root directory enabled because `sync-data` reads `contracts/fixtures/` and `data/public/` from the repository root. The Vercel project connection and first deployment remain pending; until verified, use local `vite preview`. The Vercel build includes committed replay data only: `data/public/replay/live.json` is gitignored, so hosted R-8 live mode needs a separately approved publishing path.
-- **Secrets / environment setup:** no secrets are needed to build or serve the current app. Any future Tiger Data credentials go in local `.env`, never in Git; deployment credentials belong in the host's environment settings if required.
-- **Recovery / demo fallback:** committed JSON replay plus a recorded video.
-
-## 13. Contributor and agent roster
-
-| Contributor | Agent / tool | Workstream and boundaries | Issue IDs | Reviewer / integrator |
-| --- | --- | --- | --- | --- |
-| **Varshil** (`varshil247`) | Varshil's Claude (developer) | **Lane A: data and pipeline.** `pipeline/`; writes `farms`, `curtailment_daily`, `replay/*`, `iceberg`, `dfs_requests` | #27, #28 | Varshil's Codex (review) |
-| **sanamorii** (`sanamorii`) | sanamorii's Claude (developer) | **Lane B: models, validation and decision.** `models/`; writes `forecast`, `copilot` | #29, #30 | Persia's Codex (review) |
-| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files | #26, #31–#33, [#38](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/38), [#39](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/39), [#46](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/46) | Persia's Codex (review) |
-
-Codex agents review pull requests and don't change the developer's branch. Humans merge after CI passes and review is approved. If no reviewer is free, a human may merge on green CI plus one approving agent review.
-
-## 14. Milestones
-
-All times are UTC.
-
-| Milestone | Target date / timezone | Exit check | Owner |
-| --- | --- | --- | --- |
-| Agree on problem and idea | 2026-11-07 17:00 | PRD merged; lanes confirmed on #26 | Persia |
-| Validate the riskiest assumption | 2026-11-07 18:00 | K-1 criteria posted; K-2 checked; archiver running | Team |
-| Build the P0 demo spine | 2026-11-08 03:00 | All six screens render from real JSON | Lane C (integrator) |
-| Integrate and rehearse | 2026-11-08 07:00 (freeze) to 10:00 | Smoke check passes; video recorded; two rehearsals | Team |
-| Submit | 2026-11-08 11:00 (deadline 12:00) | Devpost submitted | Persia |
-
-## Change and evidence rules
-
-- Keep this PRD focused on agreed product outcomes, constraints, and acceptance. GitHub Issues and PRs carry implementation tasks, owners, and status.
-- Mark unresolved decisions `Open` or `Proposed`; do not let an agent turn them into requirements without the product owner's agreement.
-- When scope changes, update the relevant requirement and linked Issue, and record material decisions in the decision log.
-- Report what was actually verified and what was not exercised. Keep known limitations visible, especially if they affect the demo or a success claim.
-
-## Glossary
-
-- **Curtailment:** NESO pays a wind farm to reduce output, usually because the grid can't carry its power south.
-- **BOA / BOALF:** an accepted instruction in the Balancing Mechanism.
-- **DFS:** NESO's Demand Flexibility Service. `Upwards`/`System` requests ask for more demand in a zone.
-- **Oracle:** the result a policy would get with perfect hindsight; the upper bound we compare against.
+- [OpenAlex API documentation](https://docs.openalex.org/)
+- [OpenAlex authentication and paging](https://help.openalex.org/api/authentication/), [filtering](https://help.openalex.org/api/filtering/), and [topic data](https://help.openalex.org/data/topics/)
+- [Papers with Code data archive](https://github.com/paperswithcode/paperswithcode-data)
+- [Papers with Code paper-to-code dataset mirror](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code)
+- [Official ERLA / MAGI IC Hack 26 Devpost entry](https://devpost.com/software/magi-2bhmze)
+- [HackTheBurgh XIII itinerary](https://hacktheburgh.com/itinerary) and [Code of Conduct](https://hacktheburgh.com/code-of-conduct)
+- [SciCoQA, ACL Anthology 2026](https://aclanthology.org/2026.acl-long.1795/)
+- Temporal Graph Benchmark (NeurIPS 2023), [paper](https://proceedings.neurips.cc/paper_files/paper/2023/hash/066b98e63313162f6562b35962671288-Abstract.html); rare-event precision-recall evaluation, [Saito & Rehmsmeier 2015](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432); and case-control probability correction, [King & Zeng 2002](https://doi.org/10.1002/sim.1032)
+- MAGI / ERLA, OxHack 2026 HRT examples, and current event submission rules: add verified primary-source links before using their claims in the demo.
