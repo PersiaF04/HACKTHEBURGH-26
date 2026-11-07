@@ -224,9 +224,9 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 ## 12. CI, delivery, and recovery
 
 - **Local setup / run command:** `npm --prefix web ci && npm --prefix web run dev` (web). Python lanes document their own commands in `pipeline/README.md` and `models/README.md`.
-- **CI checks required for a PR:** Markdown lint, plus web build and Python tests as each lane adds them.
+- **CI checks required for a PR:** Markdown lint, Web build, Pipeline tests (when `pipeline/` changes) and Model tests (when `models/` changes). See `docs/coordination/CI-CD.md`.
 - **Demo smoke check:** see the run sheet.
-- **Deployment target / trigger:** local preview for P0; a static host for P1 once chosen.
+- **Deployment target / trigger:** local preview for P0. Automated deployment (for example a static host such as GitHub Pages) is not configured and is pending the owner's decision.
 - **Secrets / environment setup:** none needed for P0 (keyless). Any Tiger Data credentials go in local `.env`, never in Git.
 - **Recovery / demo fallback:** committed JSON replay plus a recorded video.
 
