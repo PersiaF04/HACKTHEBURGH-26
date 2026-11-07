@@ -44,28 +44,30 @@ class Load:
 class Market:
     """Everything observed about one history, keyed by (date, sp)."""
     events: dict                      # live Upwards/System requirements
-    threshold: dict                   # (date, sp) -> highest accepted price that half-hour
+    threshold: dict                   # (date, sp, zone) -> highest price accepted in that zone that half-hour
     mid: dict                         # (date, sp) -> market index GBP/MWh
     util: dict                        # (date, sp) -> boundary utilisation
     days: list[str] = field(default_factory=list)
 
 
 def accepted_thresholds(bids: list[dict]) -> dict:
+    """Highest accepted bid price per (date, sp, zone). Zone IDs are kept apart on purpose: a bid that
+    cleared in Z2 says nothing certain about whether a Z1 bid would have."""
     out: dict = {}
     for b in bids:
         if (b["type"] == "Upwards" and b["tag"] == "System" and b["req_type"] == "Live"
-                and b["status"] == "Accepted" and b["price"] is not None):
-            k = (b["date"], b["sp"])
+                and b["status"] == "Accepted" and b["price"] is not None and b.get("zone") is not None):
+            k = (b["date"], b["sp"], f"Z{b['zone']}")
             out[k] = max(out.get(k, 0.0), b["price"])
     return out
 
 
 def tradable(m: Market, load: Load, day: str, sp: int) -> float | None:
-    """Highest price that would have been accepted in this half-hour for this load, else None."""
+    """Highest price accepted in this load's own zone in this half-hour, else None (not tradable)."""
     ev = m.events.get((day, sp))
     if ev is None or ev["caps"].get(load.zone, 0) < load.capacity_mw:
         return None
-    return m.threshold.get((day, sp))
+    return m.threshold.get((day, sp, load.zone))
 
 
 def settle(m: Market, load: Load, day: str, schedule: list[tuple[int, float]]) -> dict:
@@ -85,6 +87,15 @@ def settle(m: Market, load: Load, day: str, schedule: list[tuple[int, float]]) -
     value = load.value_gbp_mwh * mwh_total
     return {"gross": gross, "energy": energy, "value": value, "net": gross + value - energy,
             "mwh": mwh_total, "accepted": accepted, "bid_periods": len(schedule)}
+
+
+def naive_price(m: Market, load: Load, train_days: list[str]) -> float:
+    """The naive rule's fixed bid: the median accepted-price ceiling in the load's zone on earlier days
+    only (the same walk-forward cutoff as the other policies). With no history it uses 60, the
+    pre-declared round figure near the lower end of prices NESO has accepted."""
+    seen = set(train_days)
+    ceilings = [t for (d, _sp, z), t in m.threshold.items() if d in seen and z == load.zone]
+    return _median(ceilings) if ceilings else 60.0
 
 
 def naive_schedule(m: Market, load: Load, day: str, fixed_price: float) -> list[tuple[int, float]]:
@@ -186,14 +197,15 @@ def run(m: Market, load: Load) -> dict:
     """Replay every event day after the warm-up and score the three policies identically."""
     event_days = sorted({d for d, _ in m.events})
     scored = event_days[WARMUP_DAYS:]
-    fixed_price = _median([t for t in m.threshold.values()] or [60.0])
     days_out = []
     totals = {k: {"gross": 0.0, "energy": 0.0, "value": 0.0, "net": 0.0, "mwh": 0.0, "accepted": 0}
               for k in ("naive", "ours", "oracle")}
     per_day = []
+    tradable_total = sum(1 for d in scored for sp in WINDOW
+                         if tradable(m, load, d, sp) is not None and (d, sp) in m.mid)
     for d in scored:
         train_days = [x for x in event_days if x < d]
-        sched = {"naive": naive_schedule(m, load, d, fixed_price),
+        sched = {"naive": naive_schedule(m, load, d, naive_price(m, load, train_days)),
                  "ours": ours_schedule(m, load, d, train_days),
                  "oracle": oracle_schedule(m, load, d)}
         res = {k: settle(m, load, d, s) for k, s in sched.items()}
@@ -202,8 +214,8 @@ def run(m: Market, load: Load) -> dict:
                 totals[k][f] += r[f]
         per_day.append((d, sched, res))
         days_out.append(_day_record(d, sched["ours"], res))
-    return {"days": days_out, "totals": totals, "scored_days": scored, "fixed_price": fixed_price,
-            "per_day": per_day}
+    return {"days": days_out, "totals": totals, "scored_days": scored, "per_day": per_day,
+            "tradable_half_hours": tradable_total}
 
 
 def _day_record(d: str, ours_sched: list, res: dict) -> dict:

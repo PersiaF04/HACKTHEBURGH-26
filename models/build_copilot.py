@@ -58,6 +58,7 @@ def build(load: C.Load, refresh: bool = False, now: dt.datetime | None = None) -
             "energy_cost_gbp": round(ours["energy"]),
             "net_gbp": {k: round(t[k]["net"]) for k in t},
             "break_even_value_gbp_per_mwh": {k: C.break_even_value(t, k) for k in t},
+            "tradable_half_hours": result["tradable_half_hours"],
             "ours_beats_naive_at_values_gbp_per_mwh": [r["value_gbp_per_mwh"] for r in sens
                                                        if r["net_gbp"]["ours"] > r["net_gbp"]["naive"]],
             "caveat": (
@@ -70,13 +71,16 @@ def build(load: C.Load, refresh: bool = False, now: dt.datetime | None = None) -
                 "the site's value for the energy makes up the difference. See `sensitivity` for other values. "
                 "Full delivery is assumed, which is optimistic: NESO's published settled cost is only "
                 f"{(check['settled_to_accepted_cost_ratio_all_dfs'] or 0):.0%} of accepted cost across DFS so far. "
+                f"Only {result['tradable_half_hours']} half-hours were tradable for zone {load.zone} across these days "
+                "(a bid had actually been accepted there), so percentages of the oracle rest on a handful of events "
+                "and 'ours matches the oracle' at low site values is a small-sample effect. "
                 "Not a revenue claim. DFS zone IDs are not confirmed as Scotland."),
         },
         "assumptions": {
             "settlement": "pay-as-bid (arithmetic checked against NESO accepted cost), perfect delivery assumed",
-            "acceptance": "bid price at or below the highest price NESO accepted in that half-hour; none accepted = not tradable",
+            "acceptance": "bid price at or below the highest price NESO accepted in the load's own zone in that half-hour; none accepted in that zone = not tradable",
             "energy_price": "volume-weighted market index price per half-hour",
-            "naive_rule": f"bid a fixed GBP {result['fixed_price']:.0f}/MWh (median accepted price) in the cheapest-electricity half-hours",
+            "naive_rule": "bid a fixed price in the cheapest-electricity half-hours; the price is the median accepted-price ceiling in the load's zone on earlier days only (GBP 60 with no history)",
             "ours_rule": "rank half-hours by expected margin = P(accepted at price) x (price + value - electricity price) x MWh; P(accepted) is learned from earlier days by electricity-price and boundary-utilisation tercile",
             "oracle_rule": "hindsight best tradable half-hours, each bid at its accepted price ceiling",
             "window_local": "11:00 to 23:00",

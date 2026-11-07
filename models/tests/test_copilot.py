@@ -14,7 +14,7 @@ def tiny_market():
     events = {(day, sp): {"caps": caps} for sp in (30, 31, 32)}
     return day, C.Market(
         events=events,
-        threshold={(day, 30): 70.0, (day, 31): 60.0},
+        threshold={(day, 30, "Z1"): 70.0, (day, 31, "Z1"): 60.0},
         mid={(day, 30): 40.0, (day, 31): 190.0, (day, 32): 50.0},
         util={(day, sp): 1.0 for sp in range(23, 47)},
     )
@@ -70,7 +70,7 @@ def synthetic_history(days=12, seed=5):
             mid[(d, sp)] = 200.0 - 150.0 * u + rnd.gauss(0, 10)
             events[(d, sp)] = {"caps": {"Z1": 500.0}}
             if u > 0.4:
-                threshold[(d, sp)] = rnd.choice([50.0, 60.0, 70.0])
+                threshold[(d, sp, "Z1")] = rnd.choice([50.0, 60.0, 70.0])
     return C.Market(events=events, threshold=threshold, mid=mid, util=util)
 
 
@@ -128,3 +128,38 @@ def test_settlement_check_matches_published_cost_and_reports_delivery():
     assert out["upwards_system_exact_within_2p"] == 1
     assert out["settled_to_accepted_cost_ratio_all_dfs"] == 0.5
     assert out["settled_halfhours_upwards_system"] == 1
+
+
+def test_accepted_thresholds_are_kept_per_zone():
+    bids = [
+        {"type": "Upwards", "tag": "System", "req_type": "Live", "status": "Accepted", "price": 70.0,
+         "date": "2026-10-20", "sp": 30, "zone": 2},
+        {"type": "Upwards", "tag": "System", "req_type": "Live", "status": "Accepted", "price": 55.0,
+         "date": "2026-10-20", "sp": 30, "zone": 1},
+        {"type": "Upwards", "tag": "System", "req_type": "Live", "status": "Accepted", "price": 40.0,
+         "date": "2026-10-20", "sp": 30, "zone": 1},
+        {"type": "Upwards", "tag": "System", "req_type": "Live", "status": "Rejected", "price": 99.0,
+         "date": "2026-10-20", "sp": 30, "zone": 1},
+    ]
+    assert C.accepted_thresholds(bids) == {("2026-10-20", 30, "Z2"): 70.0, ("2026-10-20", 30, "Z1"): 55.0}
+
+
+def test_a_bid_cleared_only_in_another_zone_does_not_make_this_zone_tradable():
+    day = "2026-10-20"
+    m = C.Market(events={(day, 30): {"caps": {"Z1": 500.0, "Z2": 500.0}}},
+                 threshold={(day, 30, "Z2"): 70.0}, mid={(day, 30): 40.0}, util={})
+    assert C.tradable(m, C.Load(zone="Z2"), day, 30) == 70.0
+    assert C.tradable(m, C.Load(zone="Z1"), day, 30) is None
+    assert C.settle(m, C.Load(zone="Z1"), day, [(30, 50.0)])["accepted"] == 0
+    assert C.settle(m, C.Load(zone="Z2"), day, [(30, 50.0)])["accepted"] == 1
+
+
+def test_naive_price_uses_earlier_days_and_own_zone_only():
+    m = C.Market(events={}, mid={}, util={}, threshold={
+        ("2026-10-10", 30, "Z1"): 50.0, ("2026-10-11", 30, "Z1"): 70.0, ("2026-10-11", 31, "Z1"): 60.0,
+        ("2026-10-10", 30, "Z2"): 999.0,                    # other zone: ignored
+        ("2026-10-12", 30, "Z1"): 1.0,                      # the day being scored: ignored
+    })
+    load = C.Load(zone="Z1")
+    assert C.naive_price(m, load, ["2026-10-10", "2026-10-11"]) == 60.0   # median of 50, 60, 70
+    assert C.naive_price(m, load, []) == 60.0                              # pre-declared default
