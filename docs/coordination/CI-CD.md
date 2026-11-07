@@ -26,7 +26,9 @@ Use these Vercel project settings:
 
 The build runs `sync-data`, which copies `contracts/fixtures/` and `data/public/` from the repository root into `web/public/data/`. Keep Vercel's outside-root file setting enabled so those inputs are available when the root directory is `web/`. The app has no build-time secrets; keep any future credentials out of Git and configure them through Vercel's environment settings only if a requirement needs them.
 
-Connect the Vercel project to this repository and deploy from `main` after the project owner provides access. Verify that the deployment serves the built app and its JSON data before sharing its URL. Do not claim a public deployment until this check passes.
+`data/public/replay/live.json` is gitignored, so it is not included in a Vercel deployment. The hosted site therefore serves the committed replay days only; R-8 live mode is not available there with this setup. A hosted live mode needs a separate, approved way to publish snapshots to a fetchable location. Until then, local preview can show live data only on a machine where the lane A poller has generated `live.json`; otherwise use the committed replay.
+
+Connect the Vercel project to this repository and deploy from `main` after the project owner provides access. Verify that the deployment serves the built app and its committed replay JSON data before sharing its URL. Do not claim a public deployment until this check passes.
 
 ## CI and recovery
 
