@@ -375,3 +375,13 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
   .pager { justify-content: space-between; }
   .pager-pick { max-width: none; }
 }
+
+/* Live mode */
+.day-picker button.day-live { font-weight: 600; }
+.live-badge { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 14px; }
+.live-badge strong { letter-spacing: 0.06em; color: var(--gas); }
+.live-dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--gas); flex: none; }
+.live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--gas); animation: pulse 1.6s ease-out infinite; }
+.live-calm { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 18px; margin-bottom: 16px; }
+.live-calm p { margin: 0; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .live-dot::after { animation: none; opacity: 0; } }
