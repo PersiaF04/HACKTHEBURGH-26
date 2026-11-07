@@ -1,8 +1,11 @@
 # Turn Up Scotland — shared status
 
-**As of:** 2026-11-07 16:41 UTC  
-**Next refresh:** by 18:41 UTC, or sooner after any PR merges.  
-**Source:** GitHub issues and pull requests, PR reviews/comments, and team-harmony handoffs.  
+**As of:** 2026-11-07 16:41 UTC
+
+**Next refresh:** by 18:41 UTC, or sooner after any PR merges.
+
+**Source:** GitHub issues and pull requests, PR reviews/comments, and team-harmony handoffs.
+
 **Project:** [PRD](../../PRD.md) · [decision log](DECISIONS.md) · [work queue](BOARD.md)
 
 This is a point-in-time coordination snapshot, not a second task tracker. GitHub Issues and PRs remain authoritative. Refresh it about every two hours and whenever a PR merges. Keep unconfirmed decisions marked **Open**.
