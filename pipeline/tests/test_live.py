@@ -31,7 +31,9 @@ def test_build_live_estimates_curtailment_and_stops_at_now():
     def boalf(start, end):
         return [seg("T_X", "2026-11-07T00:30:00Z", "2026-11-07T01:00:00Z", 40, 40, acc=7)]
 
-    out = live.build_live(now, {"T_X"}, physical=physical, boalf=boalf)
+    scotex = {"2026-11-07T00:30:00Z": (5900.0, 7000.0)}
+    out = live.build_live(now, {"T_X"}, physical=physical, boalf=boalf, scotex=scotex)
+    assert out["periods"][1]["scotex_flow_mw"] == 7000.0 and out["periods"][0]["scotex_limit_mw"] is None
     assert out["meta"]["retrospective"] is False
     assert [p["sp"] for p in out["periods"]] == [1, 2, 3]
     sp1, sp2 = out["periods"][0]["farms"]["T_X"], out["periods"][1]["farms"]["T_X"]

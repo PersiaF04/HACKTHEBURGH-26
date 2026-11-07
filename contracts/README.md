@@ -23,6 +23,7 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 | `forecast.json` | B | Tomorrow, Under the Hood | Half-hourly forecasts plus backtest scores and a reliability curve |
 | `copilot.json` | B | Flex Copilot, judge game | Naive, ours and oracle policy results for a load on replay days |
 | `sandbox.json` (optional) | B | Interactive load sandbox | Per-half-hour inputs and a scoring rule so the client can re-score a load the user places |
+| `dashboard.json` (optional) | B | Map dashboard | Tomorrow headline and numbers, request probability per half-hour, and the Copilot's call for each replay day |
 
 ## Schemas
 
@@ -50,6 +51,12 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 ```
 
 `state` is one of `generating`, `instructed` (paid to turn down), `unavailable` (outage: PN above MEL with no bid) or `unknown`.
+
+Optional fields (lane A writes them; the web app may ignore them):
+
+- `periods[]`: `scotex_limit_mw` and `scotex_flow_mw`. These are NESO's day-ahead limit for the SCOTEX boundary (the "cables south" from Scotland to England) and NESO's day-ahead scheduled-flow forecast across it, made before later changes and without expected constraint actions. A flow above the limit signals potential constraint pressure, but it is a forecast: it is not a measured flow and does not prove how much was turned down. They are the latest published day-ahead values, not measured outturn, and are `null` when NESO has no value for that half-hour. `meta.scotex_note` explains this.
+- `replay/live.json` (written by the lane A live poller) has the same shape, with `meta.live: true`, `meta.retrospective: false` and `paid_gbp: null` (Elexon settles payments the next morning).
+- `replay/index.json`: `{ "meta": {}, "days": ["2026-10-13", ...], "live": "<file name under replay/ or an absolute https URL>" }`. When `live` is an absolute URL, the app fetches it as-is (CORS-enabled).
 
 ### `iceberg.json`
 
@@ -130,3 +137,27 @@ Per-half-hour inputs for re-running the Copilot's scoring client-side for a load
 - **`mwh` is the electricity the load buys and uses** in the half-hours NESO would have accepted, assuming full delivery. It is **not** proof that the same MWh of curtailed wind was absorbed. `wind_matched_mwh` is a separate, **approximate upper bound** on how much of it could have been otherwise-curtailed Scottish wind: in each accepted half-hour, `min(capacity_mw x 0.5, curtailed_mwh)`. It ignores which farms or zone the wind is in (the zone-to-region mapping is unconfirmed) and assumes no other load competes for the wind. Label it as approximate wherever it is shown.
 - `test_vectors` give expected results for the default load on every day with a call, user-style schedules and edge cases (a load above the zone cap scores nothing). A port must match `expected` within 0.005. Numbers are exported unrounded so IEEE doubles summed in the stated order match exactly.
 - On the real data the default 50 MW, Z1, GBP 100/MWh case on 27 Oct gives net 8,533.25 (naive), 11,909.25 (ours) and 12,594.50 (oracle), the same as `copilot.json` for that day. Totals across all 13 scored days differ for naive (1,976) because naive loses money on other days; ours and oracle are zero on those days.
+
+### `dashboard.json` (optional, issue #74)
+
+Summaries for the map dashboard (#73), derived from `forecast.json`, `copilot.json` and the replay index. The web app must still work when this file is absent.
+
+```json
+{ "meta": {},
+  "tomorrow": { "target_date": "2026-11-08", "mode": "next_day", "model": "wind_forecast",
+    "headline": "Tomorrow, Sunday 8 Nov: calm. ...",
+    "facts": { "total_p50_mwh": 0, "peak_p50_mwh": 0, "peak_p50_start_utc": "2026-11-08T00:00:00Z", "peak_p90_mwh": 0,
+      "peak_p_heavy": 0, "heavy_half_hours": 0, "peak_p_request": 0.233, "request_window_utc": ["11:00", "22:30"] },
+    "request_probability": [ { "start_utc": "2026-11-08T00:00:00Z", "p_turnup_request": 0.0 } ],
+    "caveat": "Retrospective: ..." },
+  "replay_days": [ { "date": "2026-10-27",
+    "request_probability": [ { "start_utc": "2026-10-26T23:00:00Z", "p_turnup_request": 0.0, "actual_request": false } ],
+    "copilot": { "status": "scored", "ready_windows_utc": [["2026-10-27T11:00:00Z", "2026-10-27T14:30:00Z"]], "ready_half_hours": 7,
+      "bid_gbp_per_mwh": 60.0, "bid_range_gbp_per_mwh": null, "net_gbp": { "naive": 8533, "ours": 11909, "oracle": 12594 },
+      "pct_of_oracle": 0.946, "caveat": "Replay, net of electricity ..." } } ] }
+```
+
+- `tomorrow.headline` is **templated from `tomorrow.facts`**, never written by hand or by a model, so a sentence cannot say more than the numbers. It says "Tomorrow" only when `mode` is `next_day`; for `same_day_replay` it says it is a replay, not tomorrow.
+- `tomorrow.request_probability` has one entry per half-hour of the target day and lines up with `forecast.json` `periods`.
+- `replay_days` has one entry per day in `replay/index.json`. `request_probability` has 48 entries aligned to the replay timeline (`start_utc`, the same instants as the replay periods). `p_turnup_request` is a **walk-forward** value (the model saw only earlier days) and `null` when there is not enough history; `actual_request` is whether NESO really published a turn-up request that half-hour.
+- `copilot.status` is `scored` or `not_scored`. A `not_scored` day carries a `reason` (before requests began, a warm-up day, or not in the scored set) and no numbers. On a `scored` day with nothing tradable, `pct_of_oracle` is `null` and a `note` says there was nothing to answer. The Copilot only has a scored call on days after its warm-up; today that is 27 Oct among the replay days.
