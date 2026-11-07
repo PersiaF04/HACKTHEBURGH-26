@@ -31,7 +31,7 @@ The product requirements, evidence and risks are in [`PRD.md`](PRD.md).
 
 ## Visuals
 
-No screenshots are committed yet. The demo journey and the demo-step table are in [`PRD.md`](PRD.md) (sections 3 and 7), and the team's working notes and project status are in [`docs/`](docs/) (for example [`docs/coordination/STATUS.md`](docs/coordination/STATUS.md)). The app has seven screens, all reading JSON from `data/public/` (falling back to `contracts/fixtures/`):
+No screenshots are committed yet. The three-minute demo script, the Devpost write-up and likely judge questions are in [`docs/DEMO.md`](docs/DEMO.md). The demo journey and the demo-step table are in [`PRD.md`](PRD.md) (sections 3 and 7), and the team's working notes and project status are in [`docs/`](docs/) (for example [`docs/coordination/STATUS.md`](docs/coordination/STATUS.md)). The app has seven screens, all reading JSON from `data/public/` (falling back to `contracts/fixtures/`):
 
 | Screen | What it shows |
 | --- | --- |

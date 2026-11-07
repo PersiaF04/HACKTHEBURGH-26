@@ -166,7 +166,7 @@ export function Copilot() {
 
   return (
     <Screen {...head}
-      lede="Pick a flexible load. The copilot reads tomorrow's forecast and says when to be ready to switch on and what to bid, then we replay real days to see how it would have done.">
+      lede="Pick a flexible load. For each past replay day, the copilot uses forecast inputs to say when to be ready to switch on and what to bid, then we score it against what really happened.">
       <form className="cp-picker card" onSubmit={(e) => e.preventDefault()} aria-label="Load picker">
         <fieldset className="cp-field">
           <legend>Load type</legend>
