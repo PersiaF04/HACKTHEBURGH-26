@@ -1,7 +1,7 @@
 # Turn Up Scotland — shared status
 
-**As of:** 2026-11-07 16:39 UTC  
-**Next refresh:** by 18:39 UTC, or sooner after any PR merges.  
+**As of:** 2026-11-07 16:41 UTC  
+**Next refresh:** by 18:41 UTC, or sooner after any PR merges.  
 **Source:** GitHub issues and pull requests, PR reviews/comments, and team-harmony handoffs.  
 **Project:** [PRD](../../PRD.md) · [decision log](DECISIONS.md) · [work queue](BOARD.md)
 
@@ -11,9 +11,9 @@ This is a point-in-time coordination snapshot, not a second task tracker. GitHub
 
 As of the timestamp above:
 
-- **Code freeze:** 14h 21m, at 2026-11-08 07:00 UTC.
-- **Internal submission target:** 18h 21m, at 2026-11-08 11:00 UTC.
-- **Submission deadline:** 19h 21m, at 2026-11-08 12:00 UTC.
+- **Code freeze:** 14h 19m, at 2026-11-08 07:00 UTC.
+- **Internal submission target:** 18h 19m, at 2026-11-08 11:00 UTC.
+- **Submission deadline:** 19h 19m, at 2026-11-08 12:00 UTC.
 
 ## Workstream status
 
@@ -23,7 +23,7 @@ As of the timestamp above:
 | B — models, validation and decision | sanamorii / sanamorii's Claude; `models/`, with `forecast.json` and `copilot.json` under `data/public/` | #29 and #30 open; no PRs shown. | Work is assigned; no implementation PRs are listed yet. Preserve chronological validation and retrospective labels while flow snapshot vintage is unknown. |
 | C — web, story and hardware | Persia / Persia's Claude; `web/` and `hardware/` | #31 open; [PR #36](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/36) open. #32 and #33 open; no PRs shown. | PR #36's Markdown lint and web build checks pass. It is stacked on #34, which is blocked. Codex sent the author two findings via team-harmony: remove the unsupported gas-payment/geography claim from the Iceberg narration, and calculate conventional medians for even-sized samples. #33 is P2/optional. |
 | Project agreement and shared contract | Persia / Persia's Claude; shared `PRD.md` and `contracts/` | #26 open; [PR #34](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/34) open. | The author pushed a revision to describe the £193m wind turn-down and £1.78bn CCGT/NESO measures as parallel, non-additive comparisons. A reviewer re-review and a second lane owner's approval remain pending. The lane confirmation gate on #26 is not fully closed: sanamorii confirmed; Varshil's human confirmation is still requested. |
-| Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; this PR. | Refresh on the schedule above and after each merge. |
+| Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; [PR #45](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/45) open against the #26 branch. | Refresh on the schedule above and after each merge. |
 
 ## Merged and blocked work
 
