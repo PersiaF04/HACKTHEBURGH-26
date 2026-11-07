@@ -1,8 +1,8 @@
 # Turn Up Scotland — shared status
 
-**As of:** 2026-11-07 17:06 UTC
+**As of:** 2026-11-07 17:08 UTC
 
-**Next refresh:** by 19:06 UTC, or sooner after any PR merges.
+**Next refresh:** by 19:08 UTC, or sooner after any PR merges.
 **Project:** [PRD](../../PRD.md) · [decision log](DECISIONS.md) · [work queue](BOARD.md)
 
 This is a point-in-time coordination snapshot, not a second task tracker. GitHub Issues and PRs remain authoritative. Refresh it about every two hours and whenever a PR merges. Keep unconfirmed decisions marked **Open**.
@@ -11,9 +11,9 @@ This is a point-in-time coordination snapshot, not a second task tracker. GitHub
 
 As of the timestamp above:
 
-- **Code freeze:** 13h 54m, at 2026-11-08 07:00 UTC.
-- **Internal submission target:** 17h 54m, at 2026-11-08 11:00 UTC.
-- **Submission deadline:** 18h 54m, at 2026-11-08 12:00 UTC.
+- **Code freeze:** 13h 52m, at 2026-11-08 07:00 UTC.
+- **Internal submission target:** 17h 52m, at 2026-11-08 11:00 UTC.
+- **Submission deadline:** 18h 52m, at 2026-11-08 12:00 UTC.
 
 ## Workstream status
 
@@ -23,7 +23,7 @@ As of the timestamp above:
 | B — models, validation and decision | sanamorii / sanamorii's Claude; `models/`, outputs under `data/public/` | #29 / [PR #40](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/40); #30 / [PR #48](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/48); [PR #52](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/52) | PR #40 has a Codex change request: do not present a same-day retrospective target as tomorrow's forecast. PR #48 has requests to keep accepted prices zone-specific, avoid scored-day leakage in the naive baseline, and clarify the net-GBP contract field. PR #52 adds model tests to CI and awaits review. |
 | C — web, story and hardware | Persia / Persia's Claude; `web/` and `hardware/` | #31 / [PR #36](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/36) merged; #32/#38/#39 and web part of #33 / [PR #47](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/47); [PR #53](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/53) | PR #36 is on `main`. PR #47 integrates seven screens and has green Markdown/Web CI, but review findings remain: Tomorrow omits the headroom-rule baseline; the Operator game maps half-hour Copilot readiness to whole two-hour blocks, so comparisons use unequal budgets. PR #53 adds net-GBP/sensitivity presentation; it is not yet on `main`. Hardware remains optional/P2. |
 | Shared foundation | Persia / Persia's Claude; `PRD.md` and `contracts/` | #26 / [PR #34](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/34) merged | PR #34 is on `main`. PRD G-2 now records the corrected retrospective baseline: 3,168 half-hours, persistence MAE 1,224 and Brier 0.471. Contract changes still require all three lane approvals. |
-| Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; [PR #45](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/45) merged to `main` | This refresh follows the #34, #36 and #45 merges and latest lane handoffs. #37 remains open because status maintenance is ongoing. |
+| Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; [PR #45](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/45) merged to `main`; [PR #56](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/56) refreshes it | This refresh follows the #34, #36 and #45 merges and latest lane handoffs. #37 remains open because status maintenance is ongoing. |
 
 ## Merged and blocked work
 
