@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { SCOTLAND_PATH } from "../assets/scotland";
 import { fmtEnergy, fmtGbp, fmtNum, type FarmPeriod, type FarmState, type GridLine, type ReplayPeriod } from "../data";
 import { boundaryOf } from "../sandbox";
@@ -78,6 +78,9 @@ function FarmDetail({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPer
 }
 
 export interface MapPin { x: number; y: number }
+const clampPin = (p: MapPin): MapPin => ({ x: Math.max(0, Math.min(520, p.x)), y: Math.max(0, Math.min(640, p.y)) });
+const PIN_STEP = 8;
+const PIN_KEYS: Record<string, [number, number]> = { ArrowLeft: [-PIN_STEP, 0], ArrowRight: [PIN_STEP, 0], ArrowUp: [0, -PIN_STEP], ArrowDown: [0, PIN_STEP] };
 
 export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, onMovePin }: {
   farms: PlacedFarm[]; period: ReplayPeriod; label: string; showLines: boolean; lines: GridLine[];
@@ -115,6 +118,22 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
   const activeId = hover ?? keyId ?? pinned;
   const active = farms.find((f) => f.id === activeId);
   const pinAt = tilt(pin.x, pin.y);
+  const [dragging, setDragging] = useState(false);
+  // touch-action on an inner SVG element does not stop the page panning mid-drag, and React's touch listeners are passive.
+  const pinRef = useRef<SVGGElement>(null);
+  useEffect(() => {
+    const el = pinRef.current;
+    if (!el) return;
+    const stop = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener("touchstart", stop, { passive: false });
+    return () => el.removeEventListener("touchstart", stop);
+  }, []);
+  const placeAt = (svg: SVGSVGElement, clientX: number, clientY: number) => {
+    const m = svg.getScreenCTM();
+    if (!m) return;
+    const p = new DOMPoint(clientX, clientY).matrixTransform(m.inverse());
+    onMovePin(clampPin(untilt(p.x, p.y)));
+  };
 
   useEffect(() => {
     if (!pinned) return;
@@ -138,10 +157,7 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
         onKeyDown={onKey} onBlur={() => setCursor(-1)}
         onClick={(e) => {
           setPinned(null);
-          const m = e.currentTarget.getScreenCTM();
-          if (!m) return;
-          const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()), b = untilt(p.x, p.y);
-          onMovePin({ x: Math.max(0, Math.min(520, b.x)), y: Math.max(0, Math.min(640, b.y)) });
+          placeAt(e.currentTarget, e.clientX, e.clientY);
         }}>
         <defs>
           <radialGradient id="dm-glow">
@@ -204,8 +220,20 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
           })}
         </g>
 
-        <g className={`dm-pin${pinOn ? " is-on" : ""}`} transform={`translate(${pinAt.x.toFixed(1)} ${pinAt.y.toFixed(1)})`} aria-hidden="true">
+        <g ref={pinRef} className={`dm-pin${pinOn ? " is-on" : ""}${dragging ? " is-dragging" : ""}`} transform={`translate(${pinAt.x.toFixed(1)} ${pinAt.y.toFixed(1)})`}
+          tabIndex={0} role="button" aria-label="Your load, illustrative location. Drag it, or use the arrow keys to move it. It does not affect the score."
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); setDragging(true); }}
+          onPointerMove={(e) => { const svg = e.currentTarget.ownerSVGElement; if (svg && e.currentTarget.hasPointerCapture(e.pointerId)) placeAt(svg, e.clientX, e.clientY); }}
+          onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)}
+          onKeyDown={(e) => {
+            const d = PIN_KEYS[e.key];
+            if (!d) return;
+            e.preventDefault(); e.stopPropagation(); // the map's own arrow keys step through farms
+            onMovePin(clampPin({ x: pin.x + d[0], y: pin.y + d[1] }));
+          }}>
           {pinOn && <circle className="dm-pin-glow" r={30} fill="url(#dm-pin-glow)" />}
+          <circle className="dm-pin-hit" r={16} />
           <rect className="dm-pin-body" x={-8} y={-8} width={16} height={16} rx={4} transform="rotate(45)" />
           <circle className="dm-pin-core" r={3.5} />
           <text className="dm-pin-label" x={15} y={-3}>Your load</text>

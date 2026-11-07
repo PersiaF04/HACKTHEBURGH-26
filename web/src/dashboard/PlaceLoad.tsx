@@ -84,7 +84,7 @@ export function PlaceLoad({ settings, onChange, result, onNow, pot, dayLabel }: 
           </p>
           <details className="pl-more">
             <summary>How this is scored</summary>
-            <p className="pl-note">{result.note} Click the map to move the pin: it is an illustrative location and does not affect the score, because zone IDs are NESO's and not confirmed as Scotland.</p>
+            <p className="pl-note">{result.note} Drag the pin, click the map, or focus the pin and use the arrow keys: it is an illustrative location and does not affect the score, because zone IDs are NESO's and not confirmed as Scotland.</p>
           </details>
         </>
       ) : (
