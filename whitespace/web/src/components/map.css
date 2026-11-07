@@ -51,6 +51,7 @@
 .whitespace-map__canvas {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   max-height: min(75vh, 58rem);
   border: 1px solid #d7e0e9;
@@ -118,6 +119,94 @@
   margin: 0.65rem 0 0;
   color: #536273;
   font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.whitespace-map__browse {
+  border: 1px solid #d7e0e9;
+  border-radius: 0.6rem;
+  background: #fff;
+}
+
+.whitespace-map__browse summary {
+  min-height: 2.75rem;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.whitespace-map__browse-status {
+  padding: 0.5rem 0.9rem;
+  border-top: 1px solid #d7e0e9;
+  color: #536273;
+  font-size: 0.85rem;
+}
+
+.whitespace-map__concept-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 0.35rem;
+  max-height: 28rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0.6rem;
+  border-top: 1px solid #d7e0e9;
+  list-style: none;
+}
+
+.whitespace-map__concept-list button {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.whitespace-map__concept-list button:hover,
+.whitespace-map__concept-list button[aria-pressed="true"] {
+  border-color: #d7e0e9;
+  background: #ecece7;
+}
+
+.whitespace-map__concept-meta {
+  color: #536273;
+  font-size: 0.78rem;
+}
+
+.whitespace-map__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border-top: 1px solid #d7e0e9;
+}
+
+.whitespace-map__pagination button {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #9aa9b9;
+  border-radius: 0.4rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.whitespace-map__pagination button:disabled {
+  color: #536273;
+  cursor: not-allowed;
+}
+
+.whitespace-map__browse :focus-visible {
+  outline: 3px solid #135fc2;
+  outline-offset: 2px;
 }
 
 .whitespace-map__empty {
@@ -177,6 +266,7 @@
   .whitespace-map__zoom { gap: 0.25rem; }
   .whitespace-map__zoom button { min-width: 2.75rem; min-height: 2.75rem; }
   .whitespace-map__canvas { max-height: 62vh; }
+  .whitespace-map__concept-list { grid-template-columns: 1fr; max-height: 22rem; }
   .whitespace-time-slider__labels { align-items: flex-start; font-size: 0.8rem; }
   .whitespace-time-slider__selected { max-width: 9rem; text-align: center; }
 }

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent, PointerEvent, WheelEvent } from "react";
+import type { PointerEvent, WheelEvent } from "react";
 import type { ConceptPoint, PredictedEdge } from "../api";
 import "./map.css";
 
 type MapFocus = { x: number; y: number } | null;
-
 type MapCanvasProps = {
   concepts: ConceptPoint[];
   edges: PredictedEdge[];
@@ -13,13 +12,24 @@ type MapCanvasProps = {
   placeholder: boolean;
   onSelectConcept: (id: string) => void;
 };
-
 type ViewTransform = { x: number; y: number; scale: number };
+type CanvasSize = { width: number; height: number };
+type DragState = { pointerX: number; pointerY: number; originX: number; originY: number; moved: boolean };
+type PositionedConcept = ConceptPoint & { mapX: number; mapY: number };
 
 const VIEW_SIZE = 960;
 const MAP_MIN = 42;
 const MAP_MAX = VIEW_SIZE - 42;
+const LIST_PAGE_SIZE = 50;
 const DEFAULT_TRANSFORM: ViewTransform = { x: 0, y: 0, scale: 1 };
+
+const GROWTH_STEPS = [
+  { color: "#C3C7CF", label: "Shrinking" },
+  { color: "#F0C9A0", label: "0 to 15%" },
+  { color: "#EDA060", label: "15 to 30%" },
+  { color: "#E07432", label: "30 to 45%" },
+  { color: "#BF4A0E", label: "45% or more" },
+] as const;
 
 function extent(values: number[]): [number, number] {
   if (!values.length) return [0, 1];
@@ -33,38 +43,39 @@ function nodeRadius(paperCount: number): number {
 }
 
 function growthColor(growth: number | null): string {
-  if (growth === null) return "#718096";
-  if (growth > 0) return "#2864b4";
-  if (growth < 0) return "#b6533b";
-  return "#718096";
+  if (growth === null) return "#9AA0AA";
+  if (growth < 0) return GROWTH_STEPS[0].color;
+  if (growth < 0.15) return GROWTH_STEPS[1].color;
+  if (growth < 0.3) return GROWTH_STEPS[2].color;
+  if (growth < 0.45) return GROWTH_STEPS[3].color;
+  return GROWTH_STEPS[4].color;
 }
 
-export function MapCanvas({
-  concepts,
-  edges,
-  selectedConceptId,
-  focus,
-  placeholder,
-  onSelectConcept,
-}: MapCanvasProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const dragRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
-  const [transform, setTransform] = useState<ViewTransform>(DEFAULT_TRANSFORM);
-  const [activeIndex, setActiveIndex] = useState(0);
+function nodeDescription(concept: ConceptPoint): string {
+  const papers = typeof concept.paper_count === "number"
+    ? `${concept.paper_count.toLocaleString("en-GB")} papers`
+    : "paper count unavailable";
+  const growth = concept.growth === null ? "growth unavailable" : `growth ${(concept.growth * 100).toFixed(1)}%`;
+  return `${concept.label}; ${papers}; ${growth}`;
+}
 
-  const extents = useMemo(
-    () => {
-      const x = extent(concepts.map((concept) => concept.x));
-      const y = extent(concepts.map((concept) => concept.y));
-      return {
-        xCenter: (x[0] + x[1]) / 2,
-        yCenter: (y[0] + y[1]) / 2,
-        range: Math.max(x[1] - x[0], y[1] - y[0]),
-      };
-    },
-    [concepts],
-  );
-  const positioned = useMemo(
+export function MapCanvas({ concepts, edges, selectedConceptId, focus, placeholder, onSelectConcept }: MapCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
+  const [transform, setTransform] = useState<ViewTransform>(DEFAULT_TRANSFORM);
+  const [listPage, setListPage] = useState(0);
+
+  const extents = useMemo(() => {
+    const x = extent(concepts.map((concept) => concept.x));
+    const y = extent(concepts.map((concept) => concept.y));
+    return {
+      xCenter: (x[0] + x[1]) / 2,
+      yCenter: (y[0] + y[1]) / 2,
+      range: Math.max(x[1] - x[0], y[1] - y[0]),
+    };
+  }, [concepts]);
+  const positioned = useMemo<PositionedConcept[]>(
     () => concepts.map((concept) => ({
       ...concept,
       mapX: VIEW_SIZE / 2 + ((concept.x - extents.xCenter) / extents.range) * (MAP_MAX - MAP_MIN),
@@ -73,6 +84,22 @@ export function MapCanvas({
     [concepts, extents],
   );
   const byId = useMemo(() => new Map(positioned.map((concept) => [concept.id, concept])), [positioned]);
+  const pageCount = Math.max(1, Math.ceil(positioned.length / LIST_PAGE_SIZE));
+  const pageStart = Math.min(listPage, pageCount - 1) * LIST_PAGE_SIZE;
+  const pageConcepts = positioned.slice(pageStart, pageStart + LIST_PAGE_SIZE);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      setCanvasSize({ width: rect.width, height: rect.height });
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!focus || !concepts.length) return;
@@ -85,11 +112,59 @@ export function MapCanvas({
     }));
   }, [focus?.x, focus?.y, concepts.length, extents]);
 
-  useEffect(() => {
-    if (activeIndex >= concepts.length) setActiveIndex(Math.max(0, concepts.length - 1));
-  }, [activeIndex, concepts.length]);
+  useEffect(() => setListPage(0), [concepts]);
 
-  const zoom = (factor: number) => {
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || canvasSize.width <= 0 || canvasSize.height <= 0) return undefined;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(canvasSize.width * ratio);
+    canvas.height = Math.round(canvasSize.height * ratio);
+    const context = canvas.getContext("2d");
+    if (!context) return undefined;
+
+    context.setTransform(ratio * canvasSize.width / VIEW_SIZE, 0, 0, ratio * canvasSize.height / VIEW_SIZE, 0, 0);
+    context.clearRect(0, 0, VIEW_SIZE, VIEW_SIZE);
+    context.save();
+    context.translate(transform.x, transform.y);
+    context.scale(transform.scale, transform.scale);
+
+    for (const edge of edges) {
+      const source = byId.get(edge.source);
+      const target = byId.get(edge.target);
+      if (!source || !target) continue;
+      context.beginPath();
+      context.setLineDash([6, 4]);
+      context.lineWidth = 1.5;
+      context.strokeStyle = `rgba(41, 82, 227, ${Math.max(0.2, Math.min(0.8, edge.p_link))})`;
+      context.moveTo(source.mapX, source.mapY);
+      context.lineTo(target.mapX, target.mapY);
+      context.stroke();
+    }
+
+    for (const concept of positioned) {
+      const radius = nodeRadius(concept.paper_count ?? 0);
+      context.beginPath();
+      context.setLineDash([]);
+      context.arc(concept.mapX, concept.mapY, radius, 0, Math.PI * 2);
+      context.fillStyle = growthColor(concept.growth);
+      context.fill();
+      context.lineWidth = selectedConceptId === concept.id ? 3 : 1.5;
+      context.strokeStyle = selectedConceptId === concept.id ? "#15171C" : "#FFFFFF";
+      context.stroke();
+      if (selectedConceptId === concept.id) {
+        context.beginPath();
+        context.arc(concept.mapX, concept.mapY, radius + 5, 0, Math.PI * 2);
+        context.lineWidth = 1.5;
+        context.strokeStyle = "#15171C";
+        context.stroke();
+      }
+    }
+    context.restore();
+    return undefined;
+  }, [canvasSize, edges, byId, positioned, selectedConceptId, transform]);
+
+  function zoom(factor: number) {
     setTransform((current) => {
       const scale = Math.max(0.6, Math.min(5, current.scale * factor));
       const ratio = scale / current.scale;
@@ -99,55 +174,76 @@ export function MapCanvas({
         y: VIEW_SIZE / 2 - (VIEW_SIZE / 2 - current.y) * ratio,
       };
     });
-  };
+  }
 
-  const handleWheel = (event: WheelEvent<SVGSVGElement>) => {
+  function handleWheel(event: WheelEvent<HTMLCanvasElement>) {
     event.preventDefault();
     zoom(event.deltaY < 0 ? 1.12 : 1 / 1.12);
-  };
+  }
 
-  const handlePointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    if (event.target instanceof Element && event.target.closest("[data-map-node='true']")) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const scaleFactor = VIEW_SIZE / bounds.width;
+  function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
+    if (event.button !== 0) return;
     dragRef.current = {
       pointerX: event.clientX,
       pointerY: event.clientY,
       originX: transform.x,
       originY: transform.y,
+      moved: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
-    svgRef.current?.setAttribute("data-drag-scale", String(scaleFactor));
-  };
+  }
 
-  const handlePointerMove = (event: PointerEvent<SVGSVGElement>) => {
-    if (!dragRef.current) return;
-    const scaleFactor = Number(svgRef.current?.getAttribute("data-drag-scale") ?? 1);
+  function handlePointerMove(event: PointerEvent<HTMLCanvasElement>) {
     const drag = dragRef.current;
+    if (!drag) return;
+    const dx = event.clientX - drag.pointerX;
+    const dy = event.clientY - drag.pointerY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    if (!drag.moved) return;
+    const rect = event.currentTarget.getBoundingClientRect();
     setTransform((current) => ({
       ...current,
-      x: drag.originX + (event.clientX - drag.pointerX) * scaleFactor,
-      y: drag.originY + (event.clientY - drag.pointerY) * scaleFactor,
+      x: drag.originX + dx * VIEW_SIZE / rect.width,
+      y: drag.originY + dy * VIEW_SIZE / rect.height,
     }));
-  };
+  }
 
-  const finishDrag = () => {
-    dragRef.current = null;
-  };
-
-  const handleNodeKeyDown = (event: KeyboardEvent<SVGGElement>, index: number) => {
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = Math.min(concepts.length - 1, index + 1);
-    if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = Math.max(0, index - 1);
-    if (nextIndex !== null) {
-      event.preventDefault();
-      setActiveIndex(nextIndex);
-      requestAnimationFrame(() => svgRef.current?.querySelector<SVGGElement>(`[data-node-index="${nextIndex}"]`)?.focus());
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelectConcept(concepts[index].id);
+  function hitTest(clientX: number, clientY: number): PositionedConcept | undefined {
+    const canvas = canvasRef.current;
+    if (!canvas || canvasSize.width <= 0 || canvasSize.height <= 0) return undefined;
+    const rect = canvas.getBoundingClientRect();
+    const screenX = (clientX - rect.left) * VIEW_SIZE / rect.width;
+    const screenY = (clientY - rect.top) * VIEW_SIZE / rect.height;
+    const mapX = (screenX - transform.x) / transform.scale;
+    const mapY = (screenY - transform.y) / transform.scale;
+    const displayScale = Math.min(rect.width, rect.height) / VIEW_SIZE * transform.scale;
+    let nearest: PositionedConcept | undefined;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const concept of positioned) {
+      const distance = Math.hypot(concept.mapX - mapX, concept.mapY - mapY);
+      const hitRadius = Math.max(12 / displayScale, nodeRadius(concept.paper_count ?? 0) + 5);
+      if (distance <= hitRadius && distance < nearestDistance) {
+        nearest = concept;
+        nearestDistance = distance;
+      }
     }
-  };
+    return nearest;
+  }
+
+  function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (drag && !drag.moved) {
+      const concept = hitTest(event.clientX, event.clientY);
+      if (concept) onSelectConcept(concept.id);
+    }
+  }
+
+  function selectConcept(id: string) {
+    onSelectConcept(id);
+    const index = positioned.findIndex((concept) => concept.id === id);
+    if (index >= 0) setListPage(Math.floor(index / LIST_PAGE_SIZE));
+  }
 
   return (
     <section className="whitespace-map" aria-label="Research concept map">
@@ -160,75 +256,70 @@ export function MapCanvas({
         </div>
       </div>
 
-      {!concepts.length ? (
+      {!positioned.length ? (
         <div className="whitespace-map__empty" role="status">
           <strong>No concepts are available for this year.</strong>
           <span>Choose another snapshot origin to explore the map.</span>
         </div>
       ) : (
-        <svg
-          ref={svgRef}
+        <canvas
+          ref={canvasRef}
           className="whitespace-map__canvas"
-          viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
-          role="group"
-          aria-label={`Research map with ${concepts.length} concepts. Drag to pan and use the mouse wheel or zoom buttons to zoom.`}
+          aria-hidden="true"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          onPointerUp={finishDrag}
-          onPointerCancel={finishDrag}
-        >
-          <g transform={`translate(${transform.x} ${transform.y}) scale(${transform.scale})`}>
-            {edges.map((edge) => {
-              const source = byId.get(edge.source);
-              const target = byId.get(edge.target);
-              if (!source || !target) return null;
-              return (
-                <line
-                  key={`${edge.source}-${edge.target}`}
-                  x1={source.mapX}
-                  y1={source.mapY}
-                  x2={target.mapX}
-                  y2={target.mapY}
-                  className="whitespace-map__edge"
-                  strokeOpacity={Math.max(0.18, Math.min(0.8, edge.p_link))}
-                />
-              );
-            })}
-            {positioned.map((concept, index) => (
-              <g
-                key={concept.id}
-                data-map-node="true"
-                data-node-index={index}
-                role="button"
-                tabIndex={activeIndex === index ? 0 : -1}
-                aria-label={`${concept.label}; ${concept.paper_count ?? "paper count unavailable"} papers; ${concept.growth === null ? "growth unavailable" : `growth ${concept.growth}`}`}
-                aria-pressed={selectedConceptId === concept.id}
-                onFocus={() => setActiveIndex(index)}
-                onClick={() => onSelectConcept(concept.id)}
-                onKeyDown={(event) => handleNodeKeyDown(event, index)}
-              >
-                <circle
-                  cx={concept.mapX}
-                  cy={concept.mapY}
-                  r={nodeRadius(concept.paper_count ?? 0)}
-                  fill={growthColor(concept.growth)}
-                  className={selectedConceptId === concept.id ? "whitespace-map__node whitespace-map__node--selected" : "whitespace-map__node"}
-                />
-                <circle cx={concept.mapX} cy={concept.mapY} r={Math.max(12, nodeRadius(concept.paper_count ?? 0) + 5)} className="whitespace-map__hit-area" />
-              </g>
-            ))}
-          </g>
-        </svg>
+          onPointerUp={handlePointerUp}
+          onPointerCancel={() => { dragRef.current = null; }}
+        />
       )}
 
+      <p className="whitespace-map__note">
+        The map shows {positioned.length.toLocaleString("en-GB")} concepts. Use the complete keyboard-accessible list below to select one. Map distance is a 2D projection, not a definitive measure of research similarity.
+      </p>
       <div className="whitespace-map__legend" role="group" aria-label="Map legend">
-        <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--up" /> Growing</span>
-        <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--flat" /> No change or unavailable</span>
-        <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--down" /> Declining</span>
+        <span className="whitespace-map__legend-scale">
+          Colour = 3-year paper growth:
+          {GROWTH_STEPS.map((step) => (
+            <span key={step.label} className="whitespace-map__legend-step">
+              <i style={{ background: step.color }} aria-hidden="true" />
+              {step.label}
+            </span>
+          ))}
+        </span>
         <span>Circle size = paper count</span>
+        <span><i className="whitespace-map__legend-dash" aria-hidden="true" /> Predicted link (placeholder P)</span>
       </div>
-      <p className="whitespace-map__note">Map distance is a 2D projection, not a definitive measure of research similarity.</p>
+
+      <details className="whitespace-map__browse">
+        <summary>Browse all {positioned.length.toLocaleString("en-GB")} concepts</summary>
+        <div className="whitespace-map__browse-status" role="status" aria-live="polite">
+          Showing {positioned.length ? pageStart + 1 : 0}–{Math.min(pageStart + LIST_PAGE_SIZE, positioned.length)} of {positioned.length} concepts
+        </div>
+        <ul className="whitespace-map__concept-list">
+          {pageConcepts.map((concept) => (
+            <li key={concept.id}>
+              <button
+                type="button"
+                aria-pressed={selectedConceptId === concept.id}
+                aria-label={nodeDescription(concept)}
+                onClick={() => selectConcept(concept.id)}
+              >
+                <span>{concept.label}</span>
+                <span className="whitespace-map__concept-meta">
+                  {concept.paper_count === undefined ? "Papers n/a" : `${concept.paper_count.toLocaleString("en-GB")} papers`}
+                  {concept.growth === null ? " · growth n/a" : ` · ${concept.growth >= 0 ? "+" : ""}${(concept.growth * 100).toFixed(1)}%`}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <nav className="whitespace-map__pagination" aria-label="Concept list pages">
+          <button type="button" disabled={listPage <= 0} onClick={() => setListPage((page) => Math.max(0, page - 1))}>Previous</button>
+          <span>Page {Math.min(listPage + 1, pageCount)} of {pageCount}</span>
+          <button type="button" disabled={listPage + 1 >= pageCount} onClick={() => setListPage((page) => Math.min(pageCount - 1, page + 1))}>Next</button>
+        </nav>
+      </details>
     </section>
   );
 }
