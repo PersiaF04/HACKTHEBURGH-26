@@ -13,6 +13,7 @@ The workflow links to Vercel project `whitespace` in team `persia3` and runs fro
 - Pull requests targeting `main` from branches in this repository get a preview deployment.
 - Pull requests from forks do not receive the secret and are not deployed.
 - Draft pull requests are skipped until marked ready for review.
+- Branches that do not yet contain `whitespace/web` are skipped with a notice.
 - Main-branch production deployment remains handled by the connected Vercel Git project when the owner merges changes. Review and approve the preview before merging.
 - If `VERCEL_TOKEN` is not configured, preview deployment is skipped with a notice; ordinary CI continues to run.
 
