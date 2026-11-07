@@ -52,7 +52,7 @@ The test is to be run once, after the design and data snapshot are frozen. Detai
 ## Limitations
 
 - Co-occurrence is not importance or truth. A concept pair that appears together is not thereby a good idea or a correct one.
-- OpenAlex topic assignments are a current taxonomy snapshot, not labels known at each historical date. The PRD pins a 5 October 2026 vintage, and these assignments change over time, so topic-based features need care to avoid leakage.
+- OpenAlex topic assignments are not labels known at each historical date. OpenAlex [switched to a new topic classifier in October 2026](https://help.openalex.org/data/topics/): the topics did not change, but which works are assigned to them did, and the assignments come from each work's title, abstract and source name. The old assignments were frozen on 5 October 2026 and stay available only until 13 January 2027. The PRD pins one vintage, so topic-based features need care to avoid leakage.
 - A missing code link means no link was found in the Papers with Code archive. It does not mean the paper has no code.
 - Concept-pair forecasting is prior art, not a new idea. For example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881), frame AI research directions as link prediction on a semantic network.
 
