@@ -1,8 +1,8 @@
 # Turn Up Scotland — shared status
 
-**As of:** 2026-11-07 17:38 UTC
+**As of:** 2026-11-07 17:42 UTC
 
-**Next refresh:** by 19:38 UTC, or sooner after any PR merges.
+**Next refresh:** by 19:42 UTC, or sooner after any PR merges.
 
 **Project:** [PRD](../../PRD.md) · [decision log](DECISIONS.md) · [work queue](BOARD.md)
 
@@ -12,16 +12,16 @@ This is a point-in-time coordination snapshot, not a second task tracker. GitHub
 
 As of the timestamp above:
 
-- **Code freeze:** 13h 22m, at 2026-11-08 07:00 UTC.
-- **Internal submission target:** 17h 22m, at 2026-11-08 11:00 UTC.
-- **Submission deadline:** 18h 22m, at 2026-11-08 12:00 UTC.
+- **Code freeze:** 13h 18m, at 2026-11-08 07:00 UTC.
+- **Internal submission target:** 17h 18m, at 2026-11-08 11:00 UTC.
+- **Submission deadline:** 18h 18m, at 2026-11-08 12:00 UTC.
 
 ## Workstream status
 
 | Lane | Owner and boundary | Issues and PRs | Current state |
 | --- | --- | --- | --- |
 | A — data and pipeline | Varshil / Varshil's Claude; `pipeline/`, outputs under `data/public/` | #28 / [PR #35](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/35) merged; #27 / [PR #49](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/49) merged | Both lane A PRs are on `main`. PR #49 adds the contract backfill files, farm geocoding, replay days, validator and live poller. Markdown lint, Pipeline tests and Web build passed. |
-| B — models, validation and decision | sanamorii / sanamorii's Claude; `models/`, outputs under `data/public/` | #29 / [PR #40](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/40) merged; #30 / [PR #48](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/48) merged; contract #54 / [PR #55](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/55) merged; CI #50 / [PR #52](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/52) merged | Forecast, Copilot and model-test CI are on `main`. PR #48 includes same-day replay labeling, zone-safe prices, training-only naive bids and net-GBP sensitivity. PR #52's Markdown, Model tests and Web build checks passed. |
+| B — models, validation and decision | sanamorii / sanamorii's Claude; `models/`, outputs under `data/public/` | #29 / [PR #40](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/40) merged; #30 / [PR #48](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/48) merged; contract #54 / [PR #55](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/55) merged; CI #50 / [PR #52](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/52) merged; #58 / [PR #60](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/60) open | Forecast, Copilot and model-test CI are on `main`. PR #60 adds a national day-ahead wind fallback when future flows are unpublished; it is approved with green Markdown, Model tests and Web build checks, pending merge. Its target-morning archive vintage is disclosed as retrospective and optimistic. |
 | C — web, story and hardware | Persia / Persia's Claude; `web/` and `hardware/` | #31 / [PR #36](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/36); #32/#38/#39 and web part of #33 / [PR #47](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/47) merged; [#33](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/33) remains open, optional P2 | All seven screens are on `main`; PR #47 includes the headroom baseline, mode-aware forecast label, equal six-block Operator scoring and Copilot net/sensitivity view. Web build passed. Hardware remains optional and can be cut. |
 | Shared foundation and delivery | Persia / product owner and integrator; `PRD.md`, `contracts/`, deployment | #26 / [PR #34](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/34) merged; model CI [PR #52](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/52) merged; Vercel docs [PR #59](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/59) open | D-002 selects Vercel; #59 has green Markdown and Web checks and awaits review. The Vercel project connection and live URL are still pending. G-2 records the corrected retrospective baseline: 3,168 half-hours, persistence MAE 1,224 and Brier 0.471. |
 | Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; [PR #45](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/45), [PR #56](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/56), and [PR #57](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/57) merged | This refresh follows merges #49 and #52. Keep #37 open and refresh after the next PR merge or by the next refresh time. |
@@ -29,14 +29,14 @@ As of the timestamp above:
 ## Merged and blocked work
 
 - **Merged to `main`:** PRs #34, #35, #36, #40, #45, #47, #48, #49, #52, #53, #55, #56 and #57. PR #47 also integrates #41–#44.
-- **Open work:** PR #59 documents Vercel settings; its Markdown and Web checks are green and it awaits review. Issue #50 stays open until the project is connected and the deployed app and JSON paths are verified. Issue #33 remains optional P2 hardware work.
-- **Next status refresh:** refresh after the next PR merge, and by 19:38 UTC at the latest.
+- **Open work:** PR #60 adds the next-day wind fallback and awaits merge after approval; PR #59 documents Vercel settings, with Markdown and Web checks green and review pending. Issue #50 stays open until Vercel is connected and the deployed app and JSON paths are verified. Issue #33 remains optional P2 hardware work.
+- **Next status refresh:** refresh after the next PR merge, and by 19:42 UTC at the latest.
 
 ## Next three priorities
 
-1. **Finish Vercel delivery:** review and merge #59, connect the Vercel project when the owner provides access, and verify the app plus JSON data paths at the deployed URL.
-2. **Rehearse the integrated demo:** smoke-test all seven screens with committed JSON and offline fallback; confirm the run sheet and sponsor criteria.
-3. **Protect the deadline:** resolve open demo decisions and cut optional hardware/Tiger Data before they threaten the P0 path.
+1. **Integrate the live forecast path:** merge #60 after owner acceptance, then verify the Tomorrow screen labels the 8 Nov wind-based forecast accurately and preserves its vintage caveat.
+2. **Finish Vercel delivery:** review and merge #59, connect the project when the owner provides access, and verify the app plus JSON data paths at the deployed URL.
+3. **Rehearse the integrated demo:** smoke-test all seven screens with committed JSON and offline fallback; confirm sponsor criteria and cut optional work before freeze.
 
 ## Risk register status
 
