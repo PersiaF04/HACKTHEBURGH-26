@@ -12,6 +12,8 @@ export function HelpWanted() {
   const required = reqs.reduce((s, r) => s + r.required_mw, 0);
   const procured = reqs.reduce((s, r) => s + (r.procured_mw ?? 0), 0);
   const fill = required ? procured / required : 0;
+  // Small fill rates need more precision: 0.05% must not read as 0.0%.
+  const fillPct = fill > 0 && fill < 0.01 ? (fill * 100).toPrecision(2) : (fill * 100).toFixed(1);
   const events = new Set(reqs.map((r) => r.event_id)).size;
   const prices = reqs.map((r) => r.accepted_price_median_gbp_per_mwh).filter((p): p is number => p != null).sort((a, b) => a - b);
   const medianPrice = median(prices);
@@ -23,9 +25,9 @@ export function HelpWanted() {
   return (
     <Screen eyebrow="3 · The unanswered call" title="NESO is asking. Almost nobody answers."
       lede="NESO now asks for flexible demand to switch on and soak up the wind it would otherwise pay to waste. Here is how much it asked for, and how much was procured.">
-      <div className="fill card" aria-label={`Fill rate ${(fill * 100).toFixed(1)} percent`}>
+      <div className="fill card" aria-label={`Fill rate ${fillPct} percent`}>
         <div className="fill-track"><div className="fill-bar" style={{ width: `${Math.max(fill * 100, 0.6)}%` }} /></div>
-        <div className="fill-label"><strong>{(fill * 100).toFixed(1)}%</strong> of requested turn-up was procured (accepted bids)</div>
+        <div className="fill-label"><strong>{fillPct}%</strong> of requested turn-up was procured (accepted bids)</div>
       </div>
       <div className="stats">
         <Stat label="turn-up requests" value={fmtNum(events)} hint={`${reqs.length} half-hours`} />
