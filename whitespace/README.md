@@ -49,3 +49,15 @@ python -m whitespace.pipeline.code_layer --links path/to/links.parquet --revisio
 ```
 
 It draws 125 distinct new-style arXiv ids per year band (<=2017, 2018-2020, 2021-2023, 2024-2025), resolves them and prints resolved counts by band. Spike #122 measured 493/500 (98.6%) with its own draw; this command re-runs the procedure, and exact ids may differ if the sampling code differs. The figure is resolution only, not join correctness.
+
+## OpenAlex ingest (`pipeline/ingest.py`, issue #147)
+
+```sh
+python -m whitespace.pipeline.ingest plan                       # keyless, about 30 count requests
+OPENALEX_API_KEY=... python -m whitespace.pipeline.ingest download --max-calls 9000
+python -m whitespace.pipeline.ingest build                      # corpus.jsonl + manifest.json
+```
+
+- `plan` counts works per date window (one `group_by` year call, then bisection) and prints the total and the number of list calls at 100 per page. Windows still over 10,000 after the count budget are flagged "needs cursor".
+- `download` needs a free key in `OPENALEX_API_KEY` (never printed, logged, stored in a URL or the manifest). It cursor-pages each window, archives raw pages under `whitespace/artifacts/raw/` (git-ignored) with URL, time, count and sha256, and resumes: finished windows (`done.json`) are skipped, an interrupted window restarts. `--max-calls` stops the run before it is exceeded; re-run to continue. 429 and 5xx are retried with backoff.
+- `build` rebuilds abstracts, drops those under 50 words, dates each paper (arXiv-id month, else OpenAlex date), de-duplicates by arXiv id and writes `corpus.jsonl` (local only, not Parquet) and `manifest.json`.
