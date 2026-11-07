@@ -16,12 +16,25 @@ export interface DfsRequest {
 }
 export interface DfsRequests { meta: Meta; requests: DfsRequest[] }
 export interface Farms { meta: Meta; farms: Farm[] }
-export interface PolicyResult { gbp: number; mwh: number }
+// Optional fields from the model lane (#48). When they are present, `gbp` is net: settlement + site value - electricity.
+export interface PolicyResult {
+  gbp: number; mwh: number;
+  gross_settlement_gbp?: number; energy_cost_gbp?: number; value_gbp?: number; accepted_periods?: number; bid_periods?: number;
+}
+export type PolicyNet = { naive: number; ours: number; oracle?: number };
+export interface CopilotSensitivityPoint { value_gbp_per_mwh: number; net_gbp: PolicyNet; pct_of_oracle?: number }
 export interface CopilotSlot { start_utc: string; action: string; bid_gbp_per_mwh: number | null }
 export interface CopilotDay { date: string; policies: { naive: PolicyResult; ours: PolicyResult; oracle: PolicyResult }; schedule: CopilotSlot[] }
 export interface Copilot {
-  meta: Meta; load: { type: string; capacity_mw: number; zone: string }; days: CopilotDay[];
-  summary: { pct_of_oracle: number; gross_settlement_gbp: number; caveat: string };
+  meta: Meta & { scored_days?: number; warmup_days?: number };
+  load: { type: string; capacity_mw: number; zone: string; value_gbp_per_mwh?: number; max_periods_per_day?: number };
+  days: CopilotDay[];
+  summary: {
+    pct_of_oracle: number; gross_settlement_gbp: number; caveat: string;
+    energy_cost_gbp?: number; net_gbp?: PolicyNet; break_even_value_gbp_per_mwh?: Partial<PolicyNet>;
+    ours_beats_naive_at_values_gbp_per_mwh?: number[];
+  };
+  sensitivity?: CopilotSensitivityPoint[];
 }
 
 type State<T> = { data: T | null; error: string | null };
