@@ -59,12 +59,12 @@ def compute():
     n["ice_neso_gbp"] = ice["neso_thermal_gbp"]
     n["ice_days"] = ice["days"]
 
-    n["dfs_requested_mwh"] = sum(r["required_mw"] for r in dfs) / 2
-    n["dfs_procured_mwh"] = sum(r["procured_mw"] for r in dfs) / 2
+    n["dfs_requested_mwh"] = round(sum(r["required_mw"] for r in dfs) / 2, 3)  # rounded: float sums differ by platform
+    n["dfs_procured_mwh"] = round(sum(r["procured_mw"] for r in dfs) / 2, 3)
     n["dfs_fill_pct"] = 100 * n["dfs_procured_mwh"] / n["dfs_requested_mwh"]
     d27r = [r for r in dfs if r["start_utc"].startswith(DAY)]
     n["dfs_27oct_mw"] = max(r["required_mw"] for r in d27r)
-    n["dfs_27oct_procured_mwh"] = sum(r["procured_mw"] for r in d27r) / 2
+    n["dfs_27oct_procured_mwh"] = round(sum(r["procured_mw"] for r in d27r) / 2, 3)
 
     n["replay_27oct_mwh"] = sum(f["curtailed_mwh"] for p in replay for f in p["farms"].values())
     n["replay_vs_daily_pct"] = 100 * abs(n["replay_27oct_mwh"] - n["daily_27oct_mwh"]) / n["daily_27oct_mwh"]
