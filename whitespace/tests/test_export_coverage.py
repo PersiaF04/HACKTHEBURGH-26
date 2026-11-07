@@ -55,7 +55,7 @@ def test_denominator_includes_unmatchable():
     cell = {c["year"]: c for c in ex.to_coverage_response(2021, _table())["concepts"][0]["cells"]}[2021]
     assert cell["paper_count"] == 3 and cell["linked_paper_count"] == 1
     assert cell["code_rate"] == pytest.approx(1 / 3)
-    assert cell["non_arxiv_paper_count"] == 1 and cell["unmatchable_by_construction"] is True
+    assert cell["papers_without_arxiv_id"] == 1 and cell["unmatchable_by_construction"] is True
 
 
 def test_wording_attribution_and_licence():
@@ -94,3 +94,18 @@ def test_nulls_without_completed_hand_check(table):
     ev = ex.code_link_evaluation(table)
     assert ev["placeholder"] is True
     assert all(ev[k] is None for k in EVAL_KEYS)
+
+
+def test_partial_archive_year_is_unavailable_with_detail_and_no_rate():
+    d = dt.date
+    papers = [
+        {"concepts": ["c1"], "arxiv_id": "2101.00001", "fallback_date": None},
+        {"concepts": ["c1"], "arxiv_id": "2501.00001", "fallback_date": None},  # 2025: archive ends July
+        {"concepts": ["c1"], "arxiv_id": "2501.00002", "fallback_date": None},
+    ]
+    table = cl.coverage_table(papers, {"2101.00001", "2501.00001"}, {2021: 5, 2025: 5}, min_linked=3)
+    cells = {c["year"]: c for c in ex.to_coverage_response(2025, table)["concepts"][0]["cells"]}
+    assert cells[2021]["state"] == "available"
+    assert cells[2025]["state"] == "unavailable" and cells[2025]["state_detail"] == "partial"
+    assert cells[2025]["code_rate"] is None  # a partial year never gets a full-year rate
+    assert cells[2025]["paper_count"] == 2 and cells[2025]["linked_paper_count"] == 1  # counts kept

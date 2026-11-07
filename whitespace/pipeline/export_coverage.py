@@ -47,12 +47,14 @@ def default_archive_info() -> dict:
     }
 
 
-def _state(row: Mapping, cutoff: int | None, archive_year: int) -> str:
-    if row["coverage_state"] == "ok":
-        return "available"
-    if cutoff is None or row["year"] < cutoff:
-        return "thin"
-    return "outside_archive_vintage" if row["year"] > archive_year else "unavailable"
+def _state(row: Mapping) -> str:
+    """Map the code layer's state to the four the frontend allows.
+
+    A partial archive year has no state of its own in the frontend type, so it is reported as
+    ``unavailable`` (no rate is charted) with the real reason in ``state_detail``.
+    """
+    return {"ok": "available", "thin": "thin", "outside_archive_vintage": "outside_archive_vintage"}.get(
+        row["coverage_state"], "unavailable")
 
 
 def to_coverage_response(year: int, coverage_table: Mapping, archive_info: Mapping | None = None) -> dict:
@@ -68,14 +70,15 @@ def to_coverage_response(year: int, coverage_table: Mapping, archive_info: Mappi
     archive_year = dt.date.fromisoformat(coverage_table.get("archive_date") or info["snapshot_date"]).year
     by_concept: dict[str, list[dict]] = {}
     for row in coverage_table["rows"]:
-        state = _state(row, cutoff, archive_year)
+        state = _state(row)
         by_concept.setdefault(row["concept"], []).append({
             "year": row["year"],
             "code_rate": row["code_rate"] if state == "available" else None,
             "paper_count": row["papers"],
             "linked_paper_count": row["linked"],
             "state": state,
-            "non_arxiv_paper_count": row["non_arxiv_papers"],
+            "state_detail": row["coverage_state"],
+            "papers_without_arxiv_id": row["papers_without_arxiv_id"],
             "unmatchable_by_construction": row["unmatchable_by_construction"],
             "no_link_label": NO_LINK_LABEL,
         })
