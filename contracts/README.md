@@ -24,6 +24,7 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 | `copilot.json` | B | Flex Copilot, judge game | Naive, ours and oracle policy results for a load on replay days |
 | `sandbox.json` (optional) | B | Interactive load sandbox | Per-half-hour inputs and a scoring rule so the client can re-score a load the user places |
 | `dashboard.json` (optional) | B | Map dashboard | Tomorrow headline and numbers, request probability per half-hour, and the Copilot's call for each replay day |
+| `ask-the-grid-tools.json` (optional) | B | Ask the Grid chat | Manifest of 8 read-only tools over `data/public/`; golden questions in `fixtures/ask-golden.json`, reference code in `models/ask_golden.py` |
 
 ## Schemas
 
