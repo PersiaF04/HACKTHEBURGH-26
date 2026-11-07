@@ -7,13 +7,15 @@
     "sync-data": "node scripts/sync-data.mjs",
     "dev": "npm run sync-data && vite",
     "build": "npm run sync-data && tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:ask": "tsc -p api --noEmit && node --test api/ask.test.ts"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@types/node": "22.10.2",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
