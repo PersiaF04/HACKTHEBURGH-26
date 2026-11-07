@@ -276,3 +276,47 @@ def test_return_test_artifacts_is_opt_in_and_guarded(signal_works):
     assert res["test"] == plain["test"]  # same numbers either way
     with pytest.raises(OneShotError):  # the guard still fires once
         run_backtest(signal_works, cfg, guard=guard, return_test_artifacts=True)
+
+# ---- review fixes (PR #158): deployed ranking and one data-label convention ---------------
+
+
+def test_model_metrics_follow_the_deployed_ranking_when_the_platt_slope_is_negative(signal_works):
+    import dataclasses
+
+    from whitespace.pipeline.backtest import choose_best_baseline
+
+    trained = train(signal_works, CONFIG)
+    best, _ = choose_best_baseline(signal_works, trained, CONFIG)
+    pairs, _ctx, d, _prob = score_origin(signal_works, trained, 2020, CONFIG.n_min)
+    y = labels(signal_works, 2020, pairs, CONFIG.horizon)
+
+    ok = evaluate_origin(signal_works, trained, CONFIG, 2020, best)
+    assert ok["platt_slope"] > 0 and "warning" not in ok
+    assert ok["model"]["all"]["average_precision"] == pytest.approx(M.average_precision(d, y).value, abs=1e-9)
+
+    flipped = dataclasses.replace(trained, platt=Platt(a=-1.0, b=0.0, converged=True))
+    bad = evaluate_origin(signal_works, flipped, CONFIG, 2020, best)
+    assert bad["platt_slope"] == -1.0 and "reversed" in bad["warning"]
+    # the reported ranking is the reversed (deployed) one, not the raw score
+    assert bad["model"]["all"]["average_precision"] == pytest.approx(M.average_precision(-d, y).value, abs=1e-9)
+    assert bad["model"]["all"]["average_precision"] < ok["model"]["all"]["average_precision"]
+
+
+def test_data_label_convention_is_closed_and_shared():
+    from whitespace.pipeline.backtest import DATA_LABELS, check_data_label, is_real_run
+
+    assert DATA_LABELS == ("real", "synthetic", "unlabelled")
+    for label in DATA_LABELS:
+        assert check_data_label(label) == label
+    for free_text in ("real OpenAlex corpus", "dry-run synthetic (not data)", "unspecified", ""):
+        with pytest.raises(ValueError):
+            check_data_label(free_text)
+    assert is_real_run("real") and not is_real_run("synthetic") and not is_real_run("unlabelled")
+    assert is_real_run({"data_label": "real"})
+    assert not is_real_run({"data_label": "real", "generator": {"signal": True}})  # a generator makes it synthetic
+    assert not is_real_run({"data_label": "synthetic"}) and not is_real_run({}) and not is_real_run(None)
+
+
+def test_run_backtest_rejects_a_free_text_data_label(signal_works):
+    with pytest.raises(ValueError):
+        run_backtest(signal_works, CONFIG, guard=OneShotGuard(), data_label="real OpenAlex corpus")
