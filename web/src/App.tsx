@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Screen } from "./components";
 import { Copilot } from "./screens/Copilot";
 import { HelpWanted } from "./screens/HelpWanted";
 import { Iceberg } from "./screens/Iceberg";
+import { Operator } from "./screens/Operator";
 import { Tomorrow } from "./screens/Tomorrow";
 import { UnderTheHood } from "./screens/UnderTheHood";
 import { WasteMap } from "./screens/WasteMap";
@@ -13,12 +13,10 @@ const SCREENS = [
   { id: "help", label: "Help Wanted", render: () => <HelpWanted /> },
   { id: "tomorrow", label: "Tomorrow", render: () => <Tomorrow /> },
   { id: "copilot", label: "Flex Copilot", render: () => <Copilot /> },
+  { id: "operator", label: "Be the Operator", render: () => <Operator /> },
   { id: "hood", label: "Under the Hood", render: () => <UnderTheHood /> },
 ] as const;
 
-function Soon({ n, title }: { n: number; title: string }) {
-  return <Screen eyebrow={`${n} · Coming next`} title={title} lede="This screen is being built in #32." ><span /></Screen>;
-}
 
 const fromHash = () => SCREENS.findIndex((s) => s.id === location.hash.slice(1));
 
