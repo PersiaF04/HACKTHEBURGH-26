@@ -134,10 +134,16 @@ class BoalfJob:
             path = self.root / f"{day}.jsonl"
             self._repair_tail(path)
             payload = "".join(json.dumps(row, separators=(",", ":")) + "\n" for row in new)
-            with path.open("a", encoding="utf-8") as fh:
-                fh.write(payload)
-                fh.flush()
-                os.fsync(fh.fileno())
+            try:
+                with path.open("a", encoding="utf-8") as fh:
+                    fh.write(payload)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+            except Exception:
+                # Some complete lines may have reached disk: forget the cache so the next poll
+                # reloads seen keys from the file (after repairing any partial tail).
+                self._seen = {}
+                raise
             # Only now are the rows persisted; a failed append leaves them unseen for the retry.
             seen.update(keys)
         self.state.data.setdefault("boalf", {})["last_run"] = fetched_at

@@ -127,3 +127,28 @@ def test_boalf_recovers_incomplete_final_line(tmp_path):
     assert job.run(NOW) == 1
     rows = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines()]
     assert [r["acceptanceNumber"] for r in rows] == [1, 2]
+
+
+def test_boalf_partial_append_then_failure_does_not_duplicate(tmp_path, monkeypatch):
+    import os
+
+    state = State(tmp_path / "state.json")
+    job = BoalfJob(tmp_path, state, fetch=lambda p: [row(1), row(2)])
+    path = tmp_path / "boalf" / f"{NOW:%Y-%m-%d}.jsonl"
+    real_fsync = os.fsync
+
+    def failing_fsync(fd):
+        # Simulate one complete line plus a partial one on disk, then a failed fsync.
+        with path.open("w", encoding="utf-8") as fh:
+            fh.write(json.dumps({**row(1), "fetched_at": "x"}) + "\n" + '{"acceptanceNumber": 2')
+        raise OSError("fsync failed")
+
+    monkeypatch.setattr(os, "fsync", failing_fsync)
+    try:
+        job.run(NOW)
+    except OSError:
+        pass
+    monkeypatch.setattr(os, "fsync", real_fsync)
+    assert job.run(NOW) == 1  # row 1 is already on disk; only row 2 is appended
+    rows = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines()]
+    assert [r["acceptanceNumber"] for r in rows] == [1, 2]
