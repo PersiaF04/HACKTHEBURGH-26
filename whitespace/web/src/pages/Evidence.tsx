@@ -1,4 +1,4 @@
-import type { BacktestResponse } from "../api";
+import type { BacktestHit, BacktestResponse, CalibrationBin } from "../api";
 import "./evidence.css";
 
 type EvidencePageProps = {
@@ -7,37 +7,47 @@ type EvidencePageProps = {
   errorMessage?: string;
 };
 
-const rankingMetrics = ["Precision@100", "PR-AUC", "Adamic–Adar comparison", "Preferential attachment comparison", "Cosine comparison"];
-
 export default function EvidencePage({ response, status, errorMessage }: EvidencePageProps) {
   const placeholder = response?.placeholder === true;
-  const metrics = response?.metrics ?? {};
+  const ranking = [
+    ["Precision@100", response?.precision_at_100],
+    ["PR-AUC", response?.pr_auc],
+    ["ROC-AUC", response?.roc_auc],
+    ["Average precision", response?.average_precision],
+    ["Preferential attachment", response?.baselines.preferential_attachment],
+    ["Adamic-Adar", response?.baselines.adamic_adar],
+    ["Cosine similarity", response?.baselines.cosine],
+  ] as const;
+  const bins = response?.calibration.bins ?? [];
+  const hits = response?.hits ?? [];
+  const misses = response?.misses ?? [];
+  const codeLink = response?.code_link_evaluation;
 
   return (
-    <main className="evidence-page">
+    <section className="evidence-page" aria-labelledby="evidence-title">
       <header className="evidence-header">
         <p className="evidence-eyebrow">Methods and evaluation</p>
-        <h1>Evidence</h1>
+        <h1 id="evidence-title">Evidence</h1>
         <p>See what was measured, which baselines were compared, and where evidence is still missing.</p>
       </header>
 
       {placeholder && (
         <p className="evidence-notice" role="status">
-          Placeholder data — evaluation artifacts have not been loaded. No forecast performance is claimed.
+          Placeholder data - evaluation artifacts have not been loaded. No forecast performance is claimed.
         </p>
       )}
-      {status === "loading" && <p role="status">Loading evaluation evidence…</p>}
+      {status === "loading" && <p role="status">Loading evaluation evidence...</p>}
       {status === "error" && <p className="evidence-error" role="alert">{errorMessage || "Evidence could not be loaded."}</p>}
 
       <section aria-labelledby="ranking-title" className="evidence-section">
         <h2 id="ranking-title">Ranking quality</h2>
-        <p className="evidence-muted">Every ranking metric must be read alongside the share of eligible pairs that link within three years (the base rate).</p>
+        <p className="evidence-muted">Read each ranking metric alongside the share of eligible pairs that link within three years (the base rate).</p>
         <div className="evidence-metric-list">
-          {rankingMetrics.map((label) => (
+          {ranking.map(([label, value]) => (
             <div className="evidence-metric" key={label}>
               <span>{label}</span>
-              <strong>{formatMetric(metrics[label])}</strong>
-              <span className="evidence-base-rate">Base rate: {formatMetric(metrics.base_rate)}</span>
+              <strong>{formatMetric(value)}</strong>
+              <span className="evidence-base-rate">Base rate: {formatMetric(response?.base_rate)}</span>
             </div>
           ))}
         </div>
@@ -45,33 +55,77 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
 
       <section aria-labelledby="calibration-title" className="evidence-section">
         <h2 id="calibration-title">Calibration</h2>
-        <div className="evidence-empty">
-          <strong>Not yet measured</strong>
-          <p>A calibration plot will appear only when observed outcomes and predicted probabilities are in the evaluation artifact.</p>
-        </div>
+        {bins.length ? <CalibrationPlot bins={bins} /> : (
+          <div className="evidence-empty">
+            <strong>Not yet measured</strong>
+            <p>A calibration plot appears only when predicted probabilities and observed outcomes are present in the evaluation artifact.</p>
+          </div>
+        )}
         <details>
           <summary>Calibration data table</summary>
-          <p className="evidence-muted">No calibration bins are available yet.</p>
+          {bins.length ? <CalibrationTable bins={bins} /> : <p className="evidence-muted">No calibration bins are available yet.</p>}
         </details>
       </section>
 
       <section className="evidence-section evidence-tables" aria-label="Evaluation examples">
-        <div>
-          <h2>Top hits</h2>
-          <p>{status === "error" ? "Unable to load hit examples." : "No measured hits are available yet."}</p>
-        </div>
-        <div>
-          <h2>Misses</h2>
-          <p>{status === "error" ? "Unable to load miss examples." : "No measured misses are available yet."}</p>
-        </div>
+        <EvidenceTable title="Top hits" rows={hits} empty="No measured hits are available yet." error={status === "error"} />
+        <EvidenceTable title="Misses" rows={misses} empty="No measured misses are available yet." error={status === "error"} />
       </section>
 
       <section className="evidence-section">
         <h2>Paper-to-code matching</h2>
-        <p>Code-link precision and its sampling protocol: <strong>{formatMetric(metrics.code_link_precision)}</strong>.</p>
-        <p className="evidence-muted">Coverage is a lower bound from an incomplete historical archive. “No linked code in this archive” does not mean no implementation exists.</p>
+        <p>Code-link precision: <strong>{formatMetric(codeLink?.precision)}</strong></p>
+        <p>Uncertainty interval: <strong>{formatMetric(codeLink?.lower)} to {formatMetric(codeLink?.upper)}</strong></p>
+        <p>Hand-checked sample size: <strong>{formatMetric(codeLink?.sample_size)}</strong></p>
+        <p>Sampling protocol: <strong>{codeLink?.protocol || "Not yet available"}</strong></p>
+        <p className="evidence-muted">Coverage is a lower bound from an incomplete historical archive. "No linked code in this archive" does not mean no implementation exists.</p>
       </section>
-    </main>
+    </section>
+  );
+}
+
+function CalibrationPlot({ bins }: { bins: CalibrationBin[] }) {
+  const points = bins.map((bin) => `${12 + Math.max(0, Math.min(1, bin.predicted)) * 176},${188 - Math.max(0, Math.min(1, bin.observed)) * 176}`).join(" ");
+  return (
+    <figure className="evidence-plot">
+      <svg viewBox="0 0 200 210" role="img" aria-label="Calibration plot comparing predicted and observed probabilities">
+        <line x1="12" y1="188" x2="188" y2="12" stroke="#84948a" strokeDasharray="4 4" />
+        <line x1="12" y1="188" x2="188" y2="188" stroke="#60736a" />
+        <line x1="12" y1="12" x2="12" y2="188" stroke="#60736a" />
+        {bins.map((bin, index) => {
+          const cx = 12 + Math.max(0, Math.min(1, bin.predicted)) * 176;
+          const cy = 188 - Math.max(0, Math.min(1, bin.observed)) * 176;
+          return <circle key={`${bin.predicted}-${index}`} cx={cx} cy={cy} r={Math.max(3, Math.min(8, 2 + Math.sqrt(bin.count)))} fill="#34775d" />;
+        })}
+      </svg>
+      <figcaption>Predicted probability (horizontal) and observed rate (vertical). Dashed line: perfect calibration.</figcaption>
+      <span className="sr-only">Calibration point values: {points}</span>
+    </figure>
+  );
+}
+
+function CalibrationTable({ bins }: { bins: CalibrationBin[] }) {
+  return (
+    <div className="evidence-table-scroll" tabIndex={0} aria-label="Scrollable calibration data">
+      <table><caption>Predicted and observed probability by bin</caption><thead><tr><th scope="col">Predicted</th><th scope="col">Observed</th><th scope="col">Pairs</th></tr></thead>
+        <tbody>{bins.map((bin, index) => <tr key={`${bin.predicted}-${index}`}><td>{formatMetric(bin.predicted)}</td><td>{formatMetric(bin.observed)}</td><td>{formatMetric(bin.count)}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function EvidenceTable({ title, rows, empty, error }: { title: string; rows: BacktestHit[]; empty: string; error: boolean }) {
+  return (
+    <div>
+      <h2>{title}</h2>
+      {error ? <p>Unable to load examples.</p> : rows.length ? (
+        <div className="evidence-table-scroll" tabIndex={0} aria-label={`Scrollable ${title.toLowerCase()} table`}>
+          <table><caption>{title} from the evaluation artifact</caption><thead><tr><th scope="col">Concept pair</th><th scope="col">Score</th><th scope="col">Year</th></tr></thead>
+            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}</td><td>{formatMetric(row.score)}</td><td>{formatMetric(row.year)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      ) : <p>{empty}</p>}
+    </div>
   );
 }
 
