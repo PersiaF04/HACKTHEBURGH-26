@@ -72,3 +72,5 @@ test: {"<T>": {
 ```
 
 Ranking uses the model's log-odds (Platt is monotone, so ranks are unchanged); calibration uses the Platt probabilities. Rows are permuted with a seeded permutation before ranking so exact ties (common for integer baselines) do not follow canonical pair order. Features: current weight, the six baseline scores (log1p), log paper counts, three-year paper-count growth and concept age (min/max of the two concepts). Embedding and cosine features are out of scope until the embedding model exists.
+
+**Data label.** `run_backtest(..., data_label=...)` accepts exactly `real`, `synthetic` or `unlabelled` (free text is rejected). Only `is_real_run(manifest)` (label `real` and no generator) may be treated as a real result by the run script and every exporter; synthetic and unlabelled runs stay placeholders. **Model ranking.** Model metrics rank by the calibrated logit `a*d + b`, the ordering of the deployed probability; a non-positive fitted slope adds a `warning` and the reported slope.
