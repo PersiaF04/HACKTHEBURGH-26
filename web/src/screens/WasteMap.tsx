@@ -20,6 +20,24 @@ const STATE_LABEL: Record<FarmState, string> = {
 };
 type PlacedFarm = Farm & { lat: number; lon: number };
 
+// Checks every replay field this screen reads, so a malformed day or live payload never reaches the render code.
+// Returns null when anything is off; meta.source defaults to [] and meta.generated_utc may be missing.
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const isNumOrNull = (v: unknown) => v === null || (typeof v === "number" && Number.isFinite(v));
+const isOptNum = (v: unknown) => v === undefined || isNumOrNull(v);
+const isFarmPeriod = (f: unknown) =>
+  isObj(f) && typeof f.state === "string" && f.state in STATE_LABEL && isNumOrNull(f.pn_mw) && isOptNum(f.curtailed_mwh) && isOptNum(f.paid_gbp);
+const isPeriod = (p: unknown) =>
+  isObj(p) && typeof p.start_utc === "string" && !Number.isNaN(Date.parse(p.start_utc)) && typeof p.sp === "number"
+  && isObj(p.farms) && Object.values(p.farms).every(isFarmPeriod);
+function parseReplay(j: unknown): Replay | null {
+  if (!isObj(j) || !isObj(j.meta) || !Array.isArray(j.periods) || !j.periods.length || !j.periods.every(isPeriod)) return null;
+  const { meta } = j;
+  if (meta.generated_utc !== undefined && typeof meta.generated_utc !== "string") return null;
+  const source = Array.isArray(meta.source) ? meta.source.filter((s): s is string => typeof s === "string") : [];
+  return { ...j, date: typeof j.date === "string" ? j.date : "", meta: { ...meta, source } } as unknown as Replay;
+}
+
 // Optional replay/index.json: either ["2026-10-14", ...] or { "days": [...], "live": "live.json" }. Missing or malformed → defaults.
 // `live` is a file name under replay/ or an absolute http(s) URL (for example a raw Gist with CORS enabled).
 function useReplayIndex(): { days: string[]; liveUrl: string | null } {
@@ -56,7 +74,7 @@ function useLiveReplay(url: string | null, polling: boolean): Replay | null {
     const load = () =>
       fetch(`${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
-        .then((j: Replay | null) => { if (alive && j && Array.isArray(j.periods) && j.periods.length) setData(j); })
+        .then((j: unknown) => { const r = parseReplay(j); if (alive && r) setData(r); })
         .catch(() => { /* optional source; hide or keep last good */ });
     load();
     const t = polling ? setInterval(load, LIVE_REFRESH_MS) : undefined;
@@ -92,7 +110,11 @@ export function WasteMap({ day: initialDay = "2026-10-14" }: { day?: string }) {
   const isLive = day === LIVE;
   const [lastDay, setLastDay] = useState(initialDay);
   const farms = useJson<Farms>("farms.json");
-  const dayReplay = useJson<Replay>(`replay/${isLive ? lastDay : day}.json`);
+  const dayRaw = useJson<unknown>(`replay/${isLive ? lastDay : day}.json`);
+  const dayReplay = useMemo(() => {
+    const data = dayRaw.data == null ? null : parseReplay(dayRaw.data);
+    return { data, error: dayRaw.error ?? (dayRaw.data != null && !data ? "Replay data is malformed" : null) };
+  }, [dayRaw]);
   const liveData = useLiveReplay(liveUrl, isLive);
   const replay = isLive ? { data: liveData, error: null } : dayReplay;
   const [i, setI] = useState(0);
@@ -204,7 +226,7 @@ export function WasteMap({ day: initialDay = "2026-10-14" }: { day?: string }) {
             <p className="live-badge">
               <span className="live-dot" aria-hidden="true" />
               <strong>LIVE</strong>
-              <span className="muted">updated {fmtTime(replay.data.meta.generated_utc)}</span>
+              {(replay.data.meta.generated_utc as string | undefined) && <span className="muted">updated {fmtTime(replay.data.meta.generated_utc)}</span>}
             </p>
           )}
           {calm && (
