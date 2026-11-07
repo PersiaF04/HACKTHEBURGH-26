@@ -22,10 +22,10 @@ export function HelpWanted() {
 
   return (
     <Screen eyebrow="3 · The unanswered call" title="NESO is asking. Almost nobody answers."
-      lede="NESO now asks for flexible demand to switch on and soak up the wind it would otherwise pay to waste. Here is how much it asked for, and how much arrived.">
+      lede="NESO now asks for flexible demand to switch on and soak up the wind it would otherwise pay to waste. Here is how much it asked for, and how much was procured.">
       <div className="fill card" aria-label={`Fill rate ${(fill * 100).toFixed(1)} percent`}>
         <div className="fill-track"><div className="fill-bar" style={{ width: `${Math.max(fill * 100, 0.6)}%` }} /></div>
-        <div className="fill-label"><strong>{(fill * 100).toFixed(1)}%</strong> of requested turn-up was delivered</div>
+        <div className="fill-label"><strong>{(fill * 100).toFixed(1)}%</strong> of requested turn-up was procured (accepted bids)</div>
       </div>
       <div className="stats">
         <Stat label="turn-up requests" value={fmtNum(events)} hint={`${reqs.length} half-hours`} />
@@ -35,7 +35,7 @@ export function HelpWanted() {
       </div>
       <table className="table card">
         <caption className="muted">Latest requests. Zones: {zones.join(", ")} (NESO zone IDs; the region mapping isn't confirmed yet)</caption>
-        <thead><tr><th>Start (UTC)</th><th>Required</th><th>Delivered</th><th>Zones</th><th>Price</th></tr></thead>
+        <thead><tr><th>Start (UTC)</th><th>Required</th><th>Procured</th><th>Zones</th><th>Price</th></tr></thead>
         <tbody>
           {recent.map((r) => (
             <tr key={r.event_id + r.start_utc}>
