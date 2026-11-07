@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { GapDetail, GapListResponse, GapSummary } from "../api";
+import type { GapDetailResponse, GapListResponse, GapSummary } from "../api";
 import { GapDrawer } from "../components/gaps/GapDrawer";
 import { GapTable } from "../components/gaps/GapTable";
 import type { GapSortKey } from "../components/gaps/GapTable";
@@ -7,7 +7,7 @@ import "../components/gaps/gaps.css";
 
 export interface GapsPageProps {
   response: GapListResponse;
-  loadDetail: (gap: GapSummary) => Promise<GapDetail>;
+  loadDetail: (gap: GapSummary) => Promise<GapDetailResponse>;
   loading?: boolean;
   error?: string | null;
 }
@@ -30,7 +30,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   const [sort, setSort] = useState<GapSortKey>("p_link");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [selected, setSelected] = useState<GapSummary | null>(null);
-  const [detail, setDetail] = useState<GapDetail | null>(null);
+  const [detail, setDetail] = useState<GapDetailResponse>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const requestId = useRef(0);
