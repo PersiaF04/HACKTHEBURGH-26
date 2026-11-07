@@ -2,9 +2,9 @@
 
 Whitespace is a research-discovery tool for AI/ML literature. It looks for ideas that nobody has combined yet and asks which of those combinations are likely to appear soon. It was started at HackTheBurgh XIII (repository name: `HACKTHEBURGH-26`).
 
-**Status:** under active development. The project is being reset from an earlier hackathon idea to Whitespace (see [#136](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/136)). Nothing described below as planned has been built or measured yet, and no forecast result exists yet.
+**Status:** under active development. Whitespace is the selected project direction (see [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122)). The pipeline scaffold is in place; the product features, full corpus and forecast evaluation are still in progress. No forecast result exists yet.
 
-**Deployment:** pending (see [#135](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/135)). This line is the one place to put the verified preview or production URL once it exists.
+**Deployment:** the existing Vercel project has been renamed and configured for Whitespace. The Whitespace frontend has not been deployed yet; the previous production deployment remains live until the replacement is built and verified. Track deployment at [#135](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/135). Add a Whitespace URL here only after it is verified.
 
 ## What Whitespace does
 
