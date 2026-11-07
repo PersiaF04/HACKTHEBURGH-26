@@ -14,4 +14,14 @@ The Whitespace frontend is a static Vite single-page app. The Vercel project sho
 
 The current frontend imports JSON fixtures from `mock/` at build time and labels them as placeholders. They are bundled with the static app; this preview does not contain real corpus, forecast, backtest, or code-coverage results. When frozen artifacts are available, place public JSON files under Vite's `public/` directory (or update the typed client to their agreed static paths) and verify those URLs in the preview before changing the README's deployment status.
 
-For a preview deployment, deploy from this project's configured root without `--prod`. A preview URL must be checked for the root page, each client-side route (including direct refresh), the generated asset files, and any published JSON paths. Keep the existing production alias on its previous deployment until the product owner approves cutover. Do not commit Vercel credentials or project tokens.
+The Vercel project does not need a Git integration for a one-off preview. From the linked local project directory, run:
+
+```sh
+cd whitespace/web
+vercel link
+vercel deploy
+```
+
+At the link prompt, select the authorized team and existing `whitespace` project.
+
+`vercel deploy` creates a preview by default; do not add `--prod`. A preview URL must be checked for the root page, each client-side route (including direct refresh), the generated asset files, and any published JSON paths. Keep the existing production alias on its previous deployment until the product owner approves cutover. Do not commit Vercel credentials or project tokens. See Vercel's [CLI deployment guide](https://vercel.com/docs/projects/deploy-from-cli).
