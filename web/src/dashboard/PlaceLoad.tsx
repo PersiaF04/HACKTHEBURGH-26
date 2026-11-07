@@ -86,7 +86,7 @@ export function PlaceLoad({ settings, onChange, result, onNow, pot, dayLabel, on
           {noCopilot && <p className="pl-note">No Copilot call on this day (it was still learning), so only naive and oracle are compared.</p>}
           <p className="pl-note">
             {pot && <>The pot is small: {pot.halfHours} tradable half-hours in {settings.zone} across {pot.days} scored days, so most days score £0. </>}
-            {result.note} Zone IDs are NESO's and not confirmed as Scotland. Retrospective; not a revenue promise.
+            {result.note} The pin is an illustrative location and does not affect the score: zone IDs are NESO's and not confirmed as Scotland. Retrospective; not a revenue promise.
           </p>
         </>
       ) : (

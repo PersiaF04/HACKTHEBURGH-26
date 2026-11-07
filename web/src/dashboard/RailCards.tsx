@@ -58,10 +58,10 @@ export function AskingCard({ data, date }: { data: DfsRequests | null; date: str
   const show: DfsRequest[] = today.length ? today : lastEvent;
   const peakProc = Math.max(...show.map((r) => r.procured_mw ?? 0));
   return (
-    <RailCard eyebrow="NESO is asking · retrospective" title={`${fmtFill(fill)} of turn-up requests filled`} href="#help" link="Help wanted">
+    <RailCard eyebrow="NESO is asking · retrospective" title={`NESO asked for ~${fmtNum(roughly(required / 2))} MWh. It got ~${fmtNum(roughly(procured / 2))}.`} href="#help" link="Help wanted">
       <div className="rc-gauge" role="img" aria-label={`Procured ${fmtNum(procured / 2)} MWh of ${fmtNum(required / 2)} MWh requested`}>
         <div className="rc-gauge-track"><span style={{ width: `${Math.max(fill * 100, 0.8)}%` }} /></div>
-        <div className="rc-gauge-legend"><span>Procured {fmtNum(procured / 2)} MWh</span><span>Requested {fmtNum(required / 2)} MWh</span></div>
+        <div className="rc-gauge-legend"><span>{fmtFill(fill)} of requested turn-up procured</span><span>{fmtDay(sorted[0].start_utc.slice(0, 10)).replace(/ \d{4}$/, "")}–{fmtDay(last.start_utc.slice(0, 10))}</span></div>
       </div>
       <p className="rc-line">
         <strong>{today.length ? "This day:" : `Last, ${shortDay(show[0].start_utc)}:`}</strong>{" "}
@@ -72,7 +72,9 @@ export function AskingCard({ data, date }: { data: DfsRequests | null; date: str
   );
 }
 
-export const fmtFill = (fill: number) => `${fill > 0 && fill < 0.01 ? (fill * 100).toPrecision(2) : (fill * 100).toFixed(1)}%`;
+// Two significant figures for headline words ("~81,000", "~38"), so a sentence never claims more precision than it needs.
+const roughly = (v: number) => (v >= 100 ? Number(v.toPrecision(2)) : Math.round(v));
+export const fmtFill =(fill: number) => `${fill > 0 && fill < 0.01 ? (fill * 100).toPrecision(2) : (fill * 100).toFixed(1)}%`;
 
 export function TomorrowCard({ data, summary }: { data: Forecast | null; summary: DashboardSummary | null }) {
   if (!data || !data.periods.length) return null;
@@ -80,7 +82,9 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
   const sumP = new Map((summary?.tomorrow?.request_probability ?? []).map((r) => [r.start_utc, r.p_turnup_request]));
   const ps = data.periods.map((p) => (sumP.has(p.start_utc) ? { ...p, p_turnup_request: sumP.get(p.start_utc) } : p));
   const headline = summary?.tomorrow?.headline;
-  const W = 300, H = 22, n = ps.length;
+  // Calm is good news, said plainly, but only for a real next-day forecast whose p50 and p90 are both zero all day.
+  const calm = data.mode !== "same_day_replay" && ps.every((p) => !p.curtailed_mwh_p50 && !p.curtailed_mwh_p90);
+  const W = 300, H = 18, n = ps.length;
   const x = (i: number) => (i / (n - 1)) * W;
   const pMax = Math.max(0, ...ps.map((p) => p.p_turnup_request ?? 0));
   const cMax = Math.max(0, ...ps.map((p) => p.curtailed_mwh_p90 ?? 0));
@@ -91,8 +95,9 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
   const peakIdx = ps.map((p, i) => ((p.p_turnup_request ?? 0) === pMax && pMax > 0 ? i : -1)).filter((i) => i >= 0);
   const label = data.mode === "same_day_replay" ? `Forecast replay · ${shortDay(ps[0].start_utc)}` : `Tomorrow · ${shortDay(ps[0].start_utc)}`;
   return (
-    <RailCard eyebrow={`${label} · model forecast`} href="#tomorrow" link="Tomorrow" className={headline ? "rc-long" : ""}
-      title={headline ?? (hasP && pMax > 0 ? `${Math.round(pMax * 100)}% chance NESO asks for turn-up` : "No turn-up request expected")}>
+    <RailCard eyebrow={`${label} · model forecast`} href="#tomorrow" link="Tomorrow" className={headline && !calm ? "rc-long" : ""}
+      title={calm ? "Tomorrow looks calm — no waste expected"
+        : headline ?? (hasP && pMax > 0 ? `${Math.round(pMax * 100)}% chance NESO asks for turn-up` : "No turn-up request expected")}>
       <svg className="rc-spark" viewBox={`0 0 ${W} ${H + 14}`} role="img"
         aria-label={`Forecast for ${n} half-hours. Peak chance of a turn-up request ${Math.round(pMax * 100)} percent. Median curtailment ${fmtNum(total)} MWh in total.`}>
         <line className="rc-spark-base" x1={0} x2={W} y1={H} y2={H} />
@@ -103,7 +108,7 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
         ))}
       </svg>
       <p className="rc-note">
-        <i className="rc-k rc-k-p" aria-hidden="true" />P(request){peakIdx.length > 0 && <> {hhmm(ps[peakIdx[0]].start_utc)}–{hhmm(plus30(ps[peakIdx[peakIdx.length - 1]].start_utc))}</>}
+        <i className="rc-k rc-k-p" aria-hidden="true" />P(request){peakIdx.length > 0 && <> up to {Math.round(pMax * 100)}%, {hhmm(ps[peakIdx[0]].start_utc)}–{hhmm(plus30(ps[peakIdx[peakIdx.length - 1]].start_utc))}</>}
         <i className="rc-k rc-k-c" aria-hidden="true" />median curtailment {total ? `${fmtNum(total)} MWh` : "none"}
       </p>
     </RailCard>

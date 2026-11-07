@@ -134,12 +134,14 @@ export function estimateLoad(u: UserLoad, replay: Replay, requests: DfsRequest[]
   const ours = copilot?.days.reduce((s, d) => s + d.policies.ours.mwh, 0) ?? 0;
   const price = copilot && ours > 0 && copilot.summary.energy_cost_gbp ? copilot.summary.energy_cost_gbp / ours : null;
   const scale = copilot ? u.mw / copilot.load.capacity_mw : 1;
+  const sameValue = copilot?.load.value_gbp_per_mwh === u.value;
   return {
     source: "estimate", on, mwh, wind_matched_mwh: matched,
     net_gbp: price == null ? null : mwh * (u.bid + u.value - price),
     naive_gbp: null,
-    ours_gbp: day && day.schedule.length ? day.policies.ours.gbp * scale : null,
-    oracle_gbp: day ? day.policies.oracle.gbp * scale : null,
-    note: "Rough estimate until lane B's scoring data loads: accepted-price ceilings, a day-average electricity price, Copilot figures scaled by MW, so it can read higher than the oracle.",
+    // copilot.json only holds its assumed site value, so these compare like with like only at that value.
+    ours_gbp: sameValue && day && day.schedule.length ? day.policies.ours.gbp * scale : null,
+    oracle_gbp: sameValue && day ? day.policies.oracle.gbp * scale : null,
+    note: "Rough estimate until lane B's scoring data loads: it ignores zone, uses accepted-price ceilings and a day-average electricity price, and scales Copilot figures by MW, so it can read higher than the oracle.",
   };
 }

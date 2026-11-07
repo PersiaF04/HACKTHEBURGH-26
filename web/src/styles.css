@@ -393,7 +393,7 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
   --d-glow: 255, 149, 0; --d-gap: 12px;
   min-height: 100dvh; display: grid; gap: var(--d-gap); padding: var(--d-gap) 16px 16px; background: var(--d-ground);
   grid-template-columns: minmax(0, 1fr) clamp(320px, 27vw, 392px); grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: "top top" "map rail" "time rail";
+  grid-template-areas: "top top" "map rail" "time time";
 }
 @media (prefers-color-scheme: dark) {
   .dash { --d-ground: #000000; --d-panel: #111214; --d-land: #26292f; --d-land-edge: rgba(255, 255, 255, 0.3); --d-ink-2: #d1d1d6; }
@@ -506,7 +506,7 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
 
 /* Right rail */
 .dash-rail { grid-area: rail; display: flex; flex-direction: column; gap: var(--d-gap); min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-.rc { position: relative; display: grid; gap: 7px; padding: 12px 16px; border-radius: var(--radius); background: var(--d-panel);
+.rc { position: relative; display: grid; gap: 5px; padding: 10px 14px; border-radius: var(--radius); background: var(--d-panel);
   border: 1px solid var(--hairline); transition: border-color 0.2s ease; }
 .rc:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline)); }
 .rc-head { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 1px 8px; }
@@ -702,6 +702,16 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
 .pl-you span:first-child { font-weight: 600; color: var(--text); }
 .pl-note { margin: 0; font-size: var(--fs-caption); line-height: 1.4; color: var(--muted); }
 .tl-mine { fill: var(--accent); }
+.dash-place-text { display: grid; text-align: left; line-height: 1.2; }
+.dash-place-text small { font-size: var(--fs-caption2); font-weight: 500; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.dash-pipe-note { display: none; }
+.dash-rail:has(.is-coached) { overflow: visible; }
+@media (max-width: 720px) {
+  .dash { grid-template-areas: "brand" "map" "pipe" "kpis" "controls" "time" "rail"; }
+  .dash-pipe-note { display: block; grid-area: pipe; margin: 0; padding: 0 4px; font-size: var(--fs-footnote); line-height: 1.4; color: var(--muted); }
+  .dash-pipe-note strong { color: var(--stopped-text); }
+  .dm-pipe-label, .dm-pipe-sub { display: none; }
+}
 .tl-prob { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linejoin: round; }
 .tk-prob { height: 0; border-top: 2px dashed var(--accent); border-radius: 0; vertical-align: 3px; }
 

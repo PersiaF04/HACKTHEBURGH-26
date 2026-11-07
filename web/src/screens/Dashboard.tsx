@@ -6,7 +6,7 @@ import { avoidedMwh, boundaryOf, estimateLoad, scoreUserLoad, tradablePot, type 
 import { AskingCard, BillCard, CopilotCard, TomorrowCard, fmtFill } from "../dashboard/RailCards";
 import { Timeline, type TimelinePoint } from "../dashboard/Timeline";
 import {
-  fmtEnergy, fmtGbp, fmtTime, useJson,
+  fmtEnergy, fmtGbp, fmtNum, fmtTime, useJson,
   type Copilot, type CurtailmentDaily, type DashboardSummary, type DfsRequests, type Farms, type Forecast, type Iceberg, type Replay,
 } from "../data";
 import { DEEP_DIVES } from "../routes";
@@ -33,9 +33,14 @@ function useReplay(day: string | null): { data: Replay | null; error: string | n
   return state.day === day ? state : { data: null, error: null };
 }
 
-function Kpi({ value, label, hint, tone }: { value: string; label: string; hint?: string; tone?: string }) {
+// A rough scale for the wasted energy, only ever shown as a tooltip and always with its assumption.
+const KWH_PER_HOME_YEAR = 2700;
+const homesTip = (mwh: number | undefined) =>
+  mwh ? `About ${Number(((mwh * 1000) / KWH_PER_HOME_YEAR).toPrecision(2)).toLocaleString("en-GB")} homes' annual electricity (≈2,700 kWh/home/yr, approximate)` : undefined;
+
+function Kpi({ value, label, hint, tone, tip }: { value: string; label: string; hint?: string; tone?: string; tip?: string }) {
   return (
-    <div className={`kpi${tone ? ` kpi-${tone}` : ""}`}>
+    <div className={`kpi${tone ? ` kpi-${tone}` : ""}`} title={tip}>
       <span className="kpi-value">{value}</span>
       <span className="kpi-label">{label}</span>
       {hint && <span className="kpi-hint">{hint}</span>}
@@ -149,6 +154,7 @@ export function Dashboard() {
 
   const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null), [farms.data]);
   const period = replay.data?.periods[at];
+  const boundary = period ? boundaryOf(period) : null;
   const total = period ? Object.keys(period.farms).length : 0;
   const date = replay.data?.date ?? (day && day !== LIVE ? day : "");
 
@@ -172,7 +178,7 @@ export function Dashboard() {
           <p className="dash-lede">When Scotland's cables south are full, NESO pays wind farms to switch off. <span className="dash-lede-key">Orange = paid to stop right now.</span></p>
         </div>
         <div className="dash-kpis" aria-live="off">
-          <Kpi value={fmtEnergy(series.cumMwh[at])} label="wind wasted so far" hint={period ? `by ${fmtTime(period.start_utc).replace(" UTC", "")}` : undefined} tone="stopped" />
+          <Kpi value={fmtEnergy(series.cumMwh[at])} label="wind wasted so far" hint={period ? `by ${fmtTime(period.start_utc).replace(" UTC", "")}` : undefined} tone="stopped" tip={homesTip(series.cumMwh[at])} />
           <Kpi value={fmtGbp(series.cumGbp[at])} label="paid to wind so far" hint={isLive && series.cumGbp[at] == null ? "settles next morning" : undefined} />
           <Kpi value={period ? `${series.off[at]}` : "—"} label={`of ${total || "—"} farms off now`} />
           <Kpi value={fill ? fmtFill(fill.fill) : "—"} label="NESO turn-up filled" hint={fill ? `${fmtDay(fill.from).replace(/ \d{4}$/, "")}–${fmtDay(fill.to)}` : undefined} />
@@ -226,7 +232,8 @@ export function Dashboard() {
                 // Keyboard activation drops the pin at once (the location is illustrative), so nobody needs a pointer.
                 if (e.detail === 0) setPin(project(56.0, -3.8)); else setPlacing(true);
               }}>
-                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1v14M1 8h14" /></svg>Place a load
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1v14M1 8h14" /></svg>
+                <span className="dash-place-text">Place your load<small>{load.mw} MW · {load.zone} · £{load.bid}/MWh</small></span>
               </button>
             )}
             {pin && !isLive && (
@@ -237,6 +244,14 @@ export function Dashboard() {
         ) : <p className="dash-loading">{error ? `Couldn't load data: ${error}` : "Loading the map…"}</p>}
         {coach.target === "map" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
       </section>
+
+      {/* The map's own cable label is too small to read on a phone, so its honesty text moves here. */}
+      {boundary && (
+        <p className="dash-pipe-note">
+          <strong>Cables south: {boundary.flow > boundary.limit ? `${(boundary.flow / boundary.limit).toFixed(1)}× over the limit` : `${Math.round((boundary.flow / boundary.limit) * 100)}% full`}.</strong>{" "}
+          SCOTEX wants {fmtNum(boundary.flow)} MW, limit {fmtNum(boundary.limit)} MW. Day-ahead forecast flow vs limit (NESO), not outturn.
+        </p>
+      )}
 
       <aside className="dash-rail" aria-label="What it means">
         <BillCard data={iceberg.data} />
