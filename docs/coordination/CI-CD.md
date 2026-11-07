@@ -13,6 +13,21 @@ GitHub Actions runs these checks on pull requests targeting `main` and on pushes
 
 The lane workflows use path filters, so they only run when their lane changes. The model test steps also skip themselves if `models/` is not on the branch yet. Keep checks fast and tied to real project risks.
 
-## Deployment is pending
+## Vercel deployment
 
-Automated deployment is not configured. The target (for example GitHub Pages) and its trigger are pending the owner's decision. Once approved, add a deployment workflow that runs only after the agreed CI checks pass, keeps any credentials in GitHub Actions secrets or environments, and has a documented rollback or demo fallback. Record the target and trigger in the PRD before enabling it.
+Vercel is the agreed static host for the web app. The project connection and first deployment are still pending; local preview remains the fallback until a deployed URL is verified.
+
+Use these Vercel project settings:
+
+- **Root directory:** `web/`
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+- **Include files outside the root directory in the Build Step:** enabled
+
+The build runs `sync-data`, which copies `contracts/fixtures/` and `data/public/` from the repository root into `web/public/data/`. Keep Vercel's outside-root file setting enabled so those inputs are available when the root directory is `web/`. The app has no build-time secrets; keep any future credentials out of Git and configure them through Vercel's environment settings only if a requirement needs them.
+
+Connect the Vercel project to this repository and deploy from `main` after the project owner provides access. Verify that the deployment serves the built app and its JSON data before sharing its URL. Do not claim a public deployment until this check passes.
+
+## CI and recovery
+
+Keep the existing pull request checks fast and tied to project risks. A failed or unavailable deployment must not block the offline demo: use `npm --prefix web run preview` with committed JSON data. Record changes to CI or deployment behavior in `PRD.md` and this guide.
