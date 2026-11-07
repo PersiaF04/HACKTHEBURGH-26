@@ -66,12 +66,19 @@ export function Operator() {
 
   const ready = replay.data && copilot.data && farms.data && (forecast.data || forecast.error);
   const mirror = useMemo(
-    () => farms.data?.farms.reduce((a, b) => ((b.capacity_mw ?? 0) > (a.capacity_mw ?? 0) ? b : a)),
-    [farms.data],
+    () => {
+      // Mirror the largest Scottish farm that appears in the replay (farms.json covers all of GB).
+      const inReplay = new Set(Object.keys(replay.data?.periods[0]?.farms ?? {}));
+      const pool = farms.data?.farms.filter((f) => /Scotland/.test(f.region) && (!inReplay.size || inReplay.has(f.id)));
+      const list = pool?.length ? pool : farms.data?.farms;
+      return list?.reduce((a, b) => ((b.capacity_mw ?? 0) > (a.capacity_mw ?? 0) ? b : a));
+    },
+    [farms.data, replay.data],
   );
   const game = useMemo(() => {
     if (!replay.data || !farms.data) return null;
-    const capacity = sum(farms.data.farms.map((f) => f.capacity_mw ?? 0));
+    const inReplay = new Set(Object.keys(replay.data.periods[0]?.farms ?? {}));
+    const capacity = sum(farms.data.farms.filter((f) => inReplay.has(f.id)).map((f) => f.capacity_mw ?? 0));
     return buildBlocks(replay.data, forecast.data, capacity);
   }, [replay.data, farms.data, forecast.data]);
 
