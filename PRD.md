@@ -66,7 +66,7 @@ Empty and error states: if a data file is missing, the screen falls back to a la
 | ID | Outcome | Measure / pass condition | Baseline | Target | Evidence source / owner |
 | --- | --- | --- | --- | --- | --- |
 | G-1 | Credible reconstruction of the hidden waste | Daily volume correlation vs NESO thermal constraints | n/a | ≥ 0.9 (0.91 already measured in #25) | `curtailment_daily.json` validation; lane A |
-| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,171, Brier 0.443 | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
+| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,224, Brier 0.471 (3,168 half-hours, 1 Sep to 5 Nov 2026, retrospective; corrected in #40) | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
 | G-3 | The decision adds value over naive | Copilot `pct_of_oracle` vs naive on the same replay days and costs | Naive policy | Higher than naive, reported honestly | `copilot.json`; lane B |
 | G-4 | The demo never breaks | All six screens render offline from committed JSON | n/a | Smoke command passes at code freeze | Lane C |
 
