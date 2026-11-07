@@ -50,6 +50,16 @@ python -m whitespace.pipeline.code_layer --links path/to/links.parquet --revisio
 
 It draws 125 distinct new-style arXiv ids per year band (<=2017, 2018-2020, 2021-2023, 2024-2025), resolves them and prints resolved counts by band. Spike #122 measured 493/500 (98.6%) with its own draw; this command re-runs the procedure, and exact ids may differ if the sampling code differs. The figure is resolution only, not join correctness.
 
+## Local code join (`pipeline/code_join_local.py`, issue #173)
+
+Joins the ingest `corpus.jsonl` to the pinned Papers with Code links file by versionless arXiv id, with **no API calls**. The corpus is streamed; the links file is read from a local `.parquet` (needs `pyarrow`) or `.csv`. Papers with no usable arXiv id get join method `unmatchable_by_construction`.
+
+```sh
+python -m whitespace.pipeline.code_join_local --corpus corpus.jsonl --links links.parquet --revision <dataset-sha> --out <dir outside Git>
+```
+
+Writes `papers.csv` (per work: `has_linked_code`, `has_official_code`, `match_key`, `join_method`, `date_source`, topic), `coverage.json` (`code_layer.coverage_table`), `report.json` (counts: works with an arXiv id by year, archive ids present or absent in the corpus, linked papers by year) and `handcheck_frame.csv` (seeded 100 matched pairs, stratified by year band, official or not, own or merged record; title and, if the corpus carries it, first author; no abstracts). Archive ids missing from the corpus are expected: the corpus is one OpenAlex subfield. `join_method` is inferred from the corpus record type (`preprint` = own record), because the corpus does not keep the DOI. The corpus does not store authors, so `oa_first_author` is blank until ingest selects `authorships`.
+
 ## OpenAlex ingest (`pipeline/ingest.py`, issue #147)
 
 ```sh
