@@ -46,3 +46,15 @@ def test_replay_lookup_accepts_only_a_strict_date_inside_data_public():
     assert G._replay("not-a-date") is None
     assert G._replay(None) is None
     assert G._replay("2026-10-14") is not None
+
+
+def test_scotex_gap_reports_no_overshoot_on_a_day_that_never_exceeds_the_limit(monkeypatch):
+    calm = {"periods": [{"sp": sp, "scotex_limit_mw": 5000.0, "scotex_flow_mw": 4000.0 + sp} for sp in range(1, 49)]}
+    monkeypatch.setattr(G, "_replay", lambda date: calm)
+    r = G.scotex_gap("2026-10-13")
+    assert r["periods_over_limit"] == 0 and r["max_overshoot_mw"] is None and r["max_overshoot_sp"] is None
+    mixed = {"periods": [{"sp": 1, "scotex_limit_mw": 5000.0, "scotex_flow_mw": 4000.0},
+                         {"sp": 2, "scotex_limit_mw": 5000.0, "scotex_flow_mw": 5200.5}]}
+    monkeypatch.setattr(G, "_replay", lambda date: mixed)
+    r = G.scotex_gap("2026-10-13")
+    assert r["periods_over_limit"] == 1 and r["max_overshoot_mw"] == 200.5 and r["max_overshoot_sp"] == 2

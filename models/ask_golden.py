@@ -81,8 +81,9 @@ def scotex_gap(date):
         if lim is None or flow is None:
             continue
         gap = flow - lim
-        if gap > 0:
-            over += 1
+        if gap <= 0:
+            continue                     # only forecast flow above the limit counts as an overshoot
+        over += 1
         if worst is None or gap > worst[0]:
             worst = (gap, p["sp"])
     return {"date": date, "periods_over_limit": over,
