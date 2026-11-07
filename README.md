@@ -7,7 +7,7 @@ Scotland pays wind farms to switch off when the cables south are full. Turn Up S
 When the transmission lines out of Scotland are full, the grid operator (NESO) pays wind farms to stop and pays gas plants further south to start. The payments to wind make headlines. Two other things do not:
 
 - **The hidden bill.** Payments to Scottish wind were about £188m between 1 April and 29 October 2026. Two parallel measures of the system cost of the same constraint, gas turn-up offers and NESO's own published constraint cost, were each about £1.8bn over the same window. These overlap: they are shown side by side as magnitudes, not added up, and they do not prove who ultimately paid.
-- **The unanswered call.** Since 7 October 2026 NESO has asked flexible demand to switch on and soak up the surplus wind. Of about 81,000 MWh requested in Demand Flexibility Service turn-up events, about 0.05% (0.046%) was procured.
+- **The unanswered call.** NESO began procuring flexible demand to switch on and soak up the surplus wind through its Demand Flexibility Service on 7 October 2026; the first turn-up request in our data is for 8 October. Of about 81,000 MWh requested across 30 such events up to 31 October, about 0.05% (0.046%) was procured.
 
 Turn Up Scotland rebuilds Scottish wind curtailment from public data, checks it against NESO's published figures, forecasts the next day's curtailment, and replays a decision tool (the Flex Copilot) that says when a flexible load such as an electrolyser, data centre or heat network should be ready to switch on and what to bid. It is a static web app over committed JSON files, so the demo works offline.
 
@@ -31,7 +31,7 @@ The product requirements, evidence and risks are in [`PRD.md`](PRD.md).
 
 ## Visuals
 
-No screenshots are committed yet. The app has seven screens, all reading JSON from `data/public/` (falling back to `contracts/fixtures/`):
+No screenshots are committed yet. The demo journey and the demo-step table are in [`PRD.md`](PRD.md) (sections 3 and 7), and the team's working notes and project status are in [`docs/`](docs/) (for example [`docs/coordination/STATUS.md`](docs/coordination/STATUS.md)). The app has seven screens, all reading JSON from `data/public/` (falling back to `contracts/fixtures/`):
 
 | Screen | What it shows |
 | --- | --- |
