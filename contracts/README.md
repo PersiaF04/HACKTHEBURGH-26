@@ -24,6 +24,7 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 | `copilot.json` | B | Flex Copilot, judge game | Naive, ours and oracle policy results for a load on replay days |
 | `sandbox.json` (optional) | B | Interactive load sandbox | Per-half-hour inputs and a scoring rule so the client can re-score a load the user places |
 | `grid.json` (optional) | A | Power Dashboard | Transmission line geometry (275/400 kV and the Western HVDC link) for the power-lines layer |
+| `dashboard.json` (optional) | B | Map dashboard | Tomorrow headline and numbers, request probability per half-hour, and the Copilot's call for each replay day |
 
 ## Schemas
 
@@ -148,3 +149,27 @@ Line geometry for the Power Dashboard's power-lines layer. The web app must stil
 - The `western-link` entry is the subsea HVDC link between Hunterston and Flintshire Bridge, drawn as a **schematic** straight route (`schematic: true`, `capacity_mw` 2,250).
 - **No per-line flow is published by anyone.** This file is geometry only. To animate power moving south, scale the effect on the `crosses_border` lines by `scotex_flow_mw` against `scotex_limit_mw` from the replay periods, and label it "forecast demand on the cables vs their limit", not a measured flow.
 - The map must show the attribution in `meta.attribution` wherever it draws these lines (OpenStreetMap's ODbL licence).
+
+### `dashboard.json` (optional, issue #74)
+
+Summaries for the map dashboard (#73), derived from `forecast.json`, `copilot.json` and the replay index. The web app must still work when this file is absent.
+
+```json
+{ "meta": {},
+  "tomorrow": { "target_date": "2026-11-08", "mode": "next_day", "model": "wind_forecast",
+    "headline": "Tomorrow, Sunday 8 Nov: calm. ...",
+    "facts": { "total_p50_mwh": 0, "peak_p50_mwh": 0, "peak_p50_start_utc": "2026-11-08T00:00:00Z", "peak_p90_mwh": 0,
+      "peak_p_heavy": 0, "heavy_half_hours": 0, "peak_p_request": 0.233, "request_window_utc": ["11:00", "22:30"] },
+    "request_probability": [ { "start_utc": "2026-11-08T00:00:00Z", "p_turnup_request": 0.0 } ],
+    "caveat": "Retrospective: ..." },
+  "replay_days": [ { "date": "2026-10-27",
+    "request_probability": [ { "start_utc": "2026-10-26T23:00:00Z", "p_turnup_request": 0.0, "actual_request": false } ],
+    "copilot": { "status": "scored", "ready_windows_utc": [["2026-10-27T11:00:00Z", "2026-10-27T14:30:00Z"]], "ready_half_hours": 7,
+      "bid_gbp_per_mwh": 60.0, "bid_range_gbp_per_mwh": null, "net_gbp": { "naive": 8533, "ours": 11909, "oracle": 12594 },
+      "pct_of_oracle": 0.946, "caveat": "Replay, net of electricity ..." } } ] }
+```
+
+- `tomorrow.headline` is **templated from `tomorrow.facts`**, never written by hand or by a model, so a sentence cannot say more than the numbers. It says "Tomorrow" only when `mode` is `next_day`; for `same_day_replay` it says it is a replay, not tomorrow.
+- `tomorrow.request_probability` has one entry per half-hour of the target day and lines up with `forecast.json` `periods`.
+- `replay_days` has one entry per day in `replay/index.json`. `request_probability` has 48 entries aligned to the replay timeline (`start_utc`, the same instants as the replay periods). `p_turnup_request` is a **walk-forward** value (the model saw only earlier days) and `null` when there is not enough history; `actual_request` is whether NESO really published a turn-up request that half-hour.
+- `copilot.status` is `scored` or `not_scored`. A `not_scored` day carries a `reason` (before requests began, a warm-up day, or not in the scored set) and no numbers. On a `scored` day with nothing tradable, `pct_of_oracle` is `null` and a `note` says there was nothing to answer. The Copilot only has a scored call on days after its warm-up; today that is 27 Oct among the replay days.

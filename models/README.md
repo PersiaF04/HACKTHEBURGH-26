@@ -9,6 +9,7 @@ Python, standard library only (no install step). Writes contract JSON to `data/p
 | `python models/build_copilot.py` | `data/public/copilot.json` (default: 50 MW electrolyser, zone Z1) | #30 |
 | `python models/build_copilot.py --type data_centre --mw 20 --zone Z2 --value 80 --periods 8` | the same replay for another load | |
 | `python models/build_sandbox.py` | `data/public/sandbox.json` (optional): inputs and a scoring rule for the interactive load sandbox | #76 |
+| `python models/build_dashboard.py` | `data/public/dashboard.json` (optional): headline and summaries for the map dashboard; run after the forecast and Copilot builders | #74 |
 | `python -m pytest models` | offline unit tests (no network) | |
 
 Inputs are keyless public NESO data. They are cached in `data/cache/models/` (git-ignored), so reruns are fast and reproducible. Delete the folder or pass `--refresh` to refetch.
