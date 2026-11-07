@@ -48,7 +48,7 @@ When the transmission lines out of Scotland are full, NESO pays wind farms to st
 
 ### What it does
 
-Turn Up Scotland is a seven-screen web app built only on public NESO and Elexon data.
+Turn Up Scotland is a one-page dashboard with seven deep-dive screens, built only on public NESO and Elexon data.
 
 - **The Waste** replays a day farm by farm. On 27 Oct 2026, 168 GWh was curtailed and about £6.4M paid to wind; from 1 Apr to 6 Nov the recorded days sum to about 7.12 TWh (192 of 220 days have data, so it is a floor).
 - **Hidden Bill** sets £188M paid to wind against two parallel measures over the same 210 days: £1.8B of gas turn-up offers and £1.8B of NESO's published thermal constraint cost. They overlap and are not added.
