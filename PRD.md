@@ -1,6 +1,7 @@
 # Product requirements document: Turn Up Scotland
 
 > The idea was chosen on 2026-11-07 after spikes #19–#25. The evidence and research are in [#25](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/25). `Open` marks a decision that still has an owner and a next check.
+> Current team status: [STATUS.md](docs/coordination/STATUS.md), added for [issue #37](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/37) (refreshed about every two hours and after PR merges).
 
 ## Status and ownership
 
@@ -38,14 +39,14 @@
 
 ## 1. Product summary
 
-**Summary:** Scotland pays wind farms to switch off when the cables south are full. It threw away about 7.3 TWh in seven months, and most of the real bill goes to gas plants in England. NESO now asks for flexible demand to absorb that power, and almost none arrives. Turn Up Scotland shows the hidden waste and its true cost. It forecasts when NESO will ask for help, and tells a flexible load operator when to be ready and what to bid.
+**Summary:** Scotland pays wind farms to switch off when the cables south are full. It threw away about 7.3 TWh in seven months. Wind turn-down payments were about £193m, while CCGT turn-up offers and NESO's thermal constraint-cost measure were each about £1.78bn over the same window. These are parallel measures of system cost, not an additive breakdown or proof of who ultimately paid. NESO now asks for flexible demand to absorb that power, and almost none arrives. Turn Up Scotland shows the hidden waste and its true cost. It forecasts when NESO will ask for help, and tells a flexible load operator when to be ready and what to bid.
 
 ## 2. Problem, users, and evidence
 
 | User / stakeholder | Context and need | Current alternative and gap | Evidence / source |
 | --- | --- | --- | --- |
 | **Primary user:** operations lead of a flexible load behind Scotland's grid constraints (electrolyser, data centre, heat network with storage) or an aggregator | Decides each day which half-hours to be ready for, and what to bid into NESO's Demand Flexibility Service (DFS) | NESO's raw datasets are scattered and there is no forecast of requests. Requests go unanswered: **0.2% of 500 MW turn-up requests were filled in Oct 2026** | NESO `demand-flexibility` dataset; #25 deep dive |
-| Secondary: energy-policy audience (journalists, analysts, the public) | Understand the waste and who pays for it | Headlines quote payments to wind (about £193m) and miss most of the cost (gas turn-up of about £1.78bn) | Elexon cashflows vs NESO Constraint Breakdown, 201 days, daily corr 0.94 (#25) |
+| Secondary: energy-policy audience (journalists, analysts, the public) | Understand the waste and who pays for it | Headlines quote payments to wind (about £193m). Parallel system-cost measures (CCGT turn-up offers and NESO thermal constraint cost, each about £1.78bn) are rarely shown. These are not an additive breakdown | Elexon cashflows vs NESO Constraint Breakdown, 201 days, daily corr 0.94 (#25) |
 
 **Out of scope for the first version:** households and small loads (the DFS threshold and baselines differ), trading desks, and regions outside GB.
 
@@ -65,7 +66,7 @@ Empty and error states: if a data file is missing, the screen falls back to a la
 | ID | Outcome | Measure / pass condition | Baseline | Target | Evidence source / owner |
 | --- | --- | --- | --- | --- | --- |
 | G-1 | Credible reconstruction of the hidden waste | Daily volume correlation vs NESO thermal constraints | n/a | ≥ 0.9 (0.91 already measured in #25) | `curtailment_daily.json` validation; lane A |
-| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,171, Brier 0.443 | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
+| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,224, Brier 0.471 (3,168 half-hours, 1 Sep to 5 Nov 2026, retrospective; corrected in #40) | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
 | G-3 | The decision adds value over naive | Copilot `pct_of_oracle` vs naive on the same replay days and costs | Naive policy | Higher than naive, reported honestly | `copilot.json`; lane B |
 | G-4 | The demo never breaks | All six screens render offline from committed JSON | n/a | Smoke command passes at code freeze | Lane C |
 
@@ -236,7 +237,7 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 | --- | --- | --- | --- | --- |
 | **Varshil** (`varshil247`) | Varshil's Claude (developer) | **Lane A: data and pipeline.** `pipeline/`; writes `farms`, `curtailment_daily`, `replay/*`, `iceberg`, `dfs_requests` | #27, #28 | Varshil's Codex (review) |
 | **sanamorii** (`sanamorii`) | sanamorii's Claude (developer) | **Lane B: models, validation and decision.** `models/`; writes `forecast`, `copilot` | #29, #30 | Persia's Codex (review) |
-| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files | #26, #31, #32, #33 | Persia's Codex (review) |
+| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files | #26, #31–#33, [#38](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/38), [#39](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/39), [#46](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/46) | Persia's Codex (review) |
 
 Codex agents review pull requests and don't change the developer's branch. Humans merge after CI passes and review is approved. If no reviewer is free, a human may merge on green CI plus one approving agent review.
 

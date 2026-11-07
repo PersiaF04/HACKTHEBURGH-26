@@ -28,6 +28,16 @@ const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
 const soakIn = (p: ReplayPeriod) => Math.min(CAP_MWH, sum(Object.values(p.farms).map((f) => f.curtailed_mwh ?? 0)));
 const blockScore = (blocks: Block[], picked: Set<number>) => sum(blocks.filter((b) => picked.has(b.index)).map((b) => b.soak));
 
+function copilotBlockPicks(blocks: Block[], schedule: Copilot["days"][number]["schedule"]): Set<number> {
+  const readyPeriods = new Set(schedule.filter((s) => s.action === "ready").map((s) => s.start_utc));
+  return new Set(blocks
+    .map((block) => ({ block, readyCount: block.periods.filter((p) => readyPeriods.has(p.start_utc)).length }))
+    .filter(({ readyCount }) => readyCount > 0)
+    .sort((a, b) => b.readyCount - a.readyCount || a.block.index - b.block.index)
+    .slice(0, BUDGET)
+    .map(({ block }) => block.index));
+}
+
 function buildBlocks(replay: Replay, forecast: Forecast | null, capacity: number): { blocks: Block[]; hintSource: string } {
   const p50 = new Map((forecast?.periods ?? []).map((p) => [p.start_utc, p.curtailed_mwh_p50]));
   const size = Math.ceil(replay.periods.length / BLOCKS);
@@ -66,12 +76,19 @@ export function Operator() {
 
   const ready = replay.data && copilot.data && farms.data && (forecast.data || forecast.error);
   const mirror = useMemo(
-    () => farms.data?.farms.reduce((a, b) => ((b.capacity_mw ?? 0) > (a.capacity_mw ?? 0) ? b : a)),
-    [farms.data],
+    () => {
+      // Mirror the largest Scottish farm that appears in the replay (farms.json covers all of GB).
+      const inReplay = new Set(Object.keys(replay.data?.periods[0]?.farms ?? {}));
+      const pool = farms.data?.farms.filter((f) => /Scotland/.test(f.region) && (!inReplay.size || inReplay.has(f.id)));
+      const list = pool?.length ? pool : farms.data?.farms;
+      return list?.reduce((a, b) => ((b.capacity_mw ?? 0) > (a.capacity_mw ?? 0) ? b : a));
+    },
+    [farms.data, replay.data],
   );
   const game = useMemo(() => {
     if (!replay.data || !farms.data) return null;
-    const capacity = sum(farms.data.farms.map((f) => f.capacity_mw ?? 0));
+    const inReplay = new Set(Object.keys(replay.data.periods[0]?.farms ?? {}));
+    const capacity = sum(farms.data.farms.filter((f) => inReplay.has(f.id)).map((f) => f.capacity_mw ?? 0));
     return buildBlocks(replay.data, forecast.data, capacity);
   }, [replay.data, farms.data, forecast.data]);
 
@@ -89,7 +106,7 @@ export function Operator() {
 
   const { blocks, hintSource } = game;
   const schedule = copilot.data.days.find((d) => d.date === DATE)?.schedule ?? [];
-  const copilotPicks = new Set(blocks.filter((b) => b.periods.some((p) => schedule.some((s) => s.action === "ready" && s.start_utc === p.start_utc))).map((b) => b.index));
+  const copilotPicks = copilotBlockPicks(blocks, schedule);
   const oraclePicks = new Set([...blocks].sort((a, b) => b.soak - a.soak || a.index - b.index).slice(0, BUDGET).map((b) => b.index));
   const scores = [
     { id: "you", name: "You", mwh: blockScore(blocks, picked) },
@@ -182,7 +199,7 @@ export function Operator() {
               <span className="op-score-value">{fmtNum(s.mwh)} MWh</span>
             </div>
           ))}
-          <p className="muted small">Soaked-up MWh in replay; not revenue. Each ready half-hour absorbs up to {CAP_MWH} MWh ({LOAD_MW} MW × 0.5 h) of curtailed wind across all farms. Oracle knows the outcome and takes the best {BUDGET} blocks; Copilot's schedule is mapped onto blocks.</p>
+          <p className="muted small">Soaked-up MWh in replay; not revenue. Each selected two-hour block scores the same four half-hours for every player. You, Copilot and Oracle each get at most {BUDGET} blocks; Copilot's schedule maps to blocks with the most ready half-hours. Each half-hour absorbs up to {CAP_MWH} MWh ({LOAD_MW} MW × 0.5 h) of curtailed wind across all farms. Oracle knows the outcome and takes the best {BUDGET} blocks.</p>
         </div>
       )}
       <Source meta={replay.data.meta} />
