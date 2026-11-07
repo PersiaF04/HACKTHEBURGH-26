@@ -256,3 +256,14 @@ def test_build_corpus_end_to_end(tmp_path):
     first = next(iter(m["input_pages"].values()))
     assert len(first["sha256"]) == 64 and first["url"].startswith("https://api.openalex.org")
     assert len((tmp_path / "corpus.jsonl").read_text().splitlines()) == 1
+
+
+def test_planning_end_caps_at_the_end_of_the_chosen_year():
+    import datetime as dt
+
+    from whitespace.pipeline import ingest as ing
+
+    today = dt.date(2026, 11, 7)
+    assert ing.planning_end(today, None) == today
+    assert ing.planning_end(today, 2023) == dt.date(2023, 12, 31)
+    assert ing.planning_end(today, 2030) == today  # a future year never extends the plan

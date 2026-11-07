@@ -448,18 +448,27 @@ def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None) -> dic
 # --------------------------------------------------------------------------- CLI
 
 
+def planning_end(today: dt.date, through_year: int | None) -> dt.date:
+    """The last day to plan for: ``today``, or 31 December of ``through_year`` if that is earlier."""
+    if through_year is None:
+        return today
+    return min(today, dt.date(through_year, 12, 31))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="OpenAlex ingest for Whitespace")
     ap.add_argument("command", choices=["plan", "download", "build"])
     ap.add_argument("--out", type=Path, default=DEFAULT_ARTIFACTS)
     ap.add_argument("--mailto", default=DEFAULT_MAILTO)
     ap.add_argument("--max-calls", type=int, default=10_000, help="download call budget")
+    ap.add_argument("--through-year", type=int, default=None,
+                    help="plan and download only publication years up to this year (inclusive)")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     today = dt.datetime.now(dt.timezone.utc).date()
 
     if args.command == "plan":
-        plan = plan_windows(make_fetcher(None), today, args.mailto)
+        plan = plan_windows(make_fetcher(None), planning_end(today, args.through_year), args.mailto)
         print(format_plan(plan))
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
