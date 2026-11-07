@@ -79,6 +79,9 @@ export interface Forecast {
     reliability: ReliabilityBin[];
   };
 }
+// Optional grid.json (lane A). Line geometry only: flow per line is not published. `path` is [lat, lon] pairs.
+export interface GridLine { id: string; kv?: number; path: [number, number][] }
+export interface GridFile { meta: Meta; lines: GridLine[] }
 // Optional dashboard.json (lane B, #74/#81). Summaries for the map dashboard; the app must work without it.
 export interface DashboardCopilotCall {
   status: "scored" | "not_scored"; reason?: string; note?: string;

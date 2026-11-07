@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fmtGbp, fmtNum, type Copilot, type DashboardCopilotCall, type DashboardSummary, type DfsRequest, type DfsRequests, type Forecast, type Iceberg } from "../data";
+import { fmtNum, type Copilot, type DashboardCopilotCall, type DashboardSummary, type DfsRequest, type DfsRequests, type Forecast, type Iceberg } from "../data";
 import { fmtDay } from "../screens/WasteMap";
 
 const hhmm = (iso: string) => iso.slice(11, 16);
@@ -20,21 +20,24 @@ function RailCard({ id, eyebrow, title, href, link, children, className = "" }:
   );
 }
 
+// £188m and £1.81bn: the compact formatter would round billions to one decimal.
+const money = (v: number) => (v >= 1e9 ? `£${(v / 1e9).toFixed(2)}bn` : `£${Math.round(v / 1e6)}m`);
+
 export function BillCard({ data }: { data: Iceberg | null }) {
   if (!data) return null;
   const rows = [
     { k: "wind", label: "Paid to wind to switch off", v: data.wind_bids_gbp },
-    { k: "gas", label: "Gas (CCGT) paid to turn up", v: data.ccgt_offers_gbp },
-    { k: "neso", label: "NESO's published constraint cost", v: data.neso_thermal_gbp },
+    { k: "gas", label: "Gas plants' turn-up offers", v: data.ccgt_offers_gbp },
+    { k: "neso", label: "NESO's own constraint cost", v: data.neso_thermal_gbp },
   ];
   const max = Math.max(...rows.map((r) => r.v));
   return (
-    <RailCard eyebrow="The hidden bill" title={`${(data.ccgt_offers_gbp / data.wind_bids_gbp).toFixed(1)}× bigger below the waterline`} href="#iceberg" link="Hidden bill">
+    <RailCard eyebrow="The hidden bill" title={`${money(data.wind_bids_gbp)} to wind is the small part of the bill`} href="#iceberg" link="Hidden bill">
       <ul className="rc-bars">
         {rows.map((r) => (
           <li key={r.k} className={`rc-bar rc-bar-${r.k}`}>
             <span className="rc-bar-label">{r.label}</span>
-            <span className="rc-bar-value">{fmtGbp(r.v)}</span>
+            <span className="rc-bar-value">{money(r.v)}</span>
             <span className="rc-bar-track"><span style={{ width: `${Math.max(2, (r.v / max) * 100)}%` }} /></span>
           </li>
         ))}
@@ -108,8 +111,8 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
         ))}
       </svg>
       <p className="rc-note">
-        <i className="rc-k rc-k-p" aria-hidden="true" />P(request){peakIdx.length > 0 && <> up to {Math.round(pMax * 100)}%, {hhmm(ps[peakIdx[0]].start_utc)}–{hhmm(plus30(ps[peakIdx[peakIdx.length - 1]].start_utc))}</>}
-        <i className="rc-k rc-k-c" aria-hidden="true" />median curtailment {total ? `${fmtNum(total)} MWh` : "none"}
+        <i className="rc-k rc-k-p" aria-hidden="true" />Chance NESO asks{peakIdx.length > 0 && <> up to {Math.round(pMax * 100)}%, {hhmm(ps[peakIdx[0]].start_utc)}–{hhmm(plus30(ps[peakIdx[peakIdx.length - 1]].start_utc))}</>}
+        <i className="rc-k rc-k-c" aria-hidden="true" />median switch-off {total ? `${fmtNum(total)} MWh` : "none"}
       </p>
     </RailCard>
   );
@@ -163,12 +166,12 @@ export function CopilotCard({ data, summary, date }: { data: Copilot | null; sum
       ) : (
         <p className="rc-line">
           {reason}{" "}
-          {bestCall && best.date !== date && <>Its scored call on {shortDay(`${best.date}T12:00:00Z`)}: {callText(bestCall).toLowerCase()}{bestCall.pct != null && <>, <strong>{Math.round(bestCall.pct * 100)}%</strong> of oracle</>}.</>}
+          {bestCall && best.date !== date && <>Its scored call on {shortDay(`${best.date}T12:00:00Z`)}: {callText(bestCall).toLowerCase()}{bestCall.pct != null && <>, <strong>{Math.round(bestCall.pct * 100)}%</strong> of perfect hindsight</>}.</>}
         </p>
       )}
       <p className="rc-caveat">
         <strong>Fragile:</strong> {paying === 1 ? "one day" : `${paying} days`} of {data.days.length} carried the result
-        ({Math.round(data.summary.pct_of_oracle * 100)}% of oracle overall). Assumes full delivery. Not a revenue promise.
+        ({Math.round(data.summary.pct_of_oracle * 100)}% of perfect hindsight overall). Assumes full delivery. Not a revenue promise.
       </p>
     </RailCard>
   );

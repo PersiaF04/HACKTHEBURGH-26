@@ -1,3 +1,10 @@
+// The only top-level sections (#71). The last two point at the existing screens until their descriptions arrive.
+export const SECTIONS = [
+  { id: "dashboard", label: "Power Dashboard" },
+  { id: "tomorrow", label: "Tomorrow's Predictions" },
+  { id: "copilot", label: "Optimised Model" },
+] as const;
+
 // Deep-dive screens, in story order. The dashboard (#dashboard, an empty hash, or anything unknown) is the default route.
 export const DEEP_DIVES = [
   { id: "waste", label: "The Waste" },

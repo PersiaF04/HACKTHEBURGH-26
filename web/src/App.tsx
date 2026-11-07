@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SectionNav } from "./dashboard/SectionNav";
 import { DEEP_DIVES, type DeepDiveId } from "./routes";
 import { Copilot } from "./screens/Copilot";
 import { Dashboard } from "./screens/Dashboard";
@@ -42,11 +43,7 @@ export function App() {
       <nav className="topbar" aria-label="Screens">
         <a className="brand" href="#dashboard">Turn Up Scotland</a>
         <a className="topbar-home" href="#dashboard"><span aria-hidden="true">‹ </span>Dashboard</a>
-        <div className="segmented">
-          {SCREENS.map((s, i) => (
-            <a key={s.id} href={`#${s.id}`} aria-current={i === index ? "page" : undefined} className={i === index ? "active" : ""}>{s.label}</a>
-          ))}
-        </div>
+        <div className="topbar-sections"><SectionNav current={SCREENS[index].id} /></div>
         {/* Phones: a pop-up button with previous/next instead of a 7-segment control. */}
         <div className="pager">
           <button type="button" className="pager-step" aria-label="Previous screen" disabled={index === 0} onClick={() => go(index - 1)}>‹</button>

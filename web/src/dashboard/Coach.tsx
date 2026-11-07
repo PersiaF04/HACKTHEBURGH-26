@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 const KEY = "tus.dashboard.coach.v1";
 export const COACH_STEPS = [
-  { target: "map", title: "Each dot is a wind farm", body: "Bigger dots are bigger farms. Orange with a ring means NESO is paying it to switch off at this moment." },
-  { target: "timeline", title: "Scrub through the day", body: "Drag the playhead, or focus it and use the arrow keys. Blue bands are hours when NESO asked flexible demand to turn up." },
-  { target: "copilot", title: "What a flexible load should do", body: "The Flex Copilot turns the forecast into a plan: when to be ready and what to bid. Each card opens a deep dive." },
+  { target: "map", title: "Each turbine is a wind farm", body: "Bigger turbines are bigger farms. Orange with a ring and a stopped rotor means NESO is paying it to switch off at this moment." },
+  { target: "timeline", title: "Scrub through the day", body: "Drag the playhead, or focus it and use the arrow keys. Blue bands are hours when NESO asked for extra demand." },
+  { target: "copilot", title: "What a flexible load should do", body: "The Copilot turns the forecast into a plan: when to be ready and what to bid. Try beating it with your own load on the right." },
 ] as const;
 export type CoachTarget = (typeof COACH_STEPS)[number]["target"];
 

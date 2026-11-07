@@ -1,20 +1,54 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { SCOTLAND_PATH } from "../assets/scotland";
-import { fmtEnergy, fmtGbp, fmtNum, type FarmPeriod, type ReplayPeriod } from "../data";
+import { fmtEnergy, fmtGbp, fmtNum, type FarmPeriod, type FarmState, type GridLine, type ReplayPeriod } from "../data";
 import { boundaryOf } from "../sandbox";
 import { project, STATE_LABEL, type PlacedFarm } from "../screens/WasteMap";
 
-// The coastline is projected into 520x640 (see WasteMap). The wider viewBox leaves room for the cables south and their label.
-const VB = { x: -60, y: -6, w: 660, h: 700 };
+// The map is tilted by a small perspective projection rather than CSS 3D, so turbines stay upright and clicks map exactly.
+// Input is the 520x640 space of WasteMap's project(); north recedes from the viewer.
+const CX = 260, CY = 320, DEPTH = 1100, SIN = Math.sin(Math.PI / 6), COS = Math.cos(Math.PI / 6);
+const tilt = (x: number, y: number) => {
+  const dy = y - CY, s = DEPTH / (DEPTH - dy * SIN);
+  return { x: CX + (x - CX) * s, y: CY + dy * COS * s, s };
+};
+const untilt = (X: number, Y: number) => {
+  const t = Y - CY, dy = (t * DEPTH) / (COS * DEPTH + t * SIN), s = DEPTH / (DEPTH - dy * SIN);
+  return { x: CX + (X - CX) / s, y: CY + dy };
+};
+const VB = { x: -70, y: 58, w: 680, h: 640 };
 
-// Scotland–England land border, west to east. The pipe follows it to show the cables south (the SCOTEX boundary).
-const BORDER: [number, number][] = [[54.97, -3.2], [55.05, -2.95], [55.13, -2.8], [55.25, -2.6], [55.36, -2.42], [55.42, -2.22], [55.55, -2.2], [55.65, -2.25], [55.79, -2.02]];
-const PIPE = BORDER.map(([lat, lon], i) => {
-  const { x, y } = project(lat, lon);
-  return `${i ? "L" : "M"}${x.toFixed(1)},${(y + 9).toFixed(1)}`;
+const COAST = SCOTLAND_PATH.replace(/([ML])\s*(-?[\d.]+)[ ,](-?[\d.]+)/g, (_, c: string, x: string, y: string) => {
+  const p = tilt(Number(x), Number(y));
+  return `${c}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+});
+const pathOf = (pts: [number, number][]) => pts.map(([lat, lon], i) => {
+  const b = project(lat, lon), p = tilt(b.x, b.y);
+  return `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
 }).join("");
 
-const radius = (mw: number | null) => 2.2 + Math.sqrt(mw ?? 30) / 2.4;
+// Scotland–England land border, west to east: the simple drawing of the cables south (the SCOTEX boundary).
+const PIPE = pathOf([[54.93, -3.2], [55.01, -2.95], [55.09, -2.8], [55.21, -2.6], [55.32, -2.42], [55.38, -2.22], [55.51, -2.2], [55.61, -2.25], [55.75, -2.02]]);
+
+const SPIN_MIN_MW = 100; // smaller rotors are too small to read, and animating all of them costs frames
+const noMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function Turbine({ state, size, spin }: { state: FarmState; size: number; spin: boolean }) {
+  const h = size * 1.5, blade = size * 0.8;
+  const blades = [0, 120, 240].map((a) => <line key={a} x1={0} y1={0} x2={0} y2={-blade} transform={`rotate(${a + 20})`} />);
+  return (
+    <>
+      <ellipse className="dm-shadow" cx={0} cy={0} rx={size * 0.45} ry={size * 0.16} />
+      {state === "instructed" && <ellipse className="dm-halo" cx={0} cy={0} rx={size * 0.95} ry={size * 0.42} />}
+      <line className="dm-mast" x1={0} y1={0} x2={0} y2={-h} />
+      <g className="dm-rotor" transform={`translate(0 ${-h})`}>
+        <g>
+          {blades}
+          {spin && <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite" />}
+        </g>
+      </g>
+    </>
+  );
+}
 
 function FarmDetail({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPeriod | undefined; pinned: boolean; onClose: () => void }) {
   const s = p?.state ?? "unknown";
@@ -27,7 +61,7 @@ function FarmDetail({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPer
         </div>
         {pinned && <button type="button" className="dm-card-close" onClick={onClose} aria-label="Unpin farm details">×</button>}
       </div>
-      <div className={`dm-card-state st-${s}`}><i className={`dm-key dm-key-${s}`} aria-hidden="true" />{STATE_LABEL[s]}</div>
+      <div className={`dm-card-state st-${s}`}><Glyph state={s} />{STATE_LABEL[s]}</div>
       <dl>
         <dt>Capacity</dt><dd>{farm.capacity_mw == null ? "—" : `${fmtNum(farm.capacity_mw)} MW`}</dd>
         <dt>Planned output</dt><dd>{p?.pn_mw == null ? "—" : `${fmtNum(p.pn_mw)} MW`}</dd>
@@ -40,9 +74,9 @@ function FarmDetail({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPer
 
 export interface MapPin { x: number; y: number }
 
-export function DashMap({ farms, period, label, placing = false, pin = null, pinOn = false, onPlace }: {
-  farms: PlacedFarm[]; period: ReplayPeriod; label: string;
-  placing?: boolean; pin?: MapPin | null; pinOn?: boolean; onPlace?: (p: MapPin) => void;
+export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, onMovePin }: {
+  farms: PlacedFarm[]; period: ReplayPeriod; label: string; showLines: boolean; lines: GridLine[];
+  pin: MapPin; pinOn: boolean; onMovePin: (p: MapPin) => void;
 }) {
   const boundary = boundaryOf(period);
   const ratio = boundary ? boundary.flow / boundary.limit : 0;
@@ -50,21 +84,27 @@ export function DashMap({ farms, period, label, placing = false, pin = null, pin
   const [hover, setHover] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
   const [cursor, setCursor] = useState(-1); // keyboard: index into `order`
+  const reduced = useMemo(noMotion, []);
 
-  // Largest curtailment first, so arrow keys visit the farms that matter most.
+  // Largest switch-off first, so arrow keys visit the farms that matter most.
   const order = useMemo(() => [...farms].sort((a, b) =>
     (period.farms[b.id]?.curtailed_mwh ?? 0) - (period.farms[a.id]?.curtailed_mwh ?? 0) || (b.capacity_mw ?? 0) - (a.capacity_mw ?? 0)), [farms, period]);
-  // Draw small farms on top of big ones so every dot stays reachable by pointer.
-  const drawn = useMemo(() => [...farms].sort((a, b) => (b.capacity_mw ?? 0) - (a.capacity_mw ?? 0)), [farms]);
+  // Painter's order: farther (northern) turbines first, so nearer ones stand in front.
+  const drawn = useMemo(() => farms.map((f) => {
+    const b = project(f.lat, f.lon), p = tilt(b.x, b.y);
+    return { f, x: p.x, y: p.y, size: (3 + Math.sqrt(f.capacity_mw ?? 30) / 2.1) * p.s };
+  }).sort((a, b) => a.y - b.y), [farms]);
+  const gridPaths = useMemo(() => lines.map((l) => ({ id: l.id, d: pathOf(l.path) })), [lines]);
   const keyId = cursor >= 0 ? order[cursor]?.id ?? null : null;
   const activeId = hover ?? keyId ?? pinned;
   const active = farms.find((f) => f.id === activeId);
+  const pinAt = tilt(pin.x, pin.y);
 
   useEffect(() => {
     if (!pinned) return;
-    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setPinned(null); };
-    addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
+    const onEsc = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setPinned(null); };
+    addEventListener("keydown", onEsc);
+    return () => removeEventListener("keydown", onEsc);
   }, [pinned]);
 
   const onKey = (e: KeyboardEvent) => {
@@ -76,17 +116,16 @@ export function DashMap({ farms, period, label, placing = false, pin = null, pin
 
   return (
     <div className="dm">
-      <svg className={`dm-svg${placing ? " is-placing" : ""}`} viewBox={`${VB.x} ${VB.y} ${VB.w} ${VB.h}`} preserveAspectRatio="xMidYMid meet"
+      <svg className="dm-svg" viewBox={`${VB.x} ${VB.y} ${VB.w} ${VB.h}`} preserveAspectRatio="xMidYMid meet"
         tabIndex={0} role="application" aria-roledescription="map"
         aria-label={`${label}. Use arrow keys to step through farms, largest switch-off first; Enter pins details; Escape clears.`}
         onKeyDown={onKey} onBlur={() => setCursor(-1)}
         onClick={(e) => {
-          if (placing && onPlace) {
-            const m = e.currentTarget.getScreenCTM();
-            if (m) { const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()); onPlace({ x: p.x, y: p.y }); }
-            return;
-          }
-          if (e.target === e.currentTarget) setPinned(null);
+          setPinned(null);
+          const m = e.currentTarget.getScreenCTM();
+          if (!m) return;
+          const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()), b = untilt(p.x, p.y);
+          onMovePin({ x: Math.max(0, Math.min(520, b.x)), y: Math.max(0, Math.min(640, b.y)) });
         }}>
         <defs>
           <radialGradient id="dm-glow">
@@ -94,77 +133,84 @@ export function DashMap({ farms, period, label, placing = false, pin = null, pin
             <stop offset="0.45" className="dm-glow-1" />
             <stop offset="1" className="dm-glow-2" />
           </radialGradient>
+          <radialGradient id="dm-pin-glow"><stop offset="0" className="dm-pin-g0" /><stop offset="1" className="dm-pin-g1" /></radialGradient>
         </defs>
-        <path className="dm-coast" d={SCOTLAND_PATH} aria-hidden="true" />
+        <path className="dm-coast-wall" d={COAST} transform="translate(0 7)" aria-hidden="true" />
+        <path className="dm-coast" d={COAST} aria-hidden="true" />
 
         <g className="dm-glows" aria-hidden="true">
-          {farms.map((f) => {
+          {drawn.map(({ f, x, y, size }) => {
             const p = period.farms[f.id];
             if (p?.state !== "instructed" || !p.curtailed_mwh) return null;
-            const { x, y } = project(f.lat, f.lon);
-            return <circle key={f.id} cx={x} cy={y} r={10 + Math.sqrt(p.curtailed_mwh) * 4.2} fill="url(#dm-glow)" />;
+            return <circle key={f.id} cx={x} cy={y} r={size + 8 + Math.sqrt(p.curtailed_mwh) * 3.4} fill="url(#dm-glow)" />;
           })}
         </g>
 
-        <g className={`dm-cables${over ? " is-over" : ""}`} aria-hidden="true">
-          {over && <path className="dm-pipe-spill" d={PIPE} style={{ strokeWidth: 14 + Math.min(4, ratio - 1) * 9 }} />}
-          <path className="dm-pipe-case" d={PIPE} />
-          <path className="dm-pipe-core" d={PIPE} />
-          {boundary && <path className="dm-pipe-fill" d={PIPE} pathLength={100} strokeDasharray={`${Math.min(1, ratio) * 100} 100`} />}
-          {(!boundary || over) && <path className="dm-pipe-flow" d={PIPE} />}
-          <text className="dm-pipe-label" x={300} y={636}>
-            Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit` : `  ${Math.round(ratio * 100)}% full`}</tspan>}
-          </text>
-          <text className="dm-pipe-sub" x={300} y={653}>
-            {boundary ? `SCOTEX: wants ${fmtNum(boundary.flow)} MW, limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
-          </text>
-          {boundary && <text className="dm-pipe-sub" x={300} y={668}>Day-ahead forecast flow vs limit (NESO), not outturn</text>}
-        </g>
+        {showLines && (
+          <g className={`dm-cables${over ? " is-over" : ""}`} aria-hidden="true">
+            {gridPaths.map((l) => <path key={l.id} className="dm-line" d={l.d} />)}
+            {!reduced && gridPaths.map((l) => (
+              <path key={l.id} className="dm-line-flow" d={l.d} style={{ animationDuration: `${Math.max(0.5, 2.4 - Math.min(ratio, 4) * 0.45)}s` }} />
+            ))}
+            {over && <path className="dm-pipe-spill" d={PIPE} style={{ strokeWidth: 14 + Math.min(4, ratio - 1) * 9 }} />}
+            <path className="dm-pipe-case" d={PIPE} />
+            <path className="dm-pipe-core" d={PIPE} />
+            {boundary && <path className="dm-pipe-fill" d={PIPE} pathLength={100} strokeDasharray={`${Math.min(1, ratio) * 100} 100`} />}
+            {!reduced && (!boundary || over) && <path className="dm-pipe-flow" d={PIPE} />}
+            <text className="dm-pipe-label" x={345} y={640}>
+              Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit` : `  ${Math.round(ratio * 100)}% full`}</tspan>}
+            </text>
+            <text className="dm-pipe-sub" x={345} y={656}>
+              {boundary ? `SCOTEX: ${fmtNum(boundary.flow)} MW wants to flow, limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
+            </text>
+            {boundary && <text className="dm-pipe-sub" x={345} y={670}>Day-ahead forecast flow vs limit (NESO), not outturn</text>}
+          </g>
+        )}
 
         <g className="dm-farms">
-          {drawn.map((f) => {
+          {drawn.map(({ f, x, y, size }) => {
             const s = period.farms[f.id]?.state ?? "unknown";
-            const { x, y } = project(f.lat, f.lon);
-            const r = radius(f.capacity_mw);
-            const on = f.id === activeId;
             return (
-              <g key={f.id} className={`dm-farm dm-${s}${on ? " is-active" : ""}${f.id === pinned ? " is-pinned" : ""}`}
+              <g key={f.id} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}
+                className={`dm-farm dm-${s}${f.id === activeId ? " is-active" : ""}${f.id === pinned ? " is-pinned" : ""}`}
                 onMouseEnter={() => setHover(f.id)} onMouseLeave={() => setHover(null)}
-                onClick={() => { if (!placing) setPinned((p) => (p === f.id ? null : f.id)); }}>
-                <circle className="dm-hit" cx={x} cy={y} r={r + 3} />
-                {s === "instructed" && <circle className="dm-halo" cx={x} cy={y} r={r + 3.2} />}
-                <circle className="dm-body" cx={x} cy={y} r={r} />
+                onClick={(e) => { e.stopPropagation(); setPinned((p) => (p === f.id ? null : f.id)); }}>
+                <circle className="dm-hit" cx={0} cy={-size * 0.8} r={size + 2} />
+                <Turbine state={s} size={size} spin={!reduced && s === "generating" && (f.capacity_mw ?? 0) >= SPIN_MIN_MW} />
               </g>
             );
           })}
         </g>
 
-        {pin && (
-          <g className={`dm-pin${pinOn ? " is-on" : ""}`} transform={`translate(${pin.x.toFixed(1)} ${pin.y.toFixed(1)})`} aria-hidden="true">
-            {pinOn && <circle className="dm-pin-glow" r={30} fill="url(#dm-pin-glow)" />}
-            <defs>
-              <radialGradient id="dm-pin-glow"><stop offset="0" className="dm-pin-g0" /><stop offset="1" className="dm-pin-g1" /></radialGradient>
-            </defs>
-            <rect className="dm-pin-body" x={-9} y={-9} width={18} height={18} rx={4} transform="rotate(45)" />
-            <circle className="dm-pin-core" r={3.5} />
-            <text className="dm-pin-label" x={15} y={-4}>Your load</text>
-            <text className="dm-pin-sub" x={15} y={10}>illustrative location</text>
-          </g>
-        )}
+        <g className={`dm-pin${pinOn ? " is-on" : ""}`} transform={`translate(${pinAt.x.toFixed(1)} ${pinAt.y.toFixed(1)})`} aria-hidden="true">
+          {pinOn && <circle className="dm-pin-glow" r={30} fill="url(#dm-pin-glow)" />}
+          <rect className="dm-pin-body" x={-8} y={-8} width={16} height={16} rx={4} transform="rotate(45)" />
+          <circle className="dm-pin-core" r={3.5} />
+          <text className="dm-pin-label" x={15} y={-3}>Your load</text>
+          <text className="dm-pin-sub" x={15} y={10}>illustrative location</text>
+        </g>
       </svg>
       {active && <FarmDetail farm={active} p={period.farms[active.id]} pinned={active.id === pinned} onClose={() => setPinned(null)} />}
     </div>
   );
 }
 
+// The same turbine as on the map, so the key teaches the shape as well as the colour.
+function Glyph({ state }: { state: FarmState }) {
+  return (
+    <svg className={`dm-glyph dm-${state}`} viewBox="-11 -21 22 24" aria-hidden="true">
+      <Turbine state={state} size={9} spin={false} />
+    </svg>
+  );
+}
+
 export function MapLegend({ unplaced }: { unplaced: number }) {
   return (
     <ul className="dm-legend" aria-label="Map key">
-      <li><i className="dm-key dm-key-generating" aria-hidden="true" />Generating</li>
-      <li><i className="dm-key dm-key-instructed" aria-hidden="true" />Paid to switch off</li>
-      <li><i className="dm-key dm-key-unavailable" aria-hidden="true" />Outage</li>
-      <li><i className="dm-key dm-key-size" aria-hidden="true" />Size = capacity</li>
-      {unplaced > 0 && <li className="dm-legend-note">{unplaced} farms not yet located</li>}
+      <li><Glyph state="generating" />Generating</li>
+      <li><Glyph state="instructed" />Paid to switch off</li>
+      <li><Glyph state="unavailable" />Outage</li>
+      <li className="dm-legend-note">Each turbine is a wind farm; bigger means more capacity.{unplaced > 0 && ` ${unplaced} not yet located.`}</li>
     </ul>
   );
 }
