@@ -10,6 +10,11 @@ Three steps, all testable offline because every network call goes through an inj
 * ``build``    rebuilds abstracts, drops short ones, dates and de-duplicates the papers and
                writes ``corpus.jsonl`` plus ``manifest.json`` (query, filters, hashes).
 
+Sampling mode (issue #152): ``plan``/``download`` with ``--sample-fraction F --seed S`` draw a
+seeded uniform sample with the OpenAlex ``sample`` and ``seed`` parameters and ordinary ``page=``
+paging (works without a key; a key is still read from the environment if set). The fraction is
+the same for every window and year; per-year overrides are refused.
+
 Key safety: the API key is read only from ``OPENALEX_API_KEY`` and added to a request inside
 the real fetcher. URLs handed to ``fetch``, logged, archived or put in the manifest never
 contain it, and error text is scrubbed before it can surface.
@@ -18,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import decimal
 import hashlib
 import json
 import logging
@@ -196,6 +202,172 @@ def format_plan(plan: dict) -> str:
     return "\n".join(lines)
 
 
+# --------------------------------------------------------------------------- sampling
+
+SAMPLE_RULE = (
+    "uniform random sample drawn per query with OpenAlex sample=N&seed=S and page= paging; N = "
+    "round-half-up(F * works in the window); one fraction F for every window and year, never a "
+    "per-year value; windows whose sample would exceed %d are split on month boundaries (then "
+    "days), each with the same F, so a year's size is the sum of its windows' sizes" % BASIC_LIMIT
+)
+
+
+def parse_fraction(value) -> float:
+    """A single global fraction in (0, 1]. Anything that looks like a per-year value is refused."""
+    if isinstance(value, (dict, list, tuple, set)):
+        raise ValueError("per-year sampling fractions are refused: use one fraction for every year")
+    if isinstance(value, str):
+        if any(c in value for c in "=,:;"):
+            raise ValueError("per-year sampling fractions are refused: use one fraction for every year")
+        value = float(value)
+    f = float(value)
+    if not 0 < f <= 1:
+        raise ValueError(f"sample fraction must be in (0, 1], got {f}")
+    return f
+
+
+def sample_size(fraction: float, count: int) -> int:
+    """``round(F * count)``, halves rounded up (deterministic, not banker's rounding)."""
+    exact = decimal.Decimal(repr(fraction)) * count
+    return int(exact.quantize(decimal.Decimal(1), rounding=decimal.ROUND_HALF_UP))
+
+
+def split_window_months(window: tuple[str, str]) -> list[tuple[str, str]]:
+    """Halve a window at a month boundary; inside a single month fall back to ``split_window``."""
+    a, b = _parse(window[0]), _parse(window[1])
+    firsts = []
+    d = (a.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
+    while d <= b:
+        firsts.append(d)
+        d = (d + dt.timedelta(days=32)).replace(day=1)
+    if not firsts:
+        return split_window(window)
+    cut = firsts[(len(firsts) - 1) // 2]  # first day of the right half
+    return [(a.isoformat(), (cut - dt.timedelta(days=1)).isoformat()), (cut.isoformat(), b.isoformat())]
+
+
+def sample_page_url(
+    window: tuple[str, str], size: int, seed: int, page: int, mailto: str = DEFAULT_MAILTO
+) -> str:
+    """Sampled list request: ``sample``/``seed`` with ordinary ``page`` paging, never a cursor."""
+    return build_url(
+        {
+            "filter": base_filter(*window),
+            "sample": str(size),
+            "seed": str(seed),
+            "per_page": str(PER_PAGE),
+            "select": SELECT,
+            "page": str(page),
+        },
+        mailto,
+    )
+
+
+def plan_sample(
+    fetch: Fetch,
+    today: dt.date,
+    fraction,
+    seed: int,
+    mailto: str = DEFAULT_MAILTO,
+    limit: int = BASIC_LIMIT,
+    max_count_requests: int = 30,
+    first_year: int = FIRST_YEAR,
+) -> dict:
+    """Plan a uniform sample: one window per year, split only while its sample exceeds ``limit``."""
+    fraction = parse_fraction(fraction)
+    calls = 0
+    start, end = f"{first_year}-01-01", min(dt.date(today.year, 12, 31), today).isoformat()
+    groups = fetch(group_by_year_url(start, end, mailto))
+    calls += 1
+    by_year = {int(g["key"]): int(g["count"]) for g in groups.get("group_by", [])}
+    total_all = int(groups.get("meta", {}).get("count", sum(by_year.values())))
+
+    queue = [(w, by_year[int(w[0][:4])]) for w in year_windows(today, first_year) if by_year.get(int(w[0][:4]))]
+    done: list[tuple[tuple[str, str], int]] = []
+    while queue:
+        w, count = queue.pop(0)
+        if (
+            sample_size(fraction, count) <= limit
+            or split_window_months(w) == [w]
+            or calls + 1 > max_count_requests
+        ):
+            done.append((w, count))
+            continue
+        left, right = split_window_months(w)
+        c_left = int(fetch(count_url(left, mailto))["meta"]["count"])  # right half = parent - left
+        calls += 1
+        for half, c in ((left, c_left), (right, count - c_left)):
+            if c:
+                queue.append((half, c))
+    done.sort(key=lambda item: item[0][0])
+    windows = [
+        {
+            "start": w[0],
+            "end": w[1],
+            "year": int(w[0][:4]),
+            "count": c,
+            "sample_size": sample_size(fraction, c),
+            "over_cap": sample_size(fraction, c) > limit,
+        }
+        for w, c in done
+    ]
+    return {
+        "filter_template": base_filter("<start>", "<end>"),
+        "sampling": {"fraction": fraction, "seed": int(seed), "rule": SAMPLE_RULE},
+        "count_requests": calls,
+        "windows": windows,
+        "total_works": sum(w["count"] for w in windows),
+        "total_works_meta": total_all,
+        "total_sample": sum(w["sample_size"] for w in windows),
+        "list_calls": sum(-(-w["sample_size"] // PER_PAGE) for w in windows),
+        "per_page": PER_PAGE,
+    }
+
+
+def check_sample_plan(plan: dict, fraction, seed: int) -> None:
+    """Refuse a plan whose fraction/seed differ from the request or whose window sizes are not
+    ``round(F * count)`` for the one global F (a hand-edited per-year override)."""
+    fraction = parse_fraction(fraction)
+    s = plan.get("sampling")
+    if not s:
+        raise ValueError("plan.json is not a sampling plan: run `plan --sample-fraction F --seed S`")
+    if s["fraction"] != fraction or s["seed"] != int(seed):
+        raise ValueError("plan.json was made with a different fraction or seed")
+    for w in plan["windows"]:
+        if w["sample_size"] != sample_size(fraction, w["count"]):
+            raise ValueError(
+                f"window {w['start']}..{w['end']} does not use the global fraction "
+                "(per-year overrides are refused)"
+            )
+        if w["sample_size"] > BASIC_LIMIT:
+            raise ValueError(f"window {w['start']}..{w['end']} samples more than {BASIC_LIMIT}; re-plan")
+
+
+def format_sample_plan(plan: dict) -> str:
+    s = plan["sampling"]
+    lines = [
+        f"filter: {plan['filter_template']}",
+        f"sampling: fraction {s['fraction']} (same for every year), seed {s['seed']}",
+        f"rule: {s['rule']}",
+        "year      works  sample_size  queries  list_calls",
+    ]
+    for y in sorted({w["year"] for w in plan["windows"]}):
+        ws = [w for w in plan["windows"] if w["year"] == y]
+        lines.append(
+            f"{y}  {sum(w['count'] for w in ws):>9,}  {sum(w['sample_size'] for w in ws):>11,}  "
+            f"{len(ws):>7}  {sum(-(-w['sample_size'] // PER_PAGE) for w in ws):>10,}"
+        )
+    lines.append("queries (window, works, sample size):")
+    for w in plan["windows"]:
+        flag = "  OVER 10,000 CAP" if w["over_cap"] else ""
+        lines.append(f"  {w['start']}..{w['end']}  {w['count']:>9,}  {w['sample_size']:>7,}{flag}")
+    lines.append(f"total works: {plan['total_works']:,} (group_by total {plan['total_works_meta']:,})")
+    lines.append(f"total sample: {plan['total_sample']:,} in {len(plan['windows'])} queries")
+    lines.append(f"total list calls at {plan['per_page']} per page: {plan['list_calls']:,}")
+    lines.append(f"count requests used: {plan['count_requests']}")
+    return "\n".join(lines)
+
+
 # --------------------------------------------------------------------------- real fetcher
 
 
@@ -295,6 +467,71 @@ def download(
         }
         (wdir / "done.json").write_text(json.dumps(done, indent=1), encoding="utf-8")
         log.info("window %s done: %d results, %d pages", _win_name(window), results, n)
+    return {"calls": calls}
+
+
+def download_sampled(
+    fetch: Fetch,
+    plan: dict,
+    out_dir: Path,
+    max_calls: int,
+    mailto: str = DEFAULT_MAILTO,
+    now: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.timezone.utc),
+) -> dict:
+    """Page every unfinished sampled window with ``sample``/``seed``/``page`` (never a cursor).
+
+    Same resume and budget rules as ``download``. A finished window made with a different
+    fraction, seed or size is refused, so two samples never mix in one directory.
+    """
+    sampling = plan["sampling"]
+    check_sample_plan(plan, sampling["fraction"], sampling["seed"])
+    raw = Path(out_dir) / "raw"
+    calls = 0
+    for w in plan["windows"]:
+        window = (w["start"], w["end"])
+        want = {"fraction": sampling["fraction"], "seed": sampling["seed"], "requested": w["sample_size"]}
+        wdir = raw / _win_name(window)
+        if (wdir / "done.json").exists():
+            have = json.loads((wdir / "done.json").read_text(encoding="utf-8")).get("sample")
+            if have != want:
+                raise ValueError(f"window {_win_name(window)} was downloaded with different sampling")
+            continue
+        if wdir.exists():
+            for f in wdir.glob("*"):
+                f.unlink()
+        wdir.mkdir(parents=True, exist_ok=True)
+        pages, results, body = [], 0, {}
+        for n in range(1, -(-w["sample_size"] // PER_PAGE) + 1):
+            if calls >= max_calls:
+                raise BudgetExceeded(f"call budget of {max_calls} reached in window {_win_name(window)}")
+            url = sample_page_url(window, w["sample_size"], sampling["seed"], n, mailto)
+            body = fetch(url)
+            calls += 1
+            data = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            (wdir / f"page_{n:05d}.json").write_bytes(data)
+            got = len(body.get("results", []))
+            results += got
+            pages.append(
+                {
+                    "file": f"page_{n:05d}.json",
+                    "url": strip_key(url),
+                    "retrieved_at": now().isoformat(),
+                    "result_count": got,
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                }
+            )
+            if not got:
+                break
+        done = {
+            "window": list(window),
+            "meta_count": int(body.get("meta", {}).get("count", results)),
+            "results": results,
+            "returned": results,
+            "sample": want,
+            "pages": pages,
+        }
+        (wdir / "done.json").write_text(json.dumps(done, indent=1), encoding="utf-8")
+        log.info("sample window %s done: requested %d, returned %d", _win_name(window), w["sample_size"], results)
     return {"calls": calls}
 
 
@@ -400,9 +637,15 @@ def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None) -> dic
             f.write(json.dumps(r, sort_keys=True) + "\n")
     inputs = {}
     windows = []
+    samples: list[dict] = []
     for done in sorted((out_dir / "raw").glob("*/done.json")):
         d = json.loads(done.read_text(encoding="utf-8"))
-        windows.append({"window": d["window"], "meta_count": d["meta_count"], "results": d["results"]})
+        entry = {"window": d["window"], "meta_count": d["meta_count"], "results": d["results"]}
+        if "sample" in d:
+            entry["requested"] = d["sample"]["requested"]
+            entry["returned"] = d["returned"]
+            samples.append(d["sample"])
+        windows.append(entry)
         for p in d["pages"]:
             inputs[f"{done.parent.name}/{p['file']}"] = {
                 "url": strip_key(p["url"]),
@@ -435,6 +678,18 @@ def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None) -> dic
         "corpus_sha256": hashlib.sha256((out_dir / "corpus.jsonl").read_bytes()).hexdigest(),
         "input_pages": inputs,
     }
+    if samples:
+        if len(samples) != len(windows):
+            raise ValueError("sampled and unsampled windows are mixed in one directory")
+        if len({(x["fraction"], x["seed"]) for x in samples}) != 1:
+            raise ValueError("windows were sampled with different fractions or seeds")
+        manifest["sampling"] = {
+            "fraction": samples[0]["fraction"],
+            "seed": samples[0]["seed"],
+            "rule": SAMPLE_RULE,
+            "requested_total": sum(x["requested"] for x in samples),
+            "returned_total": sum(w["returned"] for w in windows),
+        }
     if plan is not None:
         manifest["plan"] = plan
     text = json.dumps(manifest, indent=1)
@@ -454,19 +709,34 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_ARTIFACTS)
     ap.add_argument("--mailto", default=DEFAULT_MAILTO)
     ap.add_argument("--max-calls", type=int, default=10_000, help="download call budget")
+    ap.add_argument("--sample-fraction", help="one fraction for every year, e.g. 0.1 (seeded uniform sample)")
+    ap.add_argument("--seed", type=int, help="sampling seed (required with --sample-fraction)")
     args = ap.parse_args(argv)
+    fraction = None
+    if args.command != "build" and (args.sample_fraction is not None or args.seed is not None):
+        try:
+            if args.sample_fraction is None or args.seed is None:
+                raise ValueError("--sample-fraction and --seed must be given together")
+            fraction = parse_fraction(args.sample_fraction)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     today = dt.datetime.now(dt.timezone.utc).date()
 
     if args.command == "plan":
-        plan = plan_windows(make_fetcher(None), today, args.mailto)
-        print(format_plan(plan))
+        if fraction is not None:
+            plan = plan_sample(make_fetcher(None), today, fraction, args.seed, args.mailto)
+            print(format_sample_plan(plan))
+        else:
+            plan = plan_windows(make_fetcher(None), today, args.mailto)
+            print(format_plan(plan))
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
         return 0
     if args.command == "download":
         key = os.environ.get(KEY_ENV)
-        if not key:
+        if not key and fraction is None:
             print(f"{KEY_ENV} is not set; cursor paging needs a free OpenAlex key.", file=sys.stderr)
             return 2
         plan_file = args.out / "plan.json"
@@ -474,6 +744,21 @@ def main(argv: list[str] | None = None) -> int:
             print("run `plan` first", file=sys.stderr)
             return 2
         plan = json.loads(plan_file.read_text(encoding="utf-8"))
+        if fraction is None and plan.get("sampling"):
+            print("plan.json is a sampling plan: pass --sample-fraction and --seed", file=sys.stderr)
+            return 2
+        if fraction is not None:
+            try:
+                check_sample_plan(plan, fraction, args.seed)
+                res = download_sampled(make_fetcher(key), plan, args.out, args.max_calls, args.mailto)
+            except ValueError as exc:
+                print(str(exc), file=sys.stderr)
+                return 2
+            except BudgetExceeded as exc:
+                print(f"stopped: {exc}. Re-run to resume.", file=sys.stderr)
+                return 3
+            print(f"sampled download complete: {res['calls']} calls")
+            return 0
         windows = [(w["start"], w["end"]) for w in plan["windows"]]
         try:
             res = download(make_fetcher(key), windows, args.out, args.max_calls, args.mailto)

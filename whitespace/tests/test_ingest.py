@@ -256,3 +256,164 @@ def test_build_corpus_end_to_end(tmp_path):
     first = next(iter(m["input_pages"].values()))
     assert len(first["sha256"]) == 64 and first["url"].startswith("https://api.openalex.org")
     assert len((tmp_path / "corpus.jsonl").read_text().splitlines()) == 1
+
+
+# ----------------------------------------------------------------- sampling (issue #152)
+
+
+def sample_fetch(per_day, log=None):
+    """Fake API with per_day works per day. Sampled list requests return a seed-determined sample."""
+    import random
+
+    count_fetch, _ = make_counter(per_day)
+
+    def fetch(url):
+        if log is not None:
+            log.append(url)
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        if "sample" not in q:
+            return count_fetch(url)
+        flt = dict(p.split(":", 1) for p in q["filter"][0].split(","))
+        a = dt.date.fromisoformat(flt["from_publication_date"])
+        b = dt.date.fromisoformat(flt["to_publication_date"])
+        total = ((b - a).days + 1) * per_day
+        n, seed, page = int(q["sample"][0]), int(q["seed"][0]), int(q["page"][0])
+        picked = random.Random(f"{seed}:{a}:{b}").sample(range(total), n)
+        ids = picked[(page - 1) * 100 : page * 100]
+        return {"meta": {"count": n}, "results": [work(f"{a}-{i}") for i in ids]}
+
+    return fetch
+
+
+def test_fraction_arithmetic_and_rounding():
+    assert ingest.sample_size(0.1, 1000) == 100
+    assert ingest.sample_size(0.1, 105) == 11  # 10.5 rounds half up, not to even
+    assert ingest.sample_size(0.1, 104) == 10
+    assert ingest.sample_size(0.5, 3) == 2
+    assert ingest.sample_size(1.0, 7) == 7
+    assert ingest.sample_size(0.1, 0) == 0
+    for bad in (0, -0.1, 1.5):
+        with pytest.raises(ValueError):
+            ingest.parse_fraction(bad)
+
+
+def test_window_splitting_at_the_10000_cap():
+    # 40 works/day: ~14,600 a year; at F=0.5 a year samples ~7,300 (fits), at F=0.9 ~13,100 (split)
+    plan = ingest.plan_sample(sample_fetch(40), TODAY, 0.5, 1, first_year=2020)
+    y2020 = [w for w in plan["windows"] if w["year"] == 2020]
+    assert len(y2020) == 1 and y2020[0]["sample_size"] == ingest.sample_size(0.5, y2020[0]["count"])
+
+    plan = ingest.plan_sample(sample_fetch(40), TODAY, 0.9, 1, first_year=2020)
+    y2020 = [w for w in plan["windows"] if w["year"] == 2020]
+    assert len(y2020) == 2
+    assert y2020[0]["end"] == "2020-06-30" and y2020[1]["start"] == "2020-07-01"  # month boundary
+    assert sum(w["count"] for w in y2020) == 366 * 40
+    for w in plan["windows"]:
+        assert w["sample_size"] <= ingest.BASIC_LIMIT and not w["over_cap"]
+        assert w["sample_size"] == ingest.sample_size(0.9, w["count"])  # same fraction everywhere
+    assert plan["total_sample"] == sum(w["sample_size"] for w in plan["windows"])
+    assert plan["list_calls"] == sum(-(-w["sample_size"] // 100) for w in plan["windows"])
+    out = ingest.format_sample_plan(plan)
+    assert "fraction 0.9" in out and "total list calls" in out
+
+
+def test_split_window_months_boundaries():
+    assert ingest.split_window_months(("2020-01-01", "2020-12-31")) == [
+        ("2020-01-01", "2020-06-30"),
+        ("2020-07-01", "2020-12-31"),
+    ]
+    assert ingest.split_window_months(("2020-01-01", "2020-02-29")) == [
+        ("2020-01-01", "2020-01-31"),
+        ("2020-02-01", "2020-02-29"),
+    ]
+    left, right = ingest.split_window_months(("2020-03-01", "2020-03-31"))  # inside a month: by days
+    assert left[0] == "2020-03-01" and right[1] == "2020-03-31"
+
+
+def test_planned_query_set_reproducible_for_fixed_seed():
+    p1 = ingest.plan_sample(sample_fetch(40), TODAY, 0.9, 20261107, first_year=2020)
+    p2 = ingest.plan_sample(sample_fetch(40), TODAY, 0.9, 20261107, first_year=2020)
+    assert p1 == p2
+
+    def urls(p, seed):
+        return [ingest.sample_page_url((w["start"], w["end"]), w["sample_size"], seed, 1) for w in p["windows"]]
+
+    assert urls(p1, 20261107) == urls(p2, 20261107)
+    p3 = ingest.plan_sample(sample_fetch(40), TODAY, 0.9, 7, first_year=2020)
+    assert p3["sampling"]["seed"] == 7 and urls(p3, 7) != urls(p1, 20261107)
+
+
+def test_per_year_override_refused(tmp_path):
+    for bad in ({2020: 0.1, 2021: 0.2}, "2020=0.1", "0.1,0.2", [0.1, 0.2]):
+        with pytest.raises(ValueError, match="per-year"):
+            ingest.parse_fraction(bad)
+        with pytest.raises(ValueError, match="per-year"):
+            ingest.plan_sample(sample_fetch(1), TODAY, bad, 1, first_year=2020)
+    assert ingest.main(["plan", "--sample-fraction", "2020=0.1", "--seed", "1", "--out", str(tmp_path)]) == 2
+    assert ingest.main(["plan", "--sample-fraction", "0.1", "--out", str(tmp_path)]) == 2  # seed required
+
+    plan = ingest.plan_sample(sample_fetch(1), TODAY, 0.1, 1, first_year=2025)
+    other = ingest.plan_sample(sample_fetch(1), TODAY, 0.1, 1, first_year=2025)
+    with pytest.raises(ValueError, match="different fraction"):
+        ingest.check_sample_plan(other, 0.2, 1)
+    plan["windows"][0]["sample_size"] += 5  # hand-edited per-window override
+    with pytest.raises(ValueError, match="global fraction"):
+        ingest.download_sampled(sample_fetch(1), plan, tmp_path, max_calls=10)
+
+
+def small_plan(seed=5, fraction=0.5):
+    return ingest.plan_sample(sample_fetch(1), TODAY, fraction, seed, first_year=2024)
+
+
+def test_sampled_download_never_cursors_and_is_reproducible(tmp_path):
+    plan = small_plan()
+    log = []
+    ingest.download_sampled(sample_fetch(1, log), plan, tmp_path / "a", max_calls=50)
+    page_urls = [u for u in log if "sample=" in u]
+    assert page_urls and all("cursor" not in u and "page=" in u and "seed=5" in u for u in page_urls)
+    assert not any("api_key" in u for u in log)
+    ingest.download_sampled(sample_fetch(1), plan, tmp_path / "b", max_calls=50)
+
+    def ids(d):
+        return sorted(w["id"] for w in ingest.iter_raw_works(d))
+
+    assert ids(tmp_path / "a") == ids(tmp_path / "b") and len(ids(tmp_path / "a")) > 0
+    ingest.download_sampled(sample_fetch(1), small_plan(seed=6), tmp_path / "c", max_calls=50)
+    assert ids(tmp_path / "c") != ids(tmp_path / "a")
+
+
+def test_sampled_manifest_fields(tmp_path):
+    plan = small_plan(seed=5, fraction=0.5)
+    ingest.download_sampled(sample_fetch(1), plan, tmp_path, max_calls=50)
+    m = ingest.build_corpus(tmp_path, "2026-11-07", plan)
+    s = m["sampling"]
+    assert s["fraction"] == 0.5 and s["seed"] == 5 and "uniform" in s["rule"]
+    assert s["requested_total"] == plan["total_sample"] == s["returned_total"]
+    assert all(w["requested"] == w["returned"] for w in m["windows"])
+    assert [w["requested"] for w in m["windows"]] == [w["sample_size"] for w in plan["windows"]]
+
+
+def test_sampled_download_resumes_and_refuses_mixed_samples(tmp_path):
+    plan = ingest.plan_sample(sample_fetch(1), TODAY, 0.5, 5, first_year=2023)  # a window per year
+    n_windows = len(plan["windows"])
+    assert n_windows >= 2
+    log = []
+    with pytest.raises(ingest.BudgetExceeded):
+        ingest.download_sampled(sample_fetch(1, log), plan, tmp_path, max_calls=3)
+    done = list((tmp_path / "raw").glob("*/done.json"))
+    assert 0 < len(done) < n_windows
+    log.clear()
+    res = ingest.download_sampled(sample_fetch(1, log), plan, tmp_path, max_calls=50)
+    finished_first = plan["windows"][: len(done)]
+    assert not any(f"from_publication_date:{w['start']}," in u for w in finished_first for u in log)
+    assert res["calls"] > 0 and len(list((tmp_path / "raw").glob("*/done.json"))) == n_windows
+    other = ingest.plan_sample(sample_fetch(1), TODAY, 0.5, 9, first_year=2023)
+    with pytest.raises(ValueError, match="different sampling"):
+        ingest.download_sampled(sample_fetch(1), other, tmp_path, max_calls=50)
+
+
+def test_sampled_urls_carry_no_key(monkeypatch):
+    monkeypatch.setenv(ingest.KEY_ENV, KEY)
+    url = ingest.sample_page_url(W1, 300, 20261107, 2)
+    assert "sample=300" in url and "seed=20261107" in url and "page=2" in url
+    assert KEY not in url and "api_key" not in url and "cursor" not in url
