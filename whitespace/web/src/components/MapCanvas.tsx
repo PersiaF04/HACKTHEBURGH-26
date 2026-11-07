@@ -32,14 +32,11 @@ function nodeRadius(paperCount: number): number {
   return Math.max(2.5, Math.min(12, Math.sqrt(Math.max(0, paperCount)) * 0.45));
 }
 
-function growthColor(growth: number): string {
+function growthColor(growth: number | null): string {
+  if (growth === null) return "#718096";
   if (growth > 0) return "#2864b4";
   if (growth < 0) return "#b6533b";
   return "#718096";
-}
-
-function percent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
 }
 
 export function MapCanvas({
@@ -205,7 +202,7 @@ export function MapCanvas({
                 data-node-index={index}
                 role="button"
                 tabIndex={activeIndex === index ? 0 : -1}
-                aria-label={`${concept.label}; ${concept.paper_count} papers; growth ${concept.growth}`}
+                aria-label={`${concept.label}; ${concept.paper_count ?? "paper count unavailable"} papers; ${concept.growth === null ? "growth unavailable" : `growth ${concept.growth}`}`}
                 aria-pressed={selectedConceptId === concept.id}
                 onFocus={() => setActiveIndex(index)}
                 onClick={() => onSelectConcept(concept.id)}
@@ -214,11 +211,11 @@ export function MapCanvas({
                 <circle
                   cx={concept.mapX}
                   cy={concept.mapY}
-                  r={nodeRadius(concept.paper_count)}
+                  r={nodeRadius(concept.paper_count ?? 0)}
                   fill={growthColor(concept.growth)}
                   className={selectedConceptId === concept.id ? "whitespace-map__node whitespace-map__node--selected" : "whitespace-map__node"}
                 />
-                <circle cx={concept.mapX} cy={concept.mapY} r={Math.max(12, nodeRadius(concept.paper_count) + 5)} className="whitespace-map__hit-area" />
+                <circle cx={concept.mapX} cy={concept.mapY} r={Math.max(12, nodeRadius(concept.paper_count ?? 0) + 5)} className="whitespace-map__hit-area" />
               </g>
             ))}
           </g>
@@ -227,7 +224,7 @@ export function MapCanvas({
 
       <div className="whitespace-map__legend" role="group" aria-label="Map legend">
         <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--up" /> Growing</span>
-        <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--flat" /> No change</span>
+        <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--flat" /> No change or unavailable</span>
         <span><i className="whitespace-map__legend-dot whitespace-map__legend-dot--down" /> Declining</span>
         <span>Circle size = paper count</span>
       </div>
