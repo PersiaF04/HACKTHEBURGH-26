@@ -38,3 +38,11 @@ def test_unknown_dates_return_errors_not_numbers():
     assert G.curtailment_for_day("1999-01-01")["error"] == "no_data"
     assert G.scotex_gap("1999-01-01")["error"] == "no_replay_for_date"
     assert G.copilot_call("1999-01-01")["error"] == "no_copilot_for_date"
+
+
+def test_replay_lookup_accepts_only_a_strict_date_inside_data_public():
+    assert G._replay("../../../contracts/fixtures/replay/2026-10-14") is None
+    assert G._replay("2026-10-14/../../farms") is None
+    assert G._replay("not-a-date") is None
+    assert G._replay(None) is None
+    assert G._replay("2026-10-14") is not None

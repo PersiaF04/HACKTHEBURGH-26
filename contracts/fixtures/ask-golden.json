@@ -351,7 +351,7 @@
   {
    "id": "Q10",
    "kind": "answer",
-   "question": "How many half-hours was the SCOTEX flow above its limit on 14 October?",
+   "question": "How many half-hours was NESO's day-ahead SCOTEX flow forecast above its limit on 14 October?",
    "tool_calls": [
     {
      "tool": "scotex_gap",
@@ -401,7 +401,7 @@
   {
    "id": "Q12",
    "kind": "answer",
-   "question": "Was the boundary constrained on 13 October?",
+   "question": "On 13 October, did NESO's day-ahead forecast flow ever exceed the SCOTEX limit?",
    "tool_calls": [
     {
      "tool": "scotex_gap",

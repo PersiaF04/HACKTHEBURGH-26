@@ -62,7 +62,7 @@
   },
   {
    "name": "scotex_gap",
-   "description": "How far the SCOTEX boundary flow exceeded its limit on a replay day: number of half-hours over the limit and the largest overshoot.",
+   "description": "Compares NESO's day-ahead forecast SCOTEX flow with its published limit on a replay day: number of half-hours where the forecast flow is above the limit and the largest gap. A forecast above the limit signals potential constraint pressure; it is not outturn and does not show that the boundary was actually constrained or how much was turned down.",
    "parameters": {
     "type": "object",
     "properties": {"date": {"type": "string", "format": "date"}},

@@ -9,6 +9,7 @@ expected answers in contracts/fixtures/ask-golden.json are verified, not typed.
     python models/ask_golden.py --write    # rewrite contracts/fixtures/ask-golden.json
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -46,6 +47,9 @@ def top_curtailment_days(n, month=None):
 
 
 def _replay(date):
+    """The replay file for a strict YYYY-MM-DD date under data/public/replay, or None."""
+    if not isinstance(date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        return None
     path = DATA / "replay" / f"{date}.json"
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
@@ -81,7 +85,7 @@ def scotex_gap(date):
         if worst is None or gap > worst[0]:
             worst = (gap, p["sp"])
     return {"date": date, "periods_over_limit": over,
-            "max_overshoot_mw": worst[0] if worst else None,
+            "max_overshoot_mw": round(worst[0], 3) if worst else None,
             "max_overshoot_sp": worst[1] if worst else None,
             "source": _src(f"replay/{date}.json", "periods[].scotex_flow_mw", "periods[].scotex_limit_mw")}
 
@@ -89,8 +93,8 @@ def scotex_gap(date):
 def dfs_requests_for_day(date=None):
     reqs = [r for r in _load("dfs_requests.json")["requests"]
             if date is None or r["start_utc"][:10] == date]
-    req = sum(r["required_mw"] for r in reqs)
-    got = sum(r["procured_mw"] for r in reqs)
+    req = round(sum(r["required_mw"] for r in reqs), 3)      # rounded: float sums differ by platform
+    got = round(sum(r["procured_mw"] for r in reqs), 3)
     return {"date": date, "requests": len(reqs), "required_mw_total": req, "procured_mw_total": got,
             "procured_pct": round(100 * got / req, 2) if req else None,
             "source": _src("dfs_requests.json", "start_utc", "required_mw", "procured_mw")}
@@ -153,11 +157,11 @@ ANSWERABLE = [
      [("top_farms_for_day", {"date": "2026-10-13", "n": 3})], ["farms"]),
     ("Which farm was turned down most on 27 October, and by how much?",
      [("top_farms_for_day", {"date": "2026-10-27", "n": 1})], ["farms"]),
-    ("How many half-hours was the SCOTEX flow above its limit on 14 October?",
+    ("How many half-hours was NESO's day-ahead SCOTEX flow forecast above its limit on 14 October?",
      [("scotex_gap", {"date": "2026-10-14"})], ["periods_over_limit", "max_overshoot_mw"]),
     ("What was the biggest SCOTEX overshoot on 27 October?",
      [("scotex_gap", {"date": "2026-10-27"})], ["max_overshoot_mw", "max_overshoot_sp"]),
-    ("Was the boundary constrained on 13 October?",
+    ("On 13 October, did NESO's day-ahead forecast flow ever exceed the SCOTEX limit?",
      [("scotex_gap", {"date": "2026-10-13"})], ["periods_over_limit"]),
     ("How many demand-flexibility requests did NESO publish for 8 October?",
      [("dfs_requests_for_day", {"date": "2026-10-08"})], ["requests", "procured_pct"]),
