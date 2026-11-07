@@ -1,6 +1,7 @@
 # Product requirements document: Turn Up Scotland
 
 > The idea was chosen on 2026-11-07 after spikes #19–#25. The evidence and research are in [#25](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/25). `Open` marks a decision that still has an owner and a next check.
+> Current team status: [STATUS.md](docs/coordination/STATUS.md), added for [issue #37](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/37) (refreshed about every two hours and after PR merges).
 
 ## Status and ownership
 
@@ -236,7 +237,7 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 | --- | --- | --- | --- | --- |
 | **Varshil** (`varshil247`) | Varshil's Claude (developer) | **Lane A: data and pipeline.** `pipeline/`; writes `farms`, `curtailment_daily`, `replay/*`, `iceberg`, `dfs_requests` | #27, #28 | Varshil's Codex (review) |
 | **sanamorii** (`sanamorii`) | sanamorii's Claude (developer) | **Lane B: models, validation and decision.** `models/`; writes `forecast`, `copilot` | #29, #30 | Persia's Codex (review) |
-| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files | #26, #31, #32, #33 | Persia's Codex (review) |
+| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files | #26, #31–#33, [#38](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/38), [#39](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/39), [#46](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/46) | Persia's Codex (review) |
 
 Codex agents review pull requests and don't change the developer's branch. Humans merge after CI passes and review is approved. If no reviewer is free, a human may merge on green CI plus one approving agent review.
 
