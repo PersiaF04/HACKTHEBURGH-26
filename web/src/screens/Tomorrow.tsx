@@ -179,7 +179,7 @@ export function Tomorrow() {
           {" "}for {periods.length} half-hours from {periods[0]?.start_utc.slice(0, 10)}.
         </p>
         {data.meta.retrospective && (
-          <p className="retro" role="note"><strong>Retrospective</strong> Built from data that may have been published after the day, not from snapshots archived at forecast time. Treat it as a replay, not a live forecast.</p>
+          <p className="retro" role="note"><strong>Retrospective</strong> {sameDayReplay ? "Built from data that may have been published after the day, not from snapshots archived at forecast time. Treat it as a replay, not a live forecast." : "The forecast for tomorrow is a genuine day-ahead run, but the scores below come from a retrospective backtest and are probably optimistic."}</p>
         )}
       </div>
       <div className="stats">
