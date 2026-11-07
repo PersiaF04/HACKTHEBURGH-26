@@ -10,3 +10,4 @@ data/cache/
 data/snapshots/
 .claude/
 data/public/replay/live.json
+whitespace/artifacts/

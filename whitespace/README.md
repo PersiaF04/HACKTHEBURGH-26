@@ -32,3 +32,15 @@ Run both commands from the repository root.
 - **Population.** Primary metrics use the full eligible pair universe, for the model and every baseline alike, reported separately for starting weights 0, 1 and 2.
 - **Baselines.** Current weight, degree product, preferential attachment, common neighbours, Adamic-Adar and Jaccard score the same pairs with the same tie-breaking.
 - **Code coverage.** A missing Papers with Code link means no linked code in that archive, never that no code exists.
+
+## OpenAlex ingest (`pipeline/ingest.py`, issue #147)
+
+```sh
+python -m whitespace.pipeline.ingest plan                       # keyless, about 30 count requests
+OPENALEX_API_KEY=... python -m whitespace.pipeline.ingest download --max-calls 9000
+python -m whitespace.pipeline.ingest build                      # corpus.jsonl + manifest.json
+```
+
+- `plan` counts works per date window (one `group_by` year call, then bisection) and prints the total and the number of list calls at 100 per page. Windows still over 10,000 after the count budget are flagged "needs cursor".
+- `download` needs a free key in `OPENALEX_API_KEY` (never printed, logged, stored in a URL or the manifest). It cursor-pages each window, archives raw pages under `whitespace/artifacts/raw/` (git-ignored) with URL, time, count and sha256, and resumes: finished windows (`done.json`) are skipped, an interrupted window restarts. `--max-calls` stops the run before it is exceeded; re-run to continue. 429 and 5xx are retried with backoff.
+- `build` rebuilds abstracts, drops those under 50 words, dates each paper (arXiv-id month, else OpenAlex date), de-duplicates by arXiv id and writes `corpus.jsonl` (local only, not Parquet) and `manifest.json`.
