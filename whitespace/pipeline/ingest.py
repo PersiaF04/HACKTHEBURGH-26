@@ -58,6 +58,27 @@ class BudgetExceeded(RuntimeError):
     """Raised before a request that would exceed the call budget."""
 
 
+class FingerprintMismatch(RuntimeError):
+    """The plan or finished windows were made with a different query configuration."""
+
+
+class IncompleteCorpus(RuntimeError):
+    """Some planned windows are missing, partial or inconsistent."""
+
+
+class CallBudget:
+    """One shared hard limit on HTTP attempts (retries included)."""
+
+    def __init__(self, limit: int):
+        self.limit = limit
+        self.used = 0
+
+    def spend(self) -> None:
+        if self.used >= self.limit:
+            raise BudgetExceeded(f"call budget of {self.limit} HTTP attempts reached")
+        self.used += 1
+
+
 # --------------------------------------------------------------------------- queries
 
 
@@ -105,6 +126,42 @@ def strip_key(text: str) -> str:
     if key:
         text = text.replace(key, "<redacted>")
     return text
+
+
+def query_fingerprint(date_scope: tuple[str, str]) -> str:
+    """Canonical hash of the query configuration (not the mailto, not the key)."""
+    config = {
+        "filter_template": base_filter("<start>", "<end>"),
+        "types": list(TYPES),
+        "subfield": SUBFIELD,
+        "date_scope": list(date_scope),
+        "select": SELECT,
+        "per_page": PER_PAGE,
+    }
+    return hashlib.sha256(json.dumps(config, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def plan_scope(plan: dict) -> tuple[str, str]:
+    return min(w["start"] for w in plan["windows"]), max(w["end"] for w in plan["windows"])
+
+
+def check_plan(plan: dict, legacy: bool = False) -> None:
+    """Refuse a plan made with a different query configuration than the current code."""
+    fp = plan.get("fingerprint")
+    if fp is None:
+        if legacy:
+            return
+        raise FingerprintMismatch("plan.json has no query fingerprint; re-run `plan` (or pass --legacy)")
+    if fp != query_fingerprint(plan_scope(plan)):
+        raise FingerprintMismatch(
+            "plan.json was made with a different query configuration (filter, types, fields or "
+            "per_page) than this code; re-run `plan` and use a fresh output directory"
+        )
+
+
+def tolerance(expected: int) -> int:
+    """Accepted gap between planned and returned rows: max(5, 0.1 percent)."""
+    return max(5, int(expected * 0.001))
 
 
 # --------------------------------------------------------------------------- windows
@@ -173,7 +230,9 @@ def plan_windows(
         {"start": w[0], "end": w[1], "count": c, "needs_cursor": c > limit} for w, c in done
     ]
     total = sum(w["count"] for w in windows)
+    scope = (windows[0]["start"], windows[-1]["end"]) if windows else (start, end)
     return {
+        "fingerprint": query_fingerprint(scope),
         "filter_template": base_filter("<start>", "<end>"),
         "count_requests": calls,
         "windows": windows,
@@ -204,6 +263,7 @@ def make_fetcher(
     retries: int = 5,
     sleep: Callable[[float], None] = time.sleep,
     opener: Callable[..., object] = urllib.request.urlopen,
+    budget: CallBudget | None = None,
 ) -> Fetch:
     """Real HTTP fetcher. The key is added here only; failures are scrubbed of it."""
 
@@ -213,6 +273,8 @@ def make_fetcher(
             target += ("&" if "?" in url else "?") + "api_key=" + urllib.parse.quote(api_key)
         delay = 1.0
         for attempt in range(retries + 1):
+            if budget is not None:
+                budget.spend()  # every HTTP attempt counts, retries included
             try:
                 with opener(urllib.request.Request(target, headers={"User-Agent": "whitespace-ingest"}), timeout=60) as r:  # type: ignore[call-arg]
                     return json.loads(r.read().decode("utf-8"))  # type: ignore[attr-defined]
@@ -232,6 +294,7 @@ def make_fetcher(
                 raise RuntimeError(f"network error for {url}: {exc.reason}") from None
         raise RuntimeError(f"gave up on {url}")
 
+    fetch.budget = budget  # type: ignore[attr-defined]
     return fetch
 
 
@@ -249,29 +312,46 @@ def download(
     max_calls: int,
     mailto: str = DEFAULT_MAILTO,
     now: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.timezone.utc),
+    expected: dict[tuple[str, str], int] | None = None,
+    fingerprint: str | None = None,
 ) -> dict:
-    """Cursor-page every unfinished window. Finished windows (``done.json``) are skipped.
+    """Cursor-page every unfinished window.
 
-    An interrupted window is restarted from its first page. Raises ``BudgetExceeded`` before
-    the request that would pass ``max_calls``; finished windows stay finished.
+    A window is finished only when ``done.json`` exists, written after the cursor loop reached
+    a terminal cursor and the returned rows are within ``tolerance`` of the planned count.
+    Anything else leaves ``partial.json`` and no ``done.json``, so the window is fetched again
+    on the next run. HTTP attempts are counted at the request boundary: a fetcher built with
+    ``make_fetcher(budget=...)`` counts its own retries; any other fetch is counted per call
+    here. Raises ``BudgetExceeded`` before the attempt that would pass the limit.
     """
+    windows = list(windows)
     raw = Path(out_dir) / "raw"
-    calls = 0
+    budget = getattr(fetch, "budget", None)
+    own = budget is None
+    if own:
+        budget = CallBudget(max_calls)
+    if fingerprint is None and windows:
+        fingerprint = query_fingerprint((min(w[0] for w in windows), max(w[1] for w in windows)))
+    incomplete = []
     for window in windows:
         wdir = raw / _win_name(window)
-        if (wdir / "done.json").exists():
+        old = wdir / "done.json"
+        if old.exists():
+            prev = json.loads(old.read_text(encoding="utf-8")).get("fingerprint")
+            if prev is not None and prev != fingerprint:
+                raise FingerprintMismatch(f"window {_win_name(window)} was downloaded with a different query")
             continue
         if wdir.exists():
             for f in wdir.glob("*"):
                 f.unlink()
         wdir.mkdir(parents=True, exist_ok=True)
         cursor, n, pages, results = "*", 0, [], 0
+        terminal, body = False, {}
         while cursor:
-            if calls >= max_calls:
-                raise BudgetExceeded(f"call budget of {max_calls} reached in window {_win_name(window)}")
+            if own:
+                budget.spend()
             url = page_url(window, cursor, mailto)
             body = fetch(url)
-            calls += 1
             n += 1
             data = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
             (wdir / f"page_{n:05d}.json").write_bytes(data)
@@ -287,15 +367,88 @@ def download(
                 }
             )
             cursor = body.get("meta", {}).get("next_cursor") if got else None
-        done = {
-            "window": list(window),
-            "meta_count": int(body.get("meta", {}).get("count", results)),
-            "results": results,
-            "pages": pages,
-        }
-        (wdir / "done.json").write_text(json.dumps(done, indent=1), encoding="utf-8")
-        log.info("window %s done: %d results, %d pages", _win_name(window), results, n)
-    return {"calls": calls}
+            terminal = not body.get("meta", {}).get("next_cursor") and got > 0
+        meta_count = int(body.get("meta", {}).get("count", results))
+        exp = (expected or {}).get(window, meta_count)
+        delta = results - exp
+        if terminal and abs(delta) <= tolerance(exp):
+            done = {
+                "window": list(window),
+                "fingerprint": fingerprint,
+                "expected_count": exp,
+                "returned": results,
+                "delta": delta,
+                "terminal_cursor": True,
+                "meta_count": meta_count,
+                "results": results,
+                "pages": pages,
+            }
+            (wdir / "done.json").write_text(json.dumps(done, indent=1), encoding="utf-8")
+            log.info("window %s done: %d results (expected %d), %d pages", _win_name(window), results, exp, n)
+        else:
+            info = {"window": list(window), "expected_count": exp, "returned": results,
+                    "delta": delta, "terminal_cursor": terminal}
+            (wdir / "partial.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
+            log.warning("window %s INCOMPLETE: expected %d, returned %d, terminal cursor %s",
+                        _win_name(window), exp, results, terminal)
+            incomplete.append(_win_name(window))
+    return {"calls": budget.used, "incomplete": incomplete}
+
+
+def verify(out_dir: Path, plan: dict | None, legacy: bool = False) -> dict:
+    """Read-only check of every planned window against its ``done.json``.
+
+    Statuses: ok, legacy (earlier format, accepted only with ``legacy=True``), missing,
+    incomplete, fingerprint, not_terminal, delta.
+    """
+    raw = Path(out_dir) / "raw"
+    if plan is not None:
+        items = [((w["start"], w["end"]), w["count"]) for w in plan["windows"]]
+        want = plan.get("fingerprint")
+    else:
+        names = sorted({d.parent.name for d in list(raw.glob("*/done.json")) + list(raw.glob("*/partial.json"))})
+        items = [(tuple(n.split("_")), None) for n in names]
+        want = None
+    rows = []
+    for window, planned in items:
+        wdir = raw / _win_name(window)
+        row = {"window": _win_name(window), "status": "ok", "expected": planned, "returned": None, "delta": None}
+        done = wdir / "done.json"
+        if not done.exists():
+            row["status"] = "incomplete" if (wdir / "partial.json").exists() else "missing"
+            rows.append(row)
+            continue
+        d = json.loads(done.read_text(encoding="utf-8"))
+        returned = d.get("returned", d.get("results"))
+        exp = planned if planned is not None else d.get("expected_count", d.get("meta_count"))
+        row.update(expected=exp, returned=returned, delta=returned - exp)
+        if "fingerprint" not in d or "terminal_cursor" not in d:
+            row["status"] = "legacy" if legacy else "fingerprint"
+        elif want is not None and d["fingerprint"] != want:
+            row["status"] = "fingerprint"
+        elif not d["terminal_cursor"]:
+            row["status"] = "not_terminal"
+        if row["status"] in ("ok", "legacy") and abs(row["delta"]) > tolerance(exp):
+            row["status"] = "delta"
+        rows.append(row)
+    fps = {json.loads(d.read_text(encoding="utf-8")).get("fingerprint") for d in raw.glob("*/done.json")} - {None}
+    if len(fps) > 1:
+        for r in rows:
+            if r["status"] == "ok":
+                r["status"] = "fingerprint"
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    ok = bool(rows) and all(r["status"] == "ok" or (legacy and r["status"] == "legacy") for r in rows)
+    return {"ok": ok, "windows": rows, "summary": counts}
+
+
+def format_verify(report: dict) -> str:
+    lines = [f"{r['window']}  {r['status']:<12} expected={r['expected']} returned={r['returned']} delta={r['delta']}"
+             for r in report["windows"]]
+    lines.append("summary: " + ", ".join(f"{k}={v}" for k, v in sorted(report["summary"].items())))
+    lines.append("VERIFIED" if report["ok"] else "NOT VERIFIED")
+    return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------- records
@@ -383,9 +536,19 @@ def iter_raw_works(out_dir: Path) -> Iterable[dict]:
             yield from body.get("results", [])
 
 
-def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None) -> dict:
-    """Write ``corpus.jsonl`` and ``manifest.json`` from archived pages; return the manifest."""
+def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None, legacy: bool = False) -> dict:
+    """Write ``corpus.jsonl`` and ``manifest.json`` from archived pages; return the manifest.
+
+    Refuses missing, partial or fingerprint-mismatched windows (see ``verify``).
+    """
     out_dir = Path(out_dir)
+    if plan is not None:
+        check_plan(plan, legacy)
+    report = verify(out_dir, plan, legacy)
+    if not report["ok"]:
+        bad = [f"{r['window']}={r['status']}" for r in report["windows"]
+               if not (r["status"] == "ok" or (legacy and r["status"] == "legacy"))]
+        raise IncompleteCorpus("refusing to build: " + (", ".join(bad) or "no finished windows"))
     seen = kept = 0
     records = []
     for w in iter_raw_works(out_dir):
@@ -402,7 +565,8 @@ def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None) -> dic
     windows = []
     for done in sorted((out_dir / "raw").glob("*/done.json")):
         d = json.loads(done.read_text(encoding="utf-8"))
-        windows.append({"window": d["window"], "meta_count": d["meta_count"], "results": d["results"]})
+        windows.append({"window": d["window"], "meta_count": d["meta_count"], "results": d["results"],
+                        "expected_count": d.get("expected_count"), "fingerprint": d.get("fingerprint")})
         for p in d["pages"]:
             inputs[f"{done.parent.name}/{p['file']}"] = {
                 "url": strip_key(p["url"]),
@@ -457,10 +621,12 @@ def planning_end(today: dt.date, through_year: int | None) -> dt.date:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="OpenAlex ingest for Whitespace")
-    ap.add_argument("command", choices=["plan", "download", "build"])
+    ap.add_argument("command", choices=["plan", "download", "build", "verify"])
     ap.add_argument("--out", type=Path, default=DEFAULT_ARTIFACTS)
     ap.add_argument("--mailto", default=DEFAULT_MAILTO)
     ap.add_argument("--max-calls", type=int, default=10_000, help="download call budget")
+    ap.add_argument("--legacy", action="store_true",
+                    help="accept done.json files from the earlier version (no fingerprint or terminal flag)")
     ap.add_argument("--through-year", type=int, default=None,
                     help="plan and download only publication years up to this year (inclusive)")
     args = ap.parse_args(argv)
@@ -483,17 +649,44 @@ def main(argv: list[str] | None = None) -> int:
             print("run `plan` first", file=sys.stderr)
             return 2
         plan = json.loads(plan_file.read_text(encoding="utf-8"))
-        windows = [(w["start"], w["end"]) for w in plan["windows"]]
         try:
-            res = download(make_fetcher(key), windows, args.out, args.max_calls, args.mailto)
+            check_plan(plan, args.legacy)
+        except FingerprintMismatch as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        windows = [(w["start"], w["end"]) for w in plan["windows"]]
+        expected = {(w["start"], w["end"]): w["count"] for w in plan["windows"]}
+        fetch = make_fetcher(key, budget=CallBudget(args.max_calls))
+        try:
+            res = download(fetch, windows, args.out, args.max_calls, args.mailto,
+                           expected=expected, fingerprint=plan.get("fingerprint"))
         except BudgetExceeded as exc:
             print(f"stopped: {exc}. Re-run to resume.", file=sys.stderr)
             return 3
-        print(f"download complete: {res['calls']} calls")
-        return 0
+        except FingerprintMismatch as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(f"download finished: {res['calls']} HTTP attempts; incomplete windows: {res['incomplete'] or 'none'}")
+        return 0 if not res["incomplete"] else 4
+    if args.command == "verify":
+        plan_file = args.out / "plan.json"
+        plan = json.loads(plan_file.read_text(encoding="utf-8")) if plan_file.exists() else None
+        try:
+            if plan is not None:
+                check_plan(plan, args.legacy)
+        except FingerprintMismatch as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        report = verify(args.out, plan, args.legacy)
+        print(format_verify(report))
+        return 0 if report["ok"] else 1
     plan_file = args.out / "plan.json"
     plan = json.loads(plan_file.read_text(encoding="utf-8")) if plan_file.exists() else None
-    manifest = build_corpus(args.out, today.isoformat(), plan)
+    try:
+        manifest = build_corpus(args.out, today.isoformat(), plan, args.legacy)
+    except (IncompleteCorpus, FingerprintMismatch) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     print(json.dumps(manifest["counts"]))
     return 0
 
