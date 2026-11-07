@@ -53,7 +53,7 @@ function Turbine({ state, size, spin }: { state: FarmState; size: number; spin: 
 function FarmDetail({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPeriod | undefined; pinned: boolean; onClose: () => void }) {
   const s = p?.state ?? "unknown";
   return (
-    <div className="dm-card" role="status" aria-live="polite">
+    <div className={`dm-card${pinned ? " is-pinned" : ""}`} role="status" aria-live="polite">
       <div className="dm-card-head">
         <div>
           <strong>{farm.name}</strong>
@@ -176,10 +176,10 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
               Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit (estimate)` : `  ${Math.round(ratio * 100)}% full (estimate)`}</tspan>}
             </text>
             <text className="dm-pipe-sub" x={262} y={637}>
-              {boundary ? `NESO day-ahead forecast: ${fmtNum(boundary.flow)} MW wanting to flow; published limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
+              {boundary ? `NESO forecast: ${fmtNum(boundary.flow)} MW wanting to flow; limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
             </text>
-            {boundary && <text className="dm-pipe-sub" x={262} y={651}>Forecast demand on the cables vs their limit, not outturn.{over && " Above the limit"}</text>}
-            {boundary && over && <text className="dm-pipe-sub" x={262} y={665}>signals potential constraint pressure.</text>}
+            {boundary && <text className="dm-pipe-sub" x={262} y={651}>Forecast demand on the cables vs their limit, not outturn.</text>}
+            {boundary && over && <text className="dm-pipe-sub" x={262} y={665}>Above the limit signals potential constraint pressure.</text>}
           </g>
         )}
 

@@ -164,7 +164,7 @@ export function Dashboard() {
     if (!bs.length) return null;
     const lo = Math.min(...bs.map((b) => b.limit)), hi = Math.max(...bs.map((b) => b.limit));
     const flows = bs.map((b) => b.flow);
-    return `Cables south: NESO published a limit of ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW; its day-ahead forecast had ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW wanting to flow. A forecast above the limit signals potential constraint pressure; not outturn.`;
+    return `Cables south: published limit ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW; NESO day-ahead forecast ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW wanting to flow. Above the limit signals potential constraint pressure. Not outturn.`;
   }, [replay.data]);
 
   const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null), [farms.data]);
@@ -210,6 +210,10 @@ export function Dashboard() {
           <p>Scotland has far more wind than it uses. The surplus travels to England over a handful of high-voltage cables, and on windy days they are full.</p>
           <h2>Why it's a problem</h2>
           <p>Then NESO, the grid operator, pays wind farms to switch off and pays gas plants in England to switch on. Bill payers fund both: clean power is thrown away and gas is burned.</p>
+        </section>
+        <AskingCard data={dfs.data} date={date} />
+        <BillCard data={iceberg.data} />
+        <section className="dash-explain">
           <h2>What the data shows</h2>
           <ul>
             {windowLine && <li>{windowLine}</li>}
@@ -217,8 +221,6 @@ export function Dashboard() {
             {cableLine && <li>{cableLine}</li>}
           </ul>
         </section>
-        <BillCard data={iceberg.data} />
-        <AskingCard data={dfs.data} date={date} />
         <p className="dash-sources">
           {anySample && <span className="badge badge-warn">Sample data</span>}
           Retrospective replay. Sources: Elexon, NESO. Coastline: Natural Earth.
@@ -240,7 +242,11 @@ export function Dashboard() {
                 pin={pin} pinOn={onNow} onMovePin={setPin} />
               <MapLegend unplaced={farms.data.farms.length - placed.length} />
               {showLines && grid.length > 0 && (
-                <p className="dash-credit">{gridFile.data?.meta?.attribution ?? "Power line geometry (c) OpenStreetMap contributors, ODbL"}. Western Link route is schematic. No per-line flow is published.</p>
+                <p className="dash-credit">
+                  <a href={gridFile.data?.meta?.attribution_url ?? "https://www.openstreetmap.org/copyright"} target="_blank" rel="noreferrer"
+                    title={gridFile.data?.meta?.attribution}>© OpenStreetMap contributors (ODbL)</a><br />
+                  Western Link route is schematic. No per-line flow is published.
+                </p>
               )}
             </>
           ) : <p className="dash-loading">{error ? `Couldn't load data: ${error}` : "Loading the map…"}</p>}
@@ -257,14 +263,14 @@ export function Dashboard() {
 
         <section className={`dash-time${coachOn("timeline")}`} aria-label="The day, half-hour by half-hour">
           <div className="dash-time-head">
-            <h2 className="dash-time-title">Wind switched off, per half-hour</h2>
+            <h2 className="dash-time-title">Wind switched off</h2>
             <ul className="dash-time-key">
               <li><i className="tk tk-area" aria-hidden="true" />MWh off</li>
               <li title="NESO's Demand Flexibility Service (DFS) requests"><i className="tk tk-ask" aria-hidden="true" />NESO asked</li>
               <li><i className="tk tk-ready" aria-hidden="true" />Copilot ready</li>
               {hasProb && <li title="Walk-forward: the model saw only earlier days"><i className="tk tk-prob" aria-hidden="true" />Forecast chance</li>}
               {loadResult && loadResult.on.size > 0 && <li><i className="tk tk-mine" aria-hidden="true" />Your load</li>}
-              {extraGw > 0 && <li><i className="tk tk-avoided" aria-hidden="true" />+{extraGw.toFixed(1)} GW estimate</li>}
+              {extraGw > 0 && <li><i className="tk tk-avoided" aria-hidden="true" />+{extraGw.toFixed(1)} GW est.</li>}
             </ul>
           </div>
           {n > 0 ? <Timeline points={series.points} at={at} onSeek={seek} /> : <div className="tl-plot" />}

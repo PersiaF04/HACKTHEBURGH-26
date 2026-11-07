@@ -42,7 +42,7 @@ export function BillCard({ data }: { data: Iceberg | null }) {
           </li>
         ))}
       </ul>
-      <p className="rc-note">{data.days} days to {fmtDay(data.window[1]).replace(/ \d{4}$/, "")} · parallel measures, not a sum · retrospective</p>
+      <p className="rc-note">{data.days} days · parallel measures, not a sum · retrospective</p>
     </RailCard>
   );
 }

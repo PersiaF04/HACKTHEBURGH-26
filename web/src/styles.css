@@ -796,12 +796,19 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
 .dash-next .rc { padding: 8px 12px; gap: 3px; }
 .dash-next .rc-title { font-size: var(--fs-subhead); }
 .dash-next .rc-line, .dash-next .rc-caveat { line-height: 1.3; }
-.dash-credit { position: absolute; z-index: 2; right: 12px; bottom: 6px; max-width: 46%; margin: 0; text-align: right; font-size: 10px; line-height: 1.25; color: var(--muted); pointer-events: none; }
+.dash-centre { grid-template-columns: minmax(0, 1fr); }
+/* The hover card must never sit under the pointer, or it steals the hover and flickers. */
+.dm-card { top: 92px; left: 16px; right: auto; pointer-events: none; }
+.dm-card.is-pinned { pointer-events: auto; }
+.dm-line { stroke: color-mix(in srgb, var(--wind) 42%, transparent); }
+.dm-line-400 { stroke: color-mix(in srgb, var(--wind) 70%, transparent); }
+.dash-left .rc-title { font-size: 15px; }
+.dash-credit { position: absolute; z-index: 2; right: 12px; top: 10px; max-width: 46%; margin: 0; text-align: right; font-size: 10px; line-height: 1.3; color: var(--muted); }
+.dash-credit a { color: var(--accent); text-decoration: underline; }
 @media (max-width: 720px) {
   .topbar-sections { display: none; }
+  .dm-card { top: auto; left: auto; }
   .dash-time-head { flex-wrap: wrap; }
   .dash-time-key { flex-wrap: wrap; white-space: normal; }
-  .dash-credit { position: static; max-width: none; text-align: left; padding: 0 10px; }
-  .dash-map { display: block; }
   .dm-legend { bottom: 8px; }
 }

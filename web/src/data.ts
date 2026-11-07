@@ -81,7 +81,7 @@ export interface Forecast {
 }
 // Optional grid.json (lane A, #88). Line geometry only: flow per line is not published. `coords` are [lon, lat] pairs.
 export interface GridLine { id: string; kv?: number; coords: [number, number][]; crosses_border?: boolean; schematic?: boolean }
-export interface GridFile { meta: Meta & { attribution?: string }; lines: GridLine[] }
+export interface GridFile { meta: Meta & { attribution?: string; attribution_url?: string }; lines: GridLine[] }
 // Optional dashboard.json (lane B, #74/#81). Summaries for the map dashboard; the app must work without it.
 export interface DashboardCopilotCall {
   status: "scored" | "not_scored"; reason?: string; note?: string;
