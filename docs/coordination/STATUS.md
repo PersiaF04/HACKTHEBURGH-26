@@ -1,8 +1,8 @@
 # Turn Up Scotland — shared status
 
-**As of:** 2026-11-07 17:49 UTC
+**As of:** 2026-11-07 17:52 UTC
 
-**Next refresh:** by 19:49 UTC, or sooner after any PR merges.
+**Next refresh:** by 19:52 UTC, or sooner after any PR merges.
 
 **Project:** [PRD](../../PRD.md) · [decision log](DECISIONS.md) · [work queue](BOARD.md)
 
@@ -12,9 +12,9 @@ This is a point-in-time coordination snapshot, not a second task tracker. GitHub
 
 As of the timestamp above:
 
-- **Code freeze:** 13h 11m, at 2026-11-08 07:00 UTC.
-- **Internal submission target:** 17h 11m, at 2026-11-08 11:00 UTC.
-- **Submission deadline:** 18h 11m, at 2026-11-08 12:00 UTC.
+- **Code freeze:** 13h 08m, at 2026-11-08 07:00 UTC.
+- **Internal submission target:** 17h 08m, at 2026-11-08 11:00 UTC.
+- **Submission deadline:** 18h 08m, at 2026-11-08 12:00 UTC.
 
 ## Workstream status
 
@@ -24,13 +24,13 @@ As of the timestamp above:
 | B — models, validation and decision | sanamorii / sanamorii's Claude; `models/`, outputs under `data/public/` | #29 / [PR #40](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/40) merged; #30 / [PR #48](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/48) merged; contract #54 / [PR #55](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/55) merged; CI #50 / [PR #52](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/52) merged; #58 / [PR #60](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/60) merged | Forecast, Copilot and model-test CI are on `main`. PR #60 adds a national day-ahead wind fallback when future flows are unpublished; the 8 Nov forecast is on `main`, and Markdown, Model tests and Web build passed. Its target-morning archive vintage is disclosed as retrospective and optimistic. |
 | C — web, story and hardware | Persia / Persia's Claude; `web/` and `hardware/` | #31 / [PR #36](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/36); #32/#38/#39 and web part of #33 / [PR #47](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/47) merged; [#33](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/33) remains open, optional P2 | All seven screens are on `main`; PR #47 includes the headroom baseline, mode-aware forecast label, equal six-block Operator scoring and Copilot net/sensitivity view. Web build passed. Hardware remains optional and can be cut. |
 | Shared foundation and delivery | Persia / product owner and integrator; `PRD.md`, `contracts/`, deployment | #26 / [PR #34](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/34), model CI [PR #52](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/52), and Vercel docs [PR #59](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/59) merged | D-002 selects Vercel; PR #59 documents the settings and that hosted deployment includes committed replay days only, not gitignored `replay/live.json`. The Vercel project connection and live URL are still pending. G-2 records the corrected retrospective baseline: 3,168 half-hours, persistence MAE 1,224 and Brier 0.471. |
-| Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; [PR #45](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/45), [PR #56](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/56), and [PR #57](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/57) merged | This refresh follows merges #49, #52, #59 and #60. Keep #37 open and refresh after the next PR merge or by the next refresh time. |
+| Shared status | Persia's Codex; this file and small linked PRD updates | #37 open; [PR #45](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/45), [PR #56](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/56), [PR #57](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/57), and [PR #61](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/61) merged | This refresh follows #61. Keep #37 open and refresh after the next PR merge or by the next refresh time. |
 
 ## Merged and blocked work
 
-- **Merged to `main`:** PRs #34, #35, #36, #40, #45, #47, #48, #49, #52, #53, #55, #56, #57, #59 and #60. PR #47 also integrates #41–#44.
-- **Open work:** PR #61 is this status refresh. Issue #50 stays open until Vercel is connected and the deployed app and committed replay paths are verified. Hosted R-8 live mode needs an approved publishing path. Issue #33 remains optional P2 hardware work.
-- **Next status refresh:** refresh after the next PR merge, and by 19:49 UTC at the latest.
+- **Merged to `main`:** PRs #34, #35, #36, #40, #45, #47, #48, #49, #52, #53, #55, #56, #57, #59, #60 and #61. PR #47 also integrates #41–#44.
+- **Open work:** no pull requests are open at this snapshot. Issue #50 stays open until Vercel is connected and the deployed app and committed replay paths are verified. Hosted R-8 live mode needs an approved publishing path. Issue #33 remains optional P2 hardware work.
+- **Next status refresh:** refresh after the next PR merge, and by 19:52 UTC at the latest.
 
 ## Next three priorities
 
