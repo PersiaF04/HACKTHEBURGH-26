@@ -172,3 +172,23 @@ def test_morning_update_sensitivity_uses_same_rows_and_improves_with_informative
 def test_morning_update_unavailable_without_wind_data():
     rows, _ = synthetic_rows()
     assert F.morning_update_backtest(rows, {}, test_start="2026-06-01") == {"available": False}
+
+
+def _snapshot(*days, n=48):
+    return {(d, sp): 1.0 for d in days for sp in range(1, n + 1)}
+
+
+def test_choose_target_prefers_earliest_future_day():
+    util = _snapshot("2026-11-07", "2026-11-08", "2026-11-09")
+    assert F.choose_target(util, "2026-11-07") == ("2026-11-08", "next_day")
+
+
+def test_choose_target_never_calls_a_past_or_current_day_next_day():
+    util = _snapshot("2026-11-06", "2026-11-07")
+    assert F.choose_target(util, "2026-11-07") == ("2026-11-07", "same_day_replay")
+    assert F.choose_target(util, "2026-11-09") == ("2026-11-07", "same_day_replay")
+
+
+def test_choose_target_ignores_incomplete_future_snapshots():
+    util = {**_snapshot("2026-11-07"), **_snapshot("2026-11-08", n=20)}
+    assert F.choose_target(util, "2026-11-07") == ("2026-11-07", "same_day_replay")

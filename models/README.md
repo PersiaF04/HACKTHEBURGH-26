@@ -31,7 +31,7 @@ Baselines: persistence (same half-hour two days earlier), the training mean, a h
 - **Retrospective.** NESO's day-ahead flows file has no per-row publication time, so every score is retrospective. The leakage note is written into `meta` in the JSON.
 - One test season (autumn 2026), one boundary, one model family. Reliability is imperfect in places (see the curve in the JSON).
 - DFS zones Z1 to Z3 are zone IDs; their mapping to regions is unconfirmed (PRD K-2).
-- The forecast targets the latest day with a published day-ahead snapshot. Rerun with `--refresh` once the next day's snapshot appears.
+- **Next-day only when it really is.** `forecast.json` has a top-level `mode`. `next_day` means the target is the earliest day after the issue date with a near-complete day-ahead flows snapshot. If NESO has not published one, the file is `same_day_replay`: the latest published day, partly or wholly elapsed, labelled as a retrospective illustration and not a forecast of tomorrow. Rerun with `--refresh` once the next snapshot appears (NESO had not published 8 Nov at 17:00 UTC on 7 Nov).
 
 ## Layout
 

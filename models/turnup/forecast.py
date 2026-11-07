@@ -209,13 +209,25 @@ def forecast_day(rows: list[Row], target_date: str) -> list[dict]:
     return out
 
 
-def latest_target_date(util: dict, fallback: str) -> str:
-    """The day to forecast: the latest day with a near-complete day-ahead flows snapshot."""
+def choose_target(util: dict, issue_date: str) -> tuple[str, str]:
+    """Pick the day to forecast and say what kind of file this is.
+
+    "next_day": the earliest day strictly after the issue date that has a near-complete day-ahead
+    flows snapshot. If NESO has not published one, fall back to "same_day_replay": the latest
+    complete day up to the issue date, which is a retrospective replay and must not be shown as a
+    next-day forecast. Returns (target_date, mode).
+    """
     counts: dict[str, int] = {}
     for (d, _sp) in util:
         counts[d] = counts.get(d, 0) + 1
-    complete = [d for d, n in counts.items() if n >= 46]
-    return max(complete) if complete else fallback
+    complete = sorted(d for d, n in counts.items() if n >= 46)
+    future = [d for d in complete if d > issue_date]
+    if future:
+        return future[0], "next_day"
+    past = [d for d in complete if d <= issue_date]
+    if not past:
+        raise RuntimeError("no near-complete day-ahead flows snapshot available")
+    return past[-1], "same_day_replay"
 
 
 def period_record(date: str, sp: int, m: dict, p_request: float | None) -> dict:

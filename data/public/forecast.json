@@ -6,15 +6,18 @@
    "NESO day-ahead constraint flows and limits",
    "NESO demand-flexibility (DFS)"
   ],
-  "generated_utc": "2026-11-07T16:47:04Z",
+  "generated_utc": "2026-11-07T17:00:47Z",
   "retrospective": true,
   "leakage_note": "Features: day-ahead SSE_SP2 flow/limit for the target day (NESO publishes no per-row issue time, so its vintage is unknown and every score is retrospective) and Scottish curtailment from 2 or more days earlier. Each backtest fold trains only on dates before the fold. No settlement, metered or DFS-procurement data is used as a feature.",
-  "target_note": "Target day is the latest day with a near-complete day-ahead flows snapshot. Persistence features are blank (the model falls back to utilisation only) when curtailment data for the lag day has not yet been published.",
+  "mode": "same_day_replay",
+  "target_note": "same_day_replay: NESO had not published a day-ahead flows snapshot for any future day when this was issued, so this replays the latest published day (some or all of its periods have already elapsed). It is a retrospective illustration, NOT a next-day forecast. Rerun with --refresh once tomorrow's snapshot is published.",
+  "persistence_note": "Persistence features are blank (the model falls back to utilisation only) when curtailment data for the lag day has not yet been published.",
   "region_definition": "Scottish = NESO Day Ahead Wind BMU Forecast Region of NORTH or SOUTH SCOTLAND",
   "last_actual_date": "2026-11-05"
  },
- "issued_utc": "2026-11-07T16:47:04Z",
+ "issued_utc": "2026-11-07T17:00:47Z",
  "target_date": "2026-11-07",
+ "mode": "same_day_replay",
  "periods": [
   {
    "start_utc": "2026-11-07T00:00:00Z",

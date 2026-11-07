@@ -29,7 +29,7 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
     backtest = F.backtest(rows)
     backtest["morning_update"] = F.morning_update_backtest(rows, inputs.national_wind_forecast(refresh))
 
-    target = F.latest_target_date(util, fallback=now.date().isoformat())
+    target, mode = F.choose_target(util, issue_date=now.date().isoformat())
     day = F.forecast_day(rows, target)
 
     reqs = inputs.dfs_requirements(refresh)
@@ -57,14 +57,22 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
                 f"issue time, so its vintage is unknown and every score is retrospective) and Scottish "
                 f"curtailment from {F.PERSIST_LAG_DAYS} or more days earlier. Each backtest fold trains only "
                 "on dates before the fold. No settlement, metered or DFS-procurement data is used as a feature."),
-            "target_note": ("Target day is the latest day with a near-complete day-ahead flows snapshot. "
-                            "Persistence features are blank (the model falls back to utilisation only) when "
-                            "curtailment data for the lag day has not yet been published."),
+            "mode": mode,
+            "target_note": (
+                "next_day: the earliest day after the issue date with a near-complete day-ahead flows snapshot."
+                if mode == "next_day" else
+                "same_day_replay: NESO had not published a day-ahead flows snapshot for any future day when this was "
+                "issued, so this replays the latest published day (some or all of its periods have already elapsed). "
+                "It is a retrospective illustration, NOT a next-day forecast. Rerun with --refresh once tomorrow's "
+                "snapshot is published."),
+            "persistence_note": ("Persistence features are blank (the model falls back to utilisation only) when "
+                                 "curtailment data for the lag day has not yet been published."),
             "region_definition": "Scottish = NESO Day Ahead Wind BMU Forecast Region of NORTH or SOUTH SCOTLAND",
             "last_actual_date": last_actual,
         },
         "issued_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "target_date": target,
+        "mode": mode,
         "periods": periods,
         "backtest": backtest,
     }
@@ -78,7 +86,7 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")
     bt = doc["backtest"]
-    print(f"wrote {OUT.relative_to(ROOT)}: {len(doc['periods'])} periods for {doc['target_date']}")
+    print(f"wrote {OUT.relative_to(ROOT)}: {len(doc['periods'])} periods for {doc['target_date']} ({doc['mode']})")
     print("MAE (MWh/half-hour):", bt["mae_mwh"])
     print("Brier (heavy):      ", bt["brier_heavy"])
     print("AUC (heavy):        ", bt["auc_heavy"])
