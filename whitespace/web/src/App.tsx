@@ -1,6 +1,5 @@
 import { useState } from "react";
-import responses from "../mock/responses.json";
-import type { MetaResponse } from "./api";
+import { MOCK_META, MOCK_NOTICE } from "./api";
 
 const sections = [
   ["/", "Explore"],
@@ -16,7 +15,7 @@ function currentPath() {
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
-  const meta = responses.meta as MetaResponse;
+  const meta = MOCK_META;
   const active = sections.find(([route]) => route === path) ?? sections[0];
 
   function navigate(event: React.MouseEvent<HTMLAnchorElement>, route: string) {
@@ -52,14 +51,14 @@ export default function App() {
         <main id="main-content" className="main-content">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">AI research landscape · {meta.year_range.min}–{meta.year_range.max}</p>
+              <p className="eyebrow">AI research landscape{meta.year_range.min && meta.year_range.max ? ` · ${meta.year_range.min}–${meta.year_range.max}` : ""}</p>
               <h1>{active[1]}</h1>
             </div>
             <span className="offline-pill">Offline demo</span>
           </div>
           <div className="placeholder-banner" role="status">
             <strong>Placeholder data</strong>
-            <span>{responses.notice}</span>
+            <span>{MOCK_NOTICE}</span>
           </div>
           <section className="empty-panel" aria-labelledby="empty-title">
             <div className="empty-orbit" aria-hidden="true"><span /><span /><span /></div>
