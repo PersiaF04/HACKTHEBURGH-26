@@ -10,7 +10,7 @@ interface Copilot {
   days: { date: string; schedule: { start_utc: string; action: string }[] }[];
 }
 
-const DATE = "2026-10-14";
+const DATE = "2026-10-27";
 const LOAD_MW = 50;
 const BLOCKS = 12;
 const BUDGET = 6;
