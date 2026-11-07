@@ -40,12 +40,13 @@ def elexon_volumes(kind: str, date: str) -> list[dict]:
         lambda: _elexon(f"/balancing/settlement/indicative/volumes/all/{kind}/{date}")))
 
 
-def elexon_physical(dataset: str, date: str, sp: int) -> list[dict]:
-    """PN or MELS for all BMUs in one settlement period."""
+def elexon_physical(dataset: str, date: str, sp: int, refresh: bool = False) -> list[dict]:
+    """PN or MELS for all BMUs in one settlement period. ``refresh`` bypasses the cache (live polling)."""
     return _unwrap(cache.cached_json(
         f"elexon/{dataset}/{date}/{sp:02d}.json",
         lambda: _elexon("/balancing/physical/all",
-                        {"dataset": dataset, "settlementDate": date, "settlementPeriod": sp})))
+                        {"dataset": dataset, "settlementDate": date, "settlementPeriod": sp}),
+        refresh=refresh))
 
 
 def elexon_bmunits(refresh: bool = False) -> list[dict]:
