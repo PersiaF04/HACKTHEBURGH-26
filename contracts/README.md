@@ -26,6 +26,7 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 | `sandbox.json` (optional) | B | Interactive load sandbox | Per-half-hour inputs and a scoring rule so the client can re-score a load the user places |
 | `grid.json` (optional) | A | Power Dashboard | Transmission line geometry (275/400 kV and the Western HVDC link) for the power-lines layer |
 | `dashboard.json` (optional) | B | Map dashboard | Tomorrow headline and numbers, request probability per half-hour, and the Copilot's call for each replay day |
+| `ask-the-grid-tools.json` (optional) | B | Ask the Grid chat | Manifest of 8 read-only tools over `data/public/`; golden questions in `fixtures/ask-golden.json`, reference code in `models/ask_golden.py` |
 
 ## Schemas
 
