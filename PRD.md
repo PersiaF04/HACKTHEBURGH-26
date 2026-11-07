@@ -1,6 +1,7 @@
 # Product requirements document: Turn Up Scotland
 
 > The idea was chosen on 2026-11-07 after spikes #19–#25. The evidence and research are in [#25](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/25). `Open` marks a decision that still has an owner and a next check.
+> Current team status: [STATUS.md](docs/coordination/STATUS.md), added for [issue #37](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/37) (refreshed about every two hours and after PR merges).
 
 ## Status and ownership
 
