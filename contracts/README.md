@@ -23,6 +23,7 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 | `forecast.json` | B | Tomorrow, Under the Hood | Half-hourly forecasts plus backtest scores and a reliability curve |
 | `copilot.json` | B | Flex Copilot, judge game | Naive, ours and oracle policy results for a load on replay days |
 | `sandbox.json` (optional) | B | Interactive load sandbox | Per-half-hour inputs and a scoring rule so the client can re-score a load the user places |
+| `grid.json` (optional) | A | Power Dashboard | Transmission line geometry (275/400 kV and the Western HVDC link) for the power-lines layer |
 | `dashboard.json` (optional) | B | Map dashboard | Tomorrow headline and numbers, request probability per half-hour, and the Copilot's call for each replay day |
 | `ask-the-grid-tools.json` (optional) | B | Ask the Grid chat | Manifest of 8 read-only tools over `data/public/`; golden questions in `fixtures/ask-golden.json`, reference code in `models/ask_golden.py` |
 
@@ -138,6 +139,24 @@ Per-half-hour inputs for re-running the Copilot's scoring client-side for a load
 - **`mwh` is the electricity the load buys and uses** in the half-hours NESO would have accepted, assuming full delivery. It is **not** proof that the same MWh of curtailed wind was absorbed. `wind_matched_mwh` is a separate, **approximate upper bound** on how much of it could have been otherwise-curtailed Scottish wind: in each accepted half-hour, `min(capacity_mw x 0.5, curtailed_mwh)`. It ignores which farms or zone the wind is in (the zone-to-region mapping is unconfirmed) and assumes no other load competes for the wind. Label it as approximate wherever it is shown.
 - `test_vectors` give expected results for the default load on every day with a call, user-style schedules and edge cases (a load above the zone cap scores nothing). A port must match `expected` within 0.005. Numbers are exported unrounded so IEEE doubles summed in the stated order match exactly.
 - On the real data the default 50 MW, Z1, GBP 100/MWh case on 27 Oct gives net 8,533.25 (naive), 11,909.25 (ours) and 12,594.50 (oracle), the same as `copilot.json` for that day. Totals across all 13 scored days differ for naive (1,976) because naive loses money on other days; ours and oracle are zero on those days.
+
+### `grid.json` (optional)
+
+Line geometry for the Power Dashboard's power-lines layer. The web app must still work when this file is absent.
+
+```json
+{ "meta": { "attribution": "Power line geometry (c) OpenStreetMap contributors, ODbL",
+             "attribution_url": "https://www.openstreetmap.org/copyright" },
+  "border": [[-3.65, 54.96], [-3.06, 54.99]],
+  "counts": { "lines": 1694, "osm_ways": 1693, "kv400": 604, "kv275": 1089, "crossing_border": 3 },
+  "lines": [ { "id": "osm-143219037", "kv": 400, "operator": "National Grid Electricity Transmission",
+               "coords": [[-3.0378, 55.0101], [-2.9629, 54.9439]], "crosses_border": true } ] }
+```
+
+- `lines[].coords` are `[lon, lat]` pairs, simplified from OpenStreetMap (about 400 m tolerance). `kv` is 275 or 400, or 600 for the HVDC link. `lines` holds 1,693 OpenStreetMap ways plus one schematic feature (`counts.osm_ways` and `counts.lines`). `crosses_border` is true for a line that spans or touches the Scotland-England land border (the SCOTEX boundary). `border` is an approximate polyline of that border, not a legal boundary.
+- The `western-link` entry is the subsea HVDC link between Hunterston and Flintshire Bridge (Wales), drawn as a **schematic** route (`schematic: true`, `capacity_mw` 2,250). It does **not** cross the Scotland-England land border, so it has `crosses_border: false` and `southbound_link: true` instead. Whether NESO counts its flow inside SCOTEX is not confirmed, so the app should show it as a separate southbound link and not as part of the border-crossing set.
+- **No per-line flow is published by anyone.** This file is geometry only. To animate power moving south, scale the effect on the `crosses_border` lines by `scotex_flow_mw` against `scotex_limit_mw` from the replay periods, and label it "forecast demand on the cables vs their limit", not a measured flow.
+- The map must show the attribution in `meta.attribution` as a **visible link** to `meta.attribution_url` (OpenStreetMap's copyright and ODbL page) wherever it draws these lines.
 
 ### `dashboard.json` (optional, issue #74)
 
