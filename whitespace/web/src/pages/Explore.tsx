@@ -7,6 +7,8 @@ import "../components/explore.css";
 
 type ExploreProps = {
   map: MapResponse;
+  selectedYear: number;
+  loading: boolean;
   yearRange: YearRange;
   selectedConceptId: string | null;
   onYearChange: (year: number) => void;
@@ -16,6 +18,8 @@ type ExploreProps = {
 
 export function Explore({
   map,
+  selectedYear,
+  loading,
   yearRange,
   selectedConceptId,
   onYearChange,
@@ -24,7 +28,9 @@ export function Explore({
 }: ExploreProps) {
   const [searchFocus, setSearchFocus] = useState<FocusPoint>(null);
   const [searchFocusSet, setSearchFocusSet] = useState(false);
-  const selected = map.concepts.find((concept) => concept.id === selectedConceptId);
+  const mapMatchesSelection = map.year === selectedYear;
+  const showMap = mapMatchesSelection && !loading;
+  const selected = showMap ? map.concepts.find((concept) => concept.id === selectedConceptId) : undefined;
 
   function handleSearchResults(results: SearchResponse) {
     setSearchFocus(results.focus);
@@ -32,6 +38,7 @@ export function Explore({
   }
 
   function selectConcept(id: string) {
+    if (!showMap) return;
     onSelectConcept(id);
     const point = map.concepts.find((concept) => concept.id === id);
     if (point) {
@@ -45,21 +52,27 @@ export function Explore({
       <div className="whitespace-explore__controls">
         <SearchBar onSearch={onSearch} onResults={handleSearchResults} onSelectConcept={selectConcept} />
         <TimeSlider
-          year={map.year}
+          year={selectedYear}
           minYear={yearRange.min}
           maxYear={yearRange.max}
           onChange={onYearChange}
         />
       </div>
 
-      <MapCanvas
-        concepts={map.concepts}
-        edges={map.edges}
-        selectedConceptId={selectedConceptId}
-        focus={searchFocusSet ? searchFocus : map.focus}
-        placeholder={map.placeholder}
-        onSelectConcept={selectConcept}
-      />
+      {showMap ? (
+        <MapCanvas
+          concepts={map.concepts}
+          edges={map.edges}
+          selectedConceptId={selectedConceptId}
+          focus={searchFocusSet ? searchFocus : map.focus}
+          placeholder={map.placeholder}
+          onSelectConcept={selectConcept}
+        />
+      ) : (
+        <p className="whitespace-explore__loading" role="status" aria-live="polite">
+          {loading ? `Loading the ${selectedYear} snapshot…` : `The ${selectedYear} snapshot is not available yet.`}
+        </p>
+      )}
 
       {selected && (
         <aside className="whitespace-explore__selection" aria-live="polite" aria-label="Selected concept">

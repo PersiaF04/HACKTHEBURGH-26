@@ -15,6 +15,16 @@
   background: #fff;
 }
 
+.whitespace-explore__loading {
+  margin: 0;
+  padding: 2rem 1rem;
+  border: 1px solid #d7e0e9;
+  border-radius: 0.8rem;
+  color: #536273;
+  background: #fff;
+  text-align: center;
+}
+
 .whitespace-search {
   min-width: 0;
 }
