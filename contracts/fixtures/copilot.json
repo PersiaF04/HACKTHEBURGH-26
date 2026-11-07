@@ -1,0 +1,101 @@
+{
+ "meta": {
+  "source": [
+   "derived: forecast.json, dfs_requests.json"
+  ],
+  "generated_utc": "2026-11-07T17:00:00Z",
+  "retrospective": true,
+  "fixture": true
+ },
+ "load": {
+  "type": "electrolyser",
+  "capacity_mw": 50,
+  "zone": "Z1"
+ },
+ "days": [
+  {
+   "date": "2026-10-14",
+   "policies": {
+    "naive": {
+     "gbp": 1500,
+     "mwh": 50
+    },
+    "ours": {
+     "gbp": 10800,
+     "mwh": 225
+    },
+    "oracle": {
+     "gbp": 15000,
+     "mwh": 300
+    }
+   },
+   "schedule": [
+    {
+     "start_utc": "2026-10-14T15:00:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T15:30:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T16:00:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T16:30:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T17:00:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T17:30:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T18:00:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T18:30:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T19:00:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T19:30:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T20:00:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    },
+    {
+     "start_utc": "2026-10-14T20:30:00Z",
+     "action": "ready",
+     "bid_gbp_per_mwh": 55
+    }
+   ]
+  }
+ ],
+ "summary": {
+  "pct_of_oracle": 0.72,
+  "gross_settlement_gbp": 486000,
+  "caveat": "Gross settlement before energy cost and levies"
+ }
+}

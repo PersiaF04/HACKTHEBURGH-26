@@ -1,0 +1,12 @@
+
+# Turn Up Scotland
+node_modules/
+web/dist/
+.env
+.venv/
+__pycache__/
+*.pyc
+data/raw/
+data/cache/
+data/snapshots/
+.claude/

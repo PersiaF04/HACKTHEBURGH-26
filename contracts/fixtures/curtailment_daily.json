@@ -1,0 +1,1562 @@
+{
+ "meta": {
+  "source": [
+   "NESO Wind BOA Volumes",
+   "Elexon indicative cashflows",
+   "NESO Constraint Breakdown"
+  ],
+  "generated_utc": "2026-11-07T17:00:00Z",
+  "retrospective": true,
+  "fixture": true
+ },
+ "days": [
+  {
+   "date": "2026-04-01",
+   "curtailed_mwh": 121603,
+   "wind_paid_gbp": 2816114,
+   "neso_thermal_mwh": 154291,
+   "neso_thermal_gbp": 32094159
+  },
+  {
+   "date": "2026-04-02",
+   "curtailed_mwh": 24630,
+   "wind_paid_gbp": 693156,
+   "neso_thermal_mwh": 30919,
+   "neso_thermal_gbp": 6805509
+  },
+  {
+   "date": "2026-04-03",
+   "curtailed_mwh": 5920,
+   "wind_paid_gbp": 181262,
+   "neso_thermal_mwh": 7456,
+   "neso_thermal_gbp": 1222282
+  },
+  {
+   "date": "2026-04-04",
+   "curtailed_mwh": 17027,
+   "wind_paid_gbp": 546756,
+   "neso_thermal_mwh": 18506,
+   "neso_thermal_gbp": 4453695
+  },
+  {
+   "date": "2026-04-05",
+   "curtailed_mwh": 20881,
+   "wind_paid_gbp": 598481,
+   "neso_thermal_mwh": 27638,
+   "neso_thermal_gbp": 6452231
+  },
+  {
+   "date": "2026-04-06",
+   "curtailed_mwh": 11583,
+   "wind_paid_gbp": 289387,
+   "neso_thermal_mwh": 12692,
+   "neso_thermal_gbp": 2730307
+  },
+  {
+   "date": "2026-04-07",
+   "curtailed_mwh": 10826,
+   "wind_paid_gbp": 307031,
+   "neso_thermal_mwh": 13736,
+   "neso_thermal_gbp": 3305635
+  },
+  {
+   "date": "2026-04-08",
+   "curtailed_mwh": 95673,
+   "wind_paid_gbp": 2643638,
+   "neso_thermal_mwh": 112553,
+   "neso_thermal_gbp": 21349811
+  },
+  {
+   "date": "2026-04-09",
+   "curtailed_mwh": 1332,
+   "wind_paid_gbp": 33516,
+   "neso_thermal_mwh": 1664,
+   "neso_thermal_gbp": 414148
+  },
+  {
+   "date": "2026-04-10",
+   "curtailed_mwh": 4163,
+   "wind_paid_gbp": 100969,
+   "neso_thermal_mwh": 4826,
+   "neso_thermal_gbp": 1044389
+  },
+  {
+   "date": "2026-04-11",
+   "curtailed_mwh": 15781,
+   "wind_paid_gbp": 370829,
+   "neso_thermal_mwh": 20862,
+   "neso_thermal_gbp": 4023215
+  },
+  {
+   "date": "2026-04-12",
+   "curtailed_mwh": 19132,
+   "wind_paid_gbp": 530792,
+   "neso_thermal_mwh": 22987,
+   "neso_thermal_gbp": 5408222
+  },
+  {
+   "date": "2026-04-13",
+   "curtailed_mwh": 12588,
+   "wind_paid_gbp": 299177,
+   "neso_thermal_mwh": 15434,
+   "neso_thermal_gbp": 3047184
+  },
+  {
+   "date": "2026-04-14",
+   "curtailed_mwh": 13157,
+   "wind_paid_gbp": 436330,
+   "neso_thermal_mwh": 14253,
+   "neso_thermal_gbp": 3924765
+  },
+  {
+   "date": "2026-04-15",
+   "curtailed_mwh": 74149,
+   "wind_paid_gbp": 1569605,
+   "neso_thermal_mwh": 100017,
+   "neso_thermal_gbp": 16787382
+  },
+  {
+   "date": "2026-04-16",
+   "curtailed_mwh": 3789,
+   "wind_paid_gbp": 109478,
+   "neso_thermal_mwh": 4135,
+   "neso_thermal_gbp": 1176956
+  },
+  {
+   "date": "2026-04-17",
+   "curtailed_mwh": 31689,
+   "wind_paid_gbp": 1065271,
+   "neso_thermal_mwh": 40509,
+   "neso_thermal_gbp": 7385140
+  },
+  {
+   "date": "2026-04-18",
+   "curtailed_mwh": 58883,
+   "wind_paid_gbp": 1179059,
+   "neso_thermal_mwh": 72724,
+   "neso_thermal_gbp": 13411496
+  },
+  {
+   "date": "2026-04-19",
+   "curtailed_mwh": 15307,
+   "wind_paid_gbp": 360797,
+   "neso_thermal_mwh": 20123,
+   "neso_thermal_gbp": 3493356
+  },
+  {
+   "date": "2026-04-20",
+   "curtailed_mwh": 16898,
+   "wind_paid_gbp": 461973,
+   "neso_thermal_mwh": 17758,
+   "neso_thermal_gbp": 5230926
+  },
+  {
+   "date": "2026-04-21",
+   "curtailed_mwh": 15470,
+   "wind_paid_gbp": 518257,
+   "neso_thermal_mwh": 17117,
+   "neso_thermal_gbp": 4892364
+  },
+  {
+   "date": "2026-04-22",
+   "curtailed_mwh": 15024,
+   "wind_paid_gbp": 350685,
+   "neso_thermal_mwh": 16717,
+   "neso_thermal_gbp": 4022365
+  },
+  {
+   "date": "2026-04-23",
+   "curtailed_mwh": 154820,
+   "wind_paid_gbp": 4754702,
+   "neso_thermal_mwh": 185700,
+   "neso_thermal_gbp": 31572090
+  },
+  {
+   "date": "2026-04-24",
+   "curtailed_mwh": 102956,
+   "wind_paid_gbp": 3121412,
+   "neso_thermal_mwh": 135686,
+   "neso_thermal_gbp": 21049077
+  },
+  {
+   "date": "2026-04-25",
+   "curtailed_mwh": 32665,
+   "wind_paid_gbp": 1120879,
+   "neso_thermal_mwh": 41794,
+   "neso_thermal_gbp": 8177755
+  },
+  {
+   "date": "2026-04-26",
+   "curtailed_mwh": 25845,
+   "wind_paid_gbp": 671311,
+   "neso_thermal_mwh": 28957,
+   "neso_thermal_gbp": 6424708
+  },
+  {
+   "date": "2026-04-27",
+   "curtailed_mwh": 13392,
+   "wind_paid_gbp": 392689,
+   "neso_thermal_mwh": 17014,
+   "neso_thermal_gbp": 3216795
+  },
+  {
+   "date": "2026-04-28",
+   "curtailed_mwh": 8726,
+   "wind_paid_gbp": 215320,
+   "neso_thermal_mwh": 11742,
+   "neso_thermal_gbp": 2786191
+  },
+  {
+   "date": "2026-04-29",
+   "curtailed_mwh": 31663,
+   "wind_paid_gbp": 728030,
+   "neso_thermal_mwh": 39375,
+   "neso_thermal_gbp": 6847022
+  },
+  {
+   "date": "2026-04-30",
+   "curtailed_mwh": 18452,
+   "wind_paid_gbp": 630809,
+   "neso_thermal_mwh": 22043,
+   "neso_thermal_gbp": 4104797
+  },
+  {
+   "date": "2026-05-01",
+   "curtailed_mwh": 5106,
+   "wind_paid_gbp": 142079,
+   "neso_thermal_mwh": 6221,
+   "neso_thermal_gbp": 1331689
+  },
+  {
+   "date": "2026-05-02",
+   "curtailed_mwh": 11837,
+   "wind_paid_gbp": 241360,
+   "neso_thermal_mwh": 13490,
+   "neso_thermal_gbp": 3136840
+  },
+  {
+   "date": "2026-05-03",
+   "curtailed_mwh": 16374,
+   "wind_paid_gbp": 385374,
+   "neso_thermal_mwh": 20433,
+   "neso_thermal_gbp": 4118069
+  },
+  {
+   "date": "2026-05-04",
+   "curtailed_mwh": 168227,
+   "wind_paid_gbp": 5674582,
+   "neso_thermal_mwh": 222565,
+   "neso_thermal_gbp": 47390979
+  },
+  {
+   "date": "2026-05-05",
+   "curtailed_mwh": 830,
+   "wind_paid_gbp": 24083,
+   "neso_thermal_mwh": 1052,
+   "neso_thermal_gbp": 255461
+  },
+  {
+   "date": "2026-05-06",
+   "curtailed_mwh": 52843,
+   "wind_paid_gbp": 1142651,
+   "neso_thermal_mwh": 56830,
+   "neso_thermal_gbp": 10628818
+  },
+  {
+   "date": "2026-05-07",
+   "curtailed_mwh": 19386,
+   "wind_paid_gbp": 426583,
+   "neso_thermal_mwh": 21531,
+   "neso_thermal_gbp": 5447261
+  },
+  {
+   "date": "2026-05-08",
+   "curtailed_mwh": 17318,
+   "wind_paid_gbp": 456139,
+   "neso_thermal_mwh": 21684,
+   "neso_thermal_gbp": 5072810
+  },
+  {
+   "date": "2026-05-09",
+   "curtailed_mwh": 7351,
+   "wind_paid_gbp": 172395,
+   "neso_thermal_mwh": 9500,
+   "neso_thermal_gbp": 2329707
+  },
+  {
+   "date": "2026-05-10",
+   "curtailed_mwh": 25350,
+   "wind_paid_gbp": 553453,
+   "neso_thermal_mwh": 28216,
+   "neso_thermal_gbp": 6903158
+  },
+  {
+   "date": "2026-05-11",
+   "curtailed_mwh": 1738,
+   "wind_paid_gbp": 51616,
+   "neso_thermal_mwh": 2115,
+   "neso_thermal_gbp": 447841
+  },
+  {
+   "date": "2026-05-12",
+   "curtailed_mwh": 1905,
+   "wind_paid_gbp": 47085,
+   "neso_thermal_mwh": 2003,
+   "neso_thermal_gbp": 382407
+  },
+  {
+   "date": "2026-05-13",
+   "curtailed_mwh": 1956,
+   "wind_paid_gbp": 66232,
+   "neso_thermal_mwh": 2510,
+   "neso_thermal_gbp": 570511
+  },
+  {
+   "date": "2026-05-14",
+   "curtailed_mwh": 31857,
+   "wind_paid_gbp": 1019881,
+   "neso_thermal_mwh": 39775,
+   "neso_thermal_gbp": 8558689
+  },
+  {
+   "date": "2026-05-15",
+   "curtailed_mwh": 11044,
+   "wind_paid_gbp": 302853,
+   "neso_thermal_mwh": 13476,
+   "neso_thermal_gbp": 3165338
+  },
+  {
+   "date": "2026-05-16",
+   "curtailed_mwh": 20366,
+   "wind_paid_gbp": 677527,
+   "neso_thermal_mwh": 26548,
+   "neso_thermal_gbp": 6488392
+  },
+  {
+   "date": "2026-05-17",
+   "curtailed_mwh": 18094,
+   "wind_paid_gbp": 626530,
+   "neso_thermal_mwh": 20941,
+   "neso_thermal_gbp": 3790795
+  },
+  {
+   "date": "2026-05-18",
+   "curtailed_mwh": 28010,
+   "wind_paid_gbp": 870305,
+   "neso_thermal_mwh": 37437,
+   "neso_thermal_gbp": 8247284
+  },
+  {
+   "date": "2026-05-19",
+   "curtailed_mwh": 8025,
+   "wind_paid_gbp": 173033,
+   "neso_thermal_mwh": 10630,
+   "neso_thermal_gbp": 2375574
+  },
+  {
+   "date": "2026-05-20",
+   "curtailed_mwh": 19907,
+   "wind_paid_gbp": 530429,
+   "neso_thermal_mwh": 26110,
+   "neso_thermal_gbp": 5327245
+  },
+  {
+   "date": "2026-05-21",
+   "curtailed_mwh": 8459,
+   "wind_paid_gbp": 224249,
+   "neso_thermal_mwh": 9885,
+   "neso_thermal_gbp": 1882144
+  },
+  {
+   "date": "2026-05-22",
+   "curtailed_mwh": 8304,
+   "wind_paid_gbp": 268476,
+   "neso_thermal_mwh": 9561,
+   "neso_thermal_gbp": 2341259
+  },
+  {
+   "date": "2026-05-23",
+   "curtailed_mwh": 2668,
+   "wind_paid_gbp": 90215,
+   "neso_thermal_mwh": 2802,
+   "neso_thermal_gbp": 575802
+  },
+  {
+   "date": "2026-05-24",
+   "curtailed_mwh": 678,
+   "wind_paid_gbp": 22691,
+   "neso_thermal_mwh": 747,
+   "neso_thermal_gbp": 152852
+  },
+  {
+   "date": "2026-05-25",
+   "curtailed_mwh": 14089,
+   "wind_paid_gbp": 306471,
+   "neso_thermal_mwh": 17442,
+   "neso_thermal_gbp": 2844740
+  },
+  {
+   "date": "2026-05-26",
+   "curtailed_mwh": 19324,
+   "wind_paid_gbp": 423600,
+   "neso_thermal_mwh": 22211,
+   "neso_thermal_gbp": 5522378
+  },
+  {
+   "date": "2026-05-27",
+   "curtailed_mwh": 15953,
+   "wind_paid_gbp": 505101,
+   "neso_thermal_mwh": 20113,
+   "neso_thermal_gbp": 4595086
+  },
+  {
+   "date": "2026-05-28",
+   "curtailed_mwh": 1735,
+   "wind_paid_gbp": 50660,
+   "neso_thermal_mwh": 1939,
+   "neso_thermal_gbp": 467994
+  },
+  {
+   "date": "2026-05-29",
+   "curtailed_mwh": 6649,
+   "wind_paid_gbp": 195762,
+   "neso_thermal_mwh": 8603,
+   "neso_thermal_gbp": 1520875
+  },
+  {
+   "date": "2026-05-30",
+   "curtailed_mwh": 1654,
+   "wind_paid_gbp": 43171,
+   "neso_thermal_mwh": 2130,
+   "neso_thermal_gbp": 461728
+  },
+  {
+   "date": "2026-05-31",
+   "curtailed_mwh": 3802,
+   "wind_paid_gbp": 104604,
+   "neso_thermal_mwh": 4931,
+   "neso_thermal_gbp": 954272
+  },
+  {
+   "date": "2026-06-01",
+   "curtailed_mwh": 25412,
+   "wind_paid_gbp": 854286,
+   "neso_thermal_mwh": 33225,
+   "neso_thermal_gbp": 5662590
+  },
+  {
+   "date": "2026-06-02",
+   "curtailed_mwh": 2944,
+   "wind_paid_gbp": 100772,
+   "neso_thermal_mwh": 3934,
+   "neso_thermal_gbp": 608749
+  },
+  {
+   "date": "2026-06-03",
+   "curtailed_mwh": 122094,
+   "wind_paid_gbp": 4034756,
+   "neso_thermal_mwh": 163237,
+   "neso_thermal_gbp": 28477779
+  },
+  {
+   "date": "2026-06-04",
+   "curtailed_mwh": 790,
+   "wind_paid_gbp": 22429,
+   "neso_thermal_mwh": 863,
+   "neso_thermal_gbp": 188631
+  },
+  {
+   "date": "2026-06-05",
+   "curtailed_mwh": 3972,
+   "wind_paid_gbp": 82085,
+   "neso_thermal_mwh": 4282,
+   "neso_thermal_gbp": 1094373
+  },
+  {
+   "date": "2026-06-06",
+   "curtailed_mwh": 25994,
+   "wind_paid_gbp": 719039,
+   "neso_thermal_mwh": 32755,
+   "neso_thermal_gbp": 6409173
+  },
+  {
+   "date": "2026-06-07",
+   "curtailed_mwh": 31939,
+   "wind_paid_gbp": 1099671,
+   "neso_thermal_mwh": 40354,
+   "neso_thermal_gbp": 8700316
+  },
+  {
+   "date": "2026-06-08",
+   "curtailed_mwh": 3037,
+   "wind_paid_gbp": 93839,
+   "neso_thermal_mwh": 3778,
+   "neso_thermal_gbp": 764533
+  },
+  {
+   "date": "2026-06-09",
+   "curtailed_mwh": 10478,
+   "wind_paid_gbp": 228722,
+   "neso_thermal_mwh": 11210,
+   "neso_thermal_gbp": 2195126
+  },
+  {
+   "date": "2026-06-10",
+   "curtailed_mwh": 7125,
+   "wind_paid_gbp": 210891,
+   "neso_thermal_mwh": 7749,
+   "neso_thermal_gbp": 1469615
+  },
+  {
+   "date": "2026-06-11",
+   "curtailed_mwh": 180137,
+   "wind_paid_gbp": 3722798,
+   "neso_thermal_mwh": 230656,
+   "neso_thermal_gbp": 42906285
+  },
+  {
+   "date": "2026-06-12",
+   "curtailed_mwh": 30567,
+   "wind_paid_gbp": 616660,
+   "neso_thermal_mwh": 41204,
+   "neso_thermal_gbp": 6867140
+  },
+  {
+   "date": "2026-06-13",
+   "curtailed_mwh": 7287,
+   "wind_paid_gbp": 164618,
+   "neso_thermal_mwh": 9303,
+   "neso_thermal_gbp": 2116612
+  },
+  {
+   "date": "2026-06-14",
+   "curtailed_mwh": 29175,
+   "wind_paid_gbp": 722634,
+   "neso_thermal_mwh": 34653,
+   "neso_thermal_gbp": 6881374
+  },
+  {
+   "date": "2026-06-15",
+   "curtailed_mwh": 31076,
+   "wind_paid_gbp": 937656,
+   "neso_thermal_mwh": 37277,
+   "neso_thermal_gbp": 9447271
+  },
+  {
+   "date": "2026-06-16",
+   "curtailed_mwh": 26729,
+   "wind_paid_gbp": 923628,
+   "neso_thermal_mwh": 33609,
+   "neso_thermal_gbp": 6261214
+  },
+  {
+   "date": "2026-06-17",
+   "curtailed_mwh": 11390,
+   "wind_paid_gbp": 255641,
+   "neso_thermal_mwh": 14848,
+   "neso_thermal_gbp": 3178071
+  },
+  {
+   "date": "2026-06-18",
+   "curtailed_mwh": 15705,
+   "wind_paid_gbp": 509350,
+   "neso_thermal_mwh": 16691,
+   "neso_thermal_gbp": 3577888
+  },
+  {
+   "date": "2026-06-19",
+   "curtailed_mwh": 675,
+   "wind_paid_gbp": 21721,
+   "neso_thermal_mwh": 836,
+   "neso_thermal_gbp": 204129
+  },
+  {
+   "date": "2026-06-20",
+   "curtailed_mwh": 16947,
+   "wind_paid_gbp": 481923,
+   "neso_thermal_mwh": 20132,
+   "neso_thermal_gbp": 4174510
+  },
+  {
+   "date": "2026-06-21",
+   "curtailed_mwh": 20717,
+   "wind_paid_gbp": 533607,
+   "neso_thermal_mwh": 24858,
+   "neso_thermal_gbp": 4751886
+  },
+  {
+   "date": "2026-06-22",
+   "curtailed_mwh": 17587,
+   "wind_paid_gbp": 418898,
+   "neso_thermal_mwh": 21706,
+   "neso_thermal_gbp": 4681669
+  },
+  {
+   "date": "2026-06-23",
+   "curtailed_mwh": 13187,
+   "wind_paid_gbp": 382474,
+   "neso_thermal_mwh": 16116,
+   "neso_thermal_gbp": 3643579
+  },
+  {
+   "date": "2026-06-24",
+   "curtailed_mwh": 3369,
+   "wind_paid_gbp": 73358,
+   "neso_thermal_mwh": 3874,
+   "neso_thermal_gbp": 930095
+  },
+  {
+   "date": "2026-06-25",
+   "curtailed_mwh": 15967,
+   "wind_paid_gbp": 402525,
+   "neso_thermal_mwh": 18673,
+   "neso_thermal_gbp": 3434077
+  },
+  {
+   "date": "2026-06-26",
+   "curtailed_mwh": 1417,
+   "wind_paid_gbp": 36329,
+   "neso_thermal_mwh": 1527,
+   "neso_thermal_gbp": 391243
+  },
+  {
+   "date": "2026-06-27",
+   "curtailed_mwh": 8457,
+   "wind_paid_gbp": 275731,
+   "neso_thermal_mwh": 9575,
+   "neso_thermal_gbp": 1999295
+  },
+  {
+   "date": "2026-06-28",
+   "curtailed_mwh": 80978,
+   "wind_paid_gbp": 1862075,
+   "neso_thermal_mwh": 99789,
+   "neso_thermal_gbp": 21812990
+  },
+  {
+   "date": "2026-06-29",
+   "curtailed_mwh": 21213,
+   "wind_paid_gbp": 700116,
+   "neso_thermal_mwh": 26629,
+   "neso_thermal_gbp": 4549549
+  },
+  {
+   "date": "2026-06-30",
+   "curtailed_mwh": 26292,
+   "wind_paid_gbp": 754555,
+   "neso_thermal_mwh": 35236,
+   "neso_thermal_gbp": 6175232
+  },
+  {
+   "date": "2026-07-01",
+   "curtailed_mwh": 695,
+   "wind_paid_gbp": 17108,
+   "neso_thermal_mwh": 908,
+   "neso_thermal_gbp": 213938
+  },
+  {
+   "date": "2026-07-02",
+   "curtailed_mwh": 11768,
+   "wind_paid_gbp": 329725,
+   "neso_thermal_mwh": 15098,
+   "neso_thermal_gbp": 2615565
+  },
+  {
+   "date": "2026-07-03",
+   "curtailed_mwh": 19793,
+   "wind_paid_gbp": 678222,
+   "neso_thermal_mwh": 22604,
+   "neso_thermal_gbp": 4025972
+  },
+  {
+   "date": "2026-07-04",
+   "curtailed_mwh": 15278,
+   "wind_paid_gbp": 464163,
+   "neso_thermal_mwh": 19167,
+   "neso_thermal_gbp": 3139017
+  },
+  {
+   "date": "2026-07-05",
+   "curtailed_mwh": 34060,
+   "wind_paid_gbp": 1028485,
+   "neso_thermal_mwh": 41557,
+   "neso_thermal_gbp": 7704397
+  },
+  {
+   "date": "2026-07-06",
+   "curtailed_mwh": 14687,
+   "wind_paid_gbp": 298719,
+   "neso_thermal_mwh": 19223,
+   "neso_thermal_gbp": 4087959
+  },
+  {
+   "date": "2026-07-07",
+   "curtailed_mwh": 10008,
+   "wind_paid_gbp": 341014,
+   "neso_thermal_mwh": 12223,
+   "neso_thermal_gbp": 2748972
+  },
+  {
+   "date": "2026-07-08",
+   "curtailed_mwh": 6302,
+   "wind_paid_gbp": 166919,
+   "neso_thermal_mwh": 6706,
+   "neso_thermal_gbp": 1689648
+  },
+  {
+   "date": "2026-07-09",
+   "curtailed_mwh": 15271,
+   "wind_paid_gbp": 375523,
+   "neso_thermal_mwh": 18850,
+   "neso_thermal_gbp": 3828152
+  },
+  {
+   "date": "2026-07-10",
+   "curtailed_mwh": 5194,
+   "wind_paid_gbp": 132664,
+   "neso_thermal_mwh": 6127,
+   "neso_thermal_gbp": 1434659
+  },
+  {
+   "date": "2026-07-11",
+   "curtailed_mwh": 13981,
+   "wind_paid_gbp": 410262,
+   "neso_thermal_mwh": 18446,
+   "neso_thermal_gbp": 4382029
+  },
+  {
+   "date": "2026-07-12",
+   "curtailed_mwh": 31355,
+   "wind_paid_gbp": 932136,
+   "neso_thermal_mwh": 36728,
+   "neso_thermal_gbp": 8634866
+  },
+  {
+   "date": "2026-07-13",
+   "curtailed_mwh": 57503,
+   "wind_paid_gbp": 1875174,
+   "neso_thermal_mwh": 62304,
+   "neso_thermal_gbp": 13154628
+  },
+  {
+   "date": "2026-07-14",
+   "curtailed_mwh": 4926,
+   "wind_paid_gbp": 108947,
+   "neso_thermal_mwh": 6296,
+   "neso_thermal_gbp": 1166705
+  },
+  {
+   "date": "2026-07-15",
+   "curtailed_mwh": 12569,
+   "wind_paid_gbp": 406934,
+   "neso_thermal_mwh": 16634,
+   "neso_thermal_gbp": 3672713
+  },
+  {
+   "date": "2026-07-16",
+   "curtailed_mwh": 1471,
+   "wind_paid_gbp": 30275,
+   "neso_thermal_mwh": 1978,
+   "neso_thermal_gbp": 378341
+  },
+  {
+   "date": "2026-07-17",
+   "curtailed_mwh": 18057,
+   "wind_paid_gbp": 552864,
+   "neso_thermal_mwh": 23243,
+   "neso_thermal_gbp": 3632301
+  },
+  {
+   "date": "2026-07-18",
+   "curtailed_mwh": 144445,
+   "wind_paid_gbp": 3079345,
+   "neso_thermal_mwh": 164127,
+   "neso_thermal_gbp": 35914117
+  },
+  {
+   "date": "2026-07-19",
+   "curtailed_mwh": 20313,
+   "wind_paid_gbp": 454047,
+   "neso_thermal_mwh": 26998,
+   "neso_thermal_gbp": 6495609
+  },
+  {
+   "date": "2026-07-20",
+   "curtailed_mwh": 14294,
+   "wind_paid_gbp": 476538,
+   "neso_thermal_mwh": 15693,
+   "neso_thermal_gbp": 3448661
+  },
+  {
+   "date": "2026-07-21",
+   "curtailed_mwh": 11124,
+   "wind_paid_gbp": 386833,
+   "neso_thermal_mwh": 13175,
+   "neso_thermal_gbp": 2961113
+  },
+  {
+   "date": "2026-07-22",
+   "curtailed_mwh": 2047,
+   "wind_paid_gbp": 46601,
+   "neso_thermal_mwh": 2664,
+   "neso_thermal_gbp": 492035
+  },
+  {
+   "date": "2026-07-23",
+   "curtailed_mwh": 10349,
+   "wind_paid_gbp": 281263,
+   "neso_thermal_mwh": 12443,
+   "neso_thermal_gbp": 2086096
+  },
+  {
+   "date": "2026-07-24",
+   "curtailed_mwh": 21107,
+   "wind_paid_gbp": 489090,
+   "neso_thermal_mwh": 22586,
+   "neso_thermal_gbp": 5830656
+  },
+  {
+   "date": "2026-07-25",
+   "curtailed_mwh": 4475,
+   "wind_paid_gbp": 90878,
+   "neso_thermal_mwh": 5924,
+   "neso_thermal_gbp": 1281635
+  },
+  {
+   "date": "2026-07-26",
+   "curtailed_mwh": 20857,
+   "wind_paid_gbp": 680299,
+   "neso_thermal_mwh": 23622,
+   "neso_thermal_gbp": 5862714
+  },
+  {
+   "date": "2026-07-27",
+   "curtailed_mwh": 20,
+   "wind_paid_gbp": 427,
+   "neso_thermal_mwh": 21,
+   "neso_thermal_gbp": 5238
+  },
+  {
+   "date": "2026-07-28",
+   "curtailed_mwh": 77202,
+   "wind_paid_gbp": 2301906,
+   "neso_thermal_mwh": 86725,
+   "neso_thermal_gbp": 17713998
+  },
+  {
+   "date": "2026-07-29",
+   "curtailed_mwh": 23359,
+   "wind_paid_gbp": 769494,
+   "neso_thermal_mwh": 25790,
+   "neso_thermal_gbp": 5450423
+  },
+  {
+   "date": "2026-07-30",
+   "curtailed_mwh": 11804,
+   "wind_paid_gbp": 308102,
+   "neso_thermal_mwh": 14345,
+   "neso_thermal_gbp": 3605844
+  },
+  {
+   "date": "2026-07-31",
+   "curtailed_mwh": 9840,
+   "wind_paid_gbp": 340437,
+   "neso_thermal_mwh": 12515,
+   "neso_thermal_gbp": 3073853
+  },
+  {
+   "date": "2026-08-01",
+   "curtailed_mwh": 34987,
+   "wind_paid_gbp": 1074150,
+   "neso_thermal_mwh": 42696,
+   "neso_thermal_gbp": 9717229
+  },
+  {
+   "date": "2026-08-02",
+   "curtailed_mwh": 4884,
+   "wind_paid_gbp": 130044,
+   "neso_thermal_mwh": 6257,
+   "neso_thermal_gbp": 1415329
+  },
+  {
+   "date": "2026-08-03",
+   "curtailed_mwh": 10063,
+   "wind_paid_gbp": 246038,
+   "neso_thermal_mwh": 12860,
+   "neso_thermal_gbp": 2689560
+  },
+  {
+   "date": "2026-08-04",
+   "curtailed_mwh": 154169,
+   "wind_paid_gbp": 3109654,
+   "neso_thermal_mwh": 205931,
+   "neso_thermal_gbp": 43173794
+  },
+  {
+   "date": "2026-08-05",
+   "curtailed_mwh": 31188,
+   "wind_paid_gbp": 1052891,
+   "neso_thermal_mwh": 33266,
+   "neso_thermal_gbp": 9060133
+  },
+  {
+   "date": "2026-08-06",
+   "curtailed_mwh": 12760,
+   "wind_paid_gbp": 334064,
+   "neso_thermal_mwh": 13702,
+   "neso_thermal_gbp": 3016486
+  },
+  {
+   "date": "2026-08-07",
+   "curtailed_mwh": 7816,
+   "wind_paid_gbp": 157760,
+   "neso_thermal_mwh": 9138,
+   "neso_thermal_gbp": 1954663
+  },
+  {
+   "date": "2026-08-08",
+   "curtailed_mwh": 14323,
+   "wind_paid_gbp": 381612,
+   "neso_thermal_mwh": 17496,
+   "neso_thermal_gbp": 3954958
+  },
+  {
+   "date": "2026-08-09",
+   "curtailed_mwh": 71967,
+   "wind_paid_gbp": 1487658,
+   "neso_thermal_mwh": 81540,
+   "neso_thermal_gbp": 20129960
+  },
+  {
+   "date": "2026-08-10",
+   "curtailed_mwh": 34488,
+   "wind_paid_gbp": 978974,
+   "neso_thermal_mwh": 37850,
+   "neso_thermal_gbp": 8639922
+  },
+  {
+   "date": "2026-08-11",
+   "curtailed_mwh": 7322,
+   "wind_paid_gbp": 180325,
+   "neso_thermal_mwh": 8545,
+   "neso_thermal_gbp": 1636239
+  },
+  {
+   "date": "2026-08-12",
+   "curtailed_mwh": 95206,
+   "wind_paid_gbp": 2840237,
+   "neso_thermal_mwh": 100862,
+   "neso_thermal_gbp": 29784860
+  },
+  {
+   "date": "2026-08-13",
+   "curtailed_mwh": 91027,
+   "wind_paid_gbp": 2753477,
+   "neso_thermal_mwh": 114139,
+   "neso_thermal_gbp": 24531053
+  },
+  {
+   "date": "2026-08-14",
+   "curtailed_mwh": 1277,
+   "wind_paid_gbp": 28710,
+   "neso_thermal_mwh": 1481,
+   "neso_thermal_gbp": 305485
+  },
+  {
+   "date": "2026-08-15",
+   "curtailed_mwh": 638,
+   "wind_paid_gbp": 17641,
+   "neso_thermal_mwh": 856,
+   "neso_thermal_gbp": 139346
+  },
+  {
+   "date": "2026-08-16",
+   "curtailed_mwh": 12006,
+   "wind_paid_gbp": 405366,
+   "neso_thermal_mwh": 15038,
+   "neso_thermal_gbp": 3442624
+  },
+  {
+   "date": "2026-08-17",
+   "curtailed_mwh": 13499,
+   "wind_paid_gbp": 348042,
+   "neso_thermal_mwh": 15982,
+   "neso_thermal_gbp": 3146349
+  },
+  {
+   "date": "2026-08-18",
+   "curtailed_mwh": 126341,
+   "wind_paid_gbp": 3744226,
+   "neso_thermal_mwh": 158369,
+   "neso_thermal_gbp": 37594715
+  },
+  {
+   "date": "2026-08-19",
+   "curtailed_mwh": 8813,
+   "wind_paid_gbp": 221667,
+   "neso_thermal_mwh": 11792,
+   "neso_thermal_gbp": 2467078
+  },
+  {
+   "date": "2026-08-20",
+   "curtailed_mwh": 20824,
+   "wind_paid_gbp": 656495,
+   "neso_thermal_mwh": 24119,
+   "neso_thermal_gbp": 5506201
+  },
+  {
+   "date": "2026-08-21",
+   "curtailed_mwh": 69553,
+   "wind_paid_gbp": 1927915,
+   "neso_thermal_mwh": 83264,
+   "neso_thermal_gbp": 17141558
+  },
+  {
+   "date": "2026-08-22",
+   "curtailed_mwh": 10127,
+   "wind_paid_gbp": 283035,
+   "neso_thermal_mwh": 10940,
+   "neso_thermal_gbp": 2053799
+  },
+  {
+   "date": "2026-08-23",
+   "curtailed_mwh": 19053,
+   "wind_paid_gbp": 626056,
+   "neso_thermal_mwh": 23829,
+   "neso_thermal_gbp": 5507357
+  },
+  {
+   "date": "2026-08-24",
+   "curtailed_mwh": 13933,
+   "wind_paid_gbp": 356856,
+   "neso_thermal_mwh": 16192,
+   "neso_thermal_gbp": 2836348
+  },
+  {
+   "date": "2026-08-25",
+   "curtailed_mwh": 47730,
+   "wind_paid_gbp": 1368003,
+   "neso_thermal_mwh": 59799,
+   "neso_thermal_gbp": 10696838
+  },
+  {
+   "date": "2026-08-26",
+   "curtailed_mwh": 82480,
+   "wind_paid_gbp": 2846967,
+   "neso_thermal_mwh": 108539,
+   "neso_thermal_gbp": 24603908
+  },
+  {
+   "date": "2026-08-27",
+   "curtailed_mwh": 20898,
+   "wind_paid_gbp": 612232,
+   "neso_thermal_mwh": 22365,
+   "neso_thermal_gbp": 5078507
+  },
+  {
+   "date": "2026-08-28",
+   "curtailed_mwh": 14456,
+   "wind_paid_gbp": 417759,
+   "neso_thermal_mwh": 17961,
+   "neso_thermal_gbp": 3764983
+  },
+  {
+   "date": "2026-08-29",
+   "curtailed_mwh": 11880,
+   "wind_paid_gbp": 240145,
+   "neso_thermal_mwh": 12619,
+   "neso_thermal_gbp": 3328293
+  },
+  {
+   "date": "2026-08-30",
+   "curtailed_mwh": 3351,
+   "wind_paid_gbp": 77864,
+   "neso_thermal_mwh": 3558,
+   "neso_thermal_gbp": 849468
+  },
+  {
+   "date": "2026-08-31",
+   "curtailed_mwh": 15558,
+   "wind_paid_gbp": 509276,
+   "neso_thermal_mwh": 16509,
+   "neso_thermal_gbp": 4671514
+  },
+  {
+   "date": "2026-09-01",
+   "curtailed_mwh": 10500,
+   "wind_paid_gbp": 242496,
+   "neso_thermal_mwh": 13034,
+   "neso_thermal_gbp": 2214799
+  },
+  {
+   "date": "2026-09-02",
+   "curtailed_mwh": 11963,
+   "wind_paid_gbp": 340497,
+   "neso_thermal_mwh": 15886,
+   "neso_thermal_gbp": 2422146
+  },
+  {
+   "date": "2026-09-03",
+   "curtailed_mwh": 7187,
+   "wind_paid_gbp": 147415,
+   "neso_thermal_mwh": 9475,
+   "neso_thermal_gbp": 1974931
+  },
+  {
+   "date": "2026-09-04",
+   "curtailed_mwh": 14689,
+   "wind_paid_gbp": 407683,
+   "neso_thermal_mwh": 17262,
+   "neso_thermal_gbp": 4635752
+  },
+  {
+   "date": "2026-09-05",
+   "curtailed_mwh": 33909,
+   "wind_paid_gbp": 704275,
+   "neso_thermal_mwh": 38335,
+   "neso_thermal_gbp": 8827244
+  },
+  {
+   "date": "2026-09-06",
+   "curtailed_mwh": 3654,
+   "wind_paid_gbp": 86312,
+   "neso_thermal_mwh": 4269,
+   "neso_thermal_gbp": 998783
+  },
+  {
+   "date": "2026-09-07",
+   "curtailed_mwh": 6643,
+   "wind_paid_gbp": 149948,
+   "neso_thermal_mwh": 7450,
+   "neso_thermal_gbp": 1367821
+  },
+  {
+   "date": "2026-09-08",
+   "curtailed_mwh": 22415,
+   "wind_paid_gbp": 728592,
+   "neso_thermal_mwh": 24000,
+   "neso_thermal_gbp": 6124195
+  },
+  {
+   "date": "2026-09-09",
+   "curtailed_mwh": 3458,
+   "wind_paid_gbp": 87976,
+   "neso_thermal_mwh": 4434,
+   "neso_thermal_gbp": 966099
+  },
+  {
+   "date": "2026-09-10",
+   "curtailed_mwh": 741,
+   "wind_paid_gbp": 24374,
+   "neso_thermal_mwh": 965,
+   "neso_thermal_gbp": 203260
+  },
+  {
+   "date": "2026-09-11",
+   "curtailed_mwh": 105885,
+   "wind_paid_gbp": 3299588,
+   "neso_thermal_mwh": 131796,
+   "neso_thermal_gbp": 24531464
+  },
+  {
+   "date": "2026-09-12",
+   "curtailed_mwh": 71685,
+   "wind_paid_gbp": 2440881,
+   "neso_thermal_mwh": 89512,
+   "neso_thermal_gbp": 21396522
+  },
+  {
+   "date": "2026-09-13",
+   "curtailed_mwh": 27667,
+   "wind_paid_gbp": 690498,
+   "neso_thermal_mwh": 34722,
+   "neso_thermal_gbp": 8029055
+  },
+  {
+   "date": "2026-09-14",
+   "curtailed_mwh": 15405,
+   "wind_paid_gbp": 470453,
+   "neso_thermal_mwh": 18902,
+   "neso_thermal_gbp": 3408317
+  },
+  {
+   "date": "2026-09-15",
+   "curtailed_mwh": 15178,
+   "wind_paid_gbp": 388537,
+   "neso_thermal_mwh": 16578,
+   "neso_thermal_gbp": 4587361
+  },
+  {
+   "date": "2026-09-16",
+   "curtailed_mwh": 12791,
+   "wind_paid_gbp": 390420,
+   "neso_thermal_mwh": 16274,
+   "neso_thermal_gbp": 2710137
+  },
+  {
+   "date": "2026-09-17",
+   "curtailed_mwh": 13212,
+   "wind_paid_gbp": 409398,
+   "neso_thermal_mwh": 15463,
+   "neso_thermal_gbp": 2930681
+  },
+  {
+   "date": "2026-09-18",
+   "curtailed_mwh": 84392,
+   "wind_paid_gbp": 2935462,
+   "neso_thermal_mwh": 103697,
+   "neso_thermal_gbp": 23258209
+  },
+  {
+   "date": "2026-09-19",
+   "curtailed_mwh": 79729,
+   "wind_paid_gbp": 2738435,
+   "neso_thermal_mwh": 86068,
+   "neso_thermal_gbp": 18193587
+  },
+  {
+   "date": "2026-09-20",
+   "curtailed_mwh": 10365,
+   "wind_paid_gbp": 232038,
+   "neso_thermal_mwh": 11602,
+   "neso_thermal_gbp": 3113465
+  },
+  {
+   "date": "2026-09-21",
+   "curtailed_mwh": 21872,
+   "wind_paid_gbp": 451062,
+   "neso_thermal_mwh": 28347,
+   "neso_thermal_gbp": 5482282
+  },
+  {
+   "date": "2026-09-22",
+   "curtailed_mwh": 27236,
+   "wind_paid_gbp": 834825,
+   "neso_thermal_mwh": 34095,
+   "neso_thermal_gbp": 6554055
+  },
+  {
+   "date": "2026-09-23",
+   "curtailed_mwh": 11916,
+   "wind_paid_gbp": 331599,
+   "neso_thermal_mwh": 12687,
+   "neso_thermal_gbp": 3065732
+  },
+  {
+   "date": "2026-09-24",
+   "curtailed_mwh": 19432,
+   "wind_paid_gbp": 392663,
+   "neso_thermal_mwh": 25998,
+   "neso_thermal_gbp": 5992752
+  },
+  {
+   "date": "2026-09-25",
+   "curtailed_mwh": 14971,
+   "wind_paid_gbp": 419655,
+   "neso_thermal_mwh": 18797,
+   "neso_thermal_gbp": 4483122
+  },
+  {
+   "date": "2026-09-26",
+   "curtailed_mwh": 25138,
+   "wind_paid_gbp": 769330,
+   "neso_thermal_mwh": 31979,
+   "neso_thermal_gbp": 7494172
+  },
+  {
+   "date": "2026-09-27",
+   "curtailed_mwh": 15948,
+   "wind_paid_gbp": 447308,
+   "neso_thermal_mwh": 18700,
+   "neso_thermal_gbp": 4990194
+  },
+  {
+   "date": "2026-09-28",
+   "curtailed_mwh": 17138,
+   "wind_paid_gbp": 478177,
+   "neso_thermal_mwh": 20348,
+   "neso_thermal_gbp": 3498407
+  },
+  {
+   "date": "2026-09-29",
+   "curtailed_mwh": 1756,
+   "wind_paid_gbp": 37756,
+   "neso_thermal_mwh": 1867,
+   "neso_thermal_gbp": 389923
+  },
+  {
+   "date": "2026-09-30",
+   "curtailed_mwh": 24099,
+   "wind_paid_gbp": 556291,
+   "neso_thermal_mwh": 25705,
+   "neso_thermal_gbp": 5956121
+  },
+  {
+   "date": "2026-10-01",
+   "curtailed_mwh": 183529,
+   "wind_paid_gbp": 5167838,
+   "neso_thermal_mwh": 244652,
+   "neso_thermal_gbp": 58190523
+  },
+  {
+   "date": "2026-10-02",
+   "curtailed_mwh": 6130,
+   "wind_paid_gbp": 169705,
+   "neso_thermal_mwh": 8259,
+   "neso_thermal_gbp": 1410780
+  },
+  {
+   "date": "2026-10-03",
+   "curtailed_mwh": 5715,
+   "wind_paid_gbp": 149654,
+   "neso_thermal_mwh": 6849,
+   "neso_thermal_gbp": 1168716
+  },
+  {
+   "date": "2026-10-04",
+   "curtailed_mwh": 16407,
+   "wind_paid_gbp": 540777,
+   "neso_thermal_mwh": 19070,
+   "neso_thermal_gbp": 4363202
+  },
+  {
+   "date": "2026-10-05",
+   "curtailed_mwh": 18695,
+   "wind_paid_gbp": 560212,
+   "neso_thermal_mwh": 22192,
+   "neso_thermal_gbp": 4860012
+  },
+  {
+   "date": "2026-10-06",
+   "curtailed_mwh": 5369,
+   "wind_paid_gbp": 147192,
+   "neso_thermal_mwh": 6209,
+   "neso_thermal_gbp": 1322043
+  },
+  {
+   "date": "2026-10-07",
+   "curtailed_mwh": 19165,
+   "wind_paid_gbp": 420027,
+   "neso_thermal_mwh": 21479,
+   "neso_thermal_gbp": 5676762
+  },
+  {
+   "date": "2026-10-08",
+   "curtailed_mwh": 14843,
+   "wind_paid_gbp": 447566,
+   "neso_thermal_mwh": 17835,
+   "neso_thermal_gbp": 3536863
+  },
+  {
+   "date": "2026-10-09",
+   "curtailed_mwh": 101909,
+   "wind_paid_gbp": 3191010,
+   "neso_thermal_mwh": 110364,
+   "neso_thermal_gbp": 30420127
+  },
+  {
+   "date": "2026-10-10",
+   "curtailed_mwh": 133970,
+   "wind_paid_gbp": 3874050,
+   "neso_thermal_mwh": 162184,
+   "neso_thermal_gbp": 34260257
+  },
+  {
+   "date": "2026-10-11",
+   "curtailed_mwh": 83,
+   "wind_paid_gbp": 2792,
+   "neso_thermal_mwh": 98,
+   "neso_thermal_gbp": 23783
+  },
+  {
+   "date": "2026-10-12",
+   "curtailed_mwh": 1260,
+   "wind_paid_gbp": 33593,
+   "neso_thermal_mwh": 1690,
+   "neso_thermal_gbp": 317595
+  },
+  {
+   "date": "2026-10-13",
+   "curtailed_mwh": 3935,
+   "wind_paid_gbp": 104371,
+   "neso_thermal_mwh": 5033,
+   "neso_thermal_gbp": 921296
+  },
+  {
+   "date": "2026-10-14",
+   "curtailed_mwh": 4441,
+   "wind_paid_gbp": 147538,
+   "neso_thermal_mwh": 5483,
+   "neso_thermal_gbp": 1385443
+  },
+  {
+   "date": "2026-10-15",
+   "curtailed_mwh": 22455,
+   "wind_paid_gbp": 534544,
+   "neso_thermal_mwh": 26923,
+   "neso_thermal_gbp": 5063323
+  },
+  {
+   "date": "2026-10-16",
+   "curtailed_mwh": 15841,
+   "wind_paid_gbp": 503971,
+   "neso_thermal_mwh": 19338,
+   "neso_thermal_gbp": 5030447
+  },
+  {
+   "date": "2026-10-17",
+   "curtailed_mwh": 157793,
+   "wind_paid_gbp": 4598124,
+   "neso_thermal_mwh": 180767,
+   "neso_thermal_gbp": 39546144
+  },
+  {
+   "date": "2026-10-18",
+   "curtailed_mwh": 29207,
+   "wind_paid_gbp": 843682,
+   "neso_thermal_mwh": 37629,
+   "neso_thermal_gbp": 6522596
+  },
+  {
+   "date": "2026-10-19",
+   "curtailed_mwh": 13540,
+   "wind_paid_gbp": 410154,
+   "neso_thermal_mwh": 17853,
+   "neso_thermal_gbp": 3070117
+  },
+  {
+   "date": "2026-10-20",
+   "curtailed_mwh": 14651,
+   "wind_paid_gbp": 446319,
+   "neso_thermal_mwh": 19078,
+   "neso_thermal_gbp": 4103781
+  },
+  {
+   "date": "2026-10-21",
+   "curtailed_mwh": 82522,
+   "wind_paid_gbp": 2386127,
+   "neso_thermal_mwh": 86921,
+   "neso_thermal_gbp": 17838265
+  },
+  {
+   "date": "2026-10-22",
+   "curtailed_mwh": 10483,
+   "wind_paid_gbp": 303141,
+   "neso_thermal_mwh": 13006,
+   "neso_thermal_gbp": 2117449
+  },
+  {
+   "date": "2026-10-23",
+   "curtailed_mwh": 6215,
+   "wind_paid_gbp": 158610,
+   "neso_thermal_mwh": 7602,
+   "neso_thermal_gbp": 1623901
+  },
+  {
+   "date": "2026-10-24",
+   "curtailed_mwh": 6571,
+   "wind_paid_gbp": 176193,
+   "neso_thermal_mwh": 7878,
+   "neso_thermal_gbp": 2041431
+  },
+  {
+   "date": "2026-10-25",
+   "curtailed_mwh": 16430,
+   "wind_paid_gbp": 566180,
+   "neso_thermal_mwh": 17747,
+   "neso_thermal_gbp": 4859736
+  },
+  {
+   "date": "2026-10-26",
+   "curtailed_mwh": 5928,
+   "wind_paid_gbp": 166412,
+   "neso_thermal_mwh": 7479,
+   "neso_thermal_gbp": 1252808
+  },
+  {
+   "date": "2026-10-27",
+   "curtailed_mwh": 13150,
+   "wind_paid_gbp": 419240,
+   "neso_thermal_mwh": 16541,
+   "neso_thermal_gbp": 3553297
+  },
+  {
+   "date": "2026-10-28",
+   "curtailed_mwh": 3820,
+   "wind_paid_gbp": 125534,
+   "neso_thermal_mwh": 4825,
+   "neso_thermal_gbp": 891190
+  },
+  {
+   "date": "2026-10-29",
+   "curtailed_mwh": 22313,
+   "wind_paid_gbp": 536782,
+   "neso_thermal_mwh": 27774,
+   "neso_thermal_gbp": 6131171
+  },
+  {
+   "date": "2026-10-30",
+   "curtailed_mwh": 10593,
+   "wind_paid_gbp": 364234,
+   "neso_thermal_mwh": 11788,
+   "neso_thermal_gbp": 3165959
+  },
+  {
+   "date": "2026-10-31",
+   "curtailed_mwh": 17495,
+   "wind_paid_gbp": 407315,
+   "neso_thermal_mwh": 19039,
+   "neso_thermal_gbp": 4230697
+  },
+  {
+   "date": "2026-11-01",
+   "curtailed_mwh": 15570,
+   "wind_paid_gbp": 512343,
+   "neso_thermal_mwh": 18663,
+   "neso_thermal_gbp": 3218725
+  },
+  {
+   "date": "2026-11-02",
+   "curtailed_mwh": 112144,
+   "wind_paid_gbp": 2246122,
+   "neso_thermal_mwh": 131026,
+   "neso_thermal_gbp": 28148407
+  },
+  {
+   "date": "2026-11-03",
+   "curtailed_mwh": 14126,
+   "wind_paid_gbp": 331222,
+   "neso_thermal_mwh": 14855,
+   "neso_thermal_gbp": 4462709
+  },
+  {
+   "date": "2026-11-04",
+   "curtailed_mwh": 25820,
+   "wind_paid_gbp": 668587,
+   "neso_thermal_mwh": 28646,
+   "neso_thermal_gbp": 6275466
+  },
+  {
+   "date": "2026-11-05",
+   "curtailed_mwh": 182480,
+   "wind_paid_gbp": 6369405,
+   "neso_thermal_mwh": 202077,
+   "neso_thermal_gbp": 46316600
+  },
+  {
+   "date": "2026-11-06",
+   "curtailed_mwh": 8168,
+   "wind_paid_gbp": 261348,
+   "neso_thermal_mwh": 10443,
+   "neso_thermal_gbp": 2036758
+  }
+ ],
+ "validation": {
+  "window": [
+   "2026-04-01",
+   "2026-11-06"
+  ],
+  "volume_ratio": 0.85,
+  "volume_corr_daily": 0.91
+ }
+}
