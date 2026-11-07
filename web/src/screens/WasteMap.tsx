@@ -5,9 +5,9 @@ import { fmtEnergy, fmtGbp, fmtNum, fmtTime, useJson, type Farm, type FarmPeriod
 
 // Equirectangular projection over Scotland's bounding box, corrected for latitude.
 // web/scripts/build-coastline.mjs uses the same box and formula; keep them in sync.
-const BOX = { minLon: -8.2, maxLon: -0.6, minLat: 54.6, maxLat: 60.9 };
+export const BOX = { minLon: -8.2, maxLon: -0.6, minLat: 54.6, maxLat: 60.9 };
 const W = 520, H = 640;
-const project = (lat: number, lon: number) => {
+export const project = (lat: number, lon: number) => {
   const k = Math.cos((57.5 * Math.PI) / 180);
   const x = ((lon - BOX.minLon) * k) / ((BOX.maxLon - BOX.minLon) * k) * W;
   const y = (1 - (lat - BOX.minLat) / (BOX.maxLat - BOX.minLat)) * H;
@@ -15,10 +15,10 @@ const project = (lat: number, lon: number) => {
 };
 
 const DEFAULT_DAYS = ["2026-10-14"];
-const STATE_LABEL: Record<FarmState, string> = {
+export const STATE_LABEL: Record<FarmState, string> = {
   generating: "Generating", instructed: "Paid to switch off", unavailable: "Unavailable (outage)", unknown: "Unknown",
 };
-type PlacedFarm = Farm & { lat: number; lon: number };
+export type PlacedFarm = Farm & { lat: number; lon: number };
 
 // Checks every replay field this screen reads, so a malformed day or live payload never reaches the render code.
 // Returns null when anything is off; meta.source defaults to [] and meta.generated_utc may be missing.
@@ -30,7 +30,7 @@ const isFarmPeriod = (f: unknown) =>
 const isPeriod = (p: unknown) =>
   isObj(p) && typeof p.start_utc === "string" && !Number.isNaN(Date.parse(p.start_utc)) && typeof p.sp === "number"
   && isObj(p.farms) && Object.values(p.farms).every(isFarmPeriod);
-function parseReplay(j: unknown): Replay | null {
+export function parseReplay(j: unknown): Replay | null {
   if (!isObj(j) || !isObj(j.meta) || !Array.isArray(j.periods) || !j.periods.length || !j.periods.every(isPeriod)) return null;
   const { meta } = j;
   if (meta.generated_utc !== undefined && typeof meta.generated_utc !== "string") return null;
@@ -40,8 +40,8 @@ function parseReplay(j: unknown): Replay | null {
 
 // Optional replay/index.json: either ["2026-10-14", ...] or { "days": [...], "live": "live.json" }. Missing or malformed → defaults.
 // `live` is a file name under replay/ or an absolute http(s) URL (for example a raw Gist with CORS enabled).
-function useReplayIndex(): { days: string[]; liveUrl: string | null } {
-  const [index, setIndex] = useState<{ days: string[]; liveUrl: string | null }>({ days: DEFAULT_DAYS, liveUrl: null });
+export function useReplayIndex(): { days: string[]; liveUrl: string | null; loaded?: boolean } {
+  const [index, setIndex] = useState<{ days: string[]; liveUrl: string | null; loaded?: boolean }>({ days: DEFAULT_DAYS, liveUrl: null });
   useEffect(() => {
     let alive = true;
     fetch("./data/replay/index.json")
@@ -53,9 +53,9 @@ function useReplayIndex(): { days: string[]; liveUrl: string | null } {
         const liveUrl = typeof lf !== "string" ? null
           : /^https?:\/\//i.test(lf) ? lf
           : /^[\w.-]+\.json$/.test(lf) ? `./data/replay/${lf}` : null;
-        if (alive) setIndex({ days: valid.length ? [...new Set(valid)].sort() : DEFAULT_DAYS, liveUrl });
+        if (alive) setIndex({ days: valid.length ? [...new Set(valid)].sort() : DEFAULT_DAYS, liveUrl, loaded: true });
       })
-      .catch(() => { /* optional file; keep defaults */ });
+      .catch(() => { if (alive) setIndex((v) => ({ ...v, loaded: true })); /* optional file; keep defaults */ });
     return () => { alive = false; };
   }, []);
   return index;
@@ -64,9 +64,9 @@ function useReplayIndex(): { days: string[]; liveUrl: string | null } {
 // R-8: the pipeline poller writes replay/live.json locally and it is gitignored, so the hosted site has none unless
 // index.json points `live` at an absolute URL. Probe it once; while `polling`, re-fetch every 60 s with cache-busting.
 // Failures are silent: before the first good load the Live option stays hidden; afterwards the last good copy is kept.
-const LIVE = "live";
+export const LIVE = "live";
 const LIVE_REFRESH_MS = 60_000;
-function useLiveReplay(url: string | null, polling: boolean): Replay | null {
+export function useLiveReplay(url: string | null, polling: boolean): Replay | null {
   const [data, setData] = useState<Replay | null>(null);
   useEffect(() => {
     if (!url) return;
@@ -83,7 +83,7 @@ function useLiveReplay(url: string | null, polling: boolean): Replay | null {
   return data;
 }
 
-const fmtDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+export const fmtDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 function FarmCard({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPeriod | undefined; pinned: boolean; onClose: () => void }) {
   const s = p?.state ?? "unknown";
