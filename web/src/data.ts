@@ -43,3 +43,18 @@ export const fmtEnergy = (mwh: number | null | undefined) => {
   return `${num.format(mwh)} MWh`;
 };
 export const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+export interface ForecastPeriod {
+  start_utc: string; curtailed_mwh_p10: number | null; curtailed_mwh_p50: number | null; curtailed_mwh_p90: number | null;
+  p_heavy: number | null; p_turnup_request?: number | null;
+}
+export interface ReliabilityBin { bin: number; predicted: number; observed: number; n: number }
+export interface Forecast {
+  meta: Meta; issued_utc: string; periods: ForecastPeriod[];
+  backtest: {
+    test_window: [string, string]; n_periods: number;
+    mae_mwh: { model: number; persistence: number; training_mean: number };
+    brier_heavy: { model: number; persistence: number; prior: number };
+    auc_heavy: { model: number; persistence: number };
+    reliability: ReliabilityBin[];
+  };
+}
