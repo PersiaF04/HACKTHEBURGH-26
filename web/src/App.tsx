@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Screen } from "./components";
+import { Copilot } from "./screens/Copilot";
 import { HelpWanted } from "./screens/HelpWanted";
 import { Iceberg } from "./screens/Iceberg";
 import { Tomorrow } from "./screens/Tomorrow";
@@ -11,7 +12,7 @@ const SCREENS = [
   { id: "iceberg", label: "Hidden Bill", render: () => <Iceberg /> },
   { id: "help", label: "Help Wanted", render: () => <HelpWanted /> },
   { id: "tomorrow", label: "Tomorrow", render: () => <Tomorrow /> },
-  { id: "copilot", label: "Flex Copilot", render: () => <Soon n={5} title="Flex Copilot" /> },
+  { id: "copilot", label: "Flex Copilot", render: () => <Copilot /> },
   { id: "hood", label: "Under the Hood", render: () => <UnderTheHood /> },
 ] as const;
 
