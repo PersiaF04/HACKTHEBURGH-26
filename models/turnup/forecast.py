@@ -109,7 +109,7 @@ def usable(rows: list[Row]) -> list[Row]:
     return [r for r in rows if r.y is not None]
 
 
-def backtest_predictions(rows: list[Row], test_start: str = TEST_START) -> list[dict]:
+def backtest_predictions(rows: list[Row], test_start: str = TEST_START, with_headroom: bool = True) -> list[dict]:
     """Rolling-origin, expanding-window predictions in weekly folds.
 
     Each fold trains only on rows dated before the fold, then predicts the fold. All baselines
@@ -124,23 +124,23 @@ def backtest_predictions(rows: list[Row], test_start: str = TEST_START) -> list[
         train = [r for r in data if r.date < start]
         test = [r for r in data if start <= r.date < end and r.pers is not None]
         if test and len({r.date for r in train}) >= MIN_TRAIN_DAYS:
-            model, head = QuantileLookup(train), HeadroomRule(train)
+            model, head = QuantileLookup(train), (HeadroomRule(train) if with_headroom else None)
             mean_y = stats.mean([r.y for r in train])
             prior = sum(1 for r in train if r.y > HEAVY_MWH) / len(train)
             for r in test:
-                m, h = model.predict(r.util, r.pers), head.predict(r.util)
+                m, h = model.predict(r.util, r.pers), (head.predict(r.util) if head else None)
                 preds.append({"date": r.date, "sp": r.sp, "y": r.y, "heavy": r.y > HEAVY_MWH,
                               "p50": m["p50"], "p10": m["p10"], "p90": m["p90"], "p_heavy": m["p_heavy"],
                               "util": r.util, "persist": r.pers, "train_mean": mean_y, "prior": prior,
-                              "head_mean": h["mean"], "head_p": h["p_heavy"]})
+                              "head_mean": h["mean"] if h else None, "head_p": h["p_heavy"] if h else None})
         start = end
     if not preds:
         raise RuntimeError("no backtest predictions: not enough history")
     return preds
 
 
-def backtest(rows: list[Row], test_start: str = TEST_START) -> dict:
-    return summarise(backtest_predictions(rows, test_start))
+def backtest(rows: list[Row], test_start: str = TEST_START, with_headroom: bool = True) -> dict:
+    return summarise(backtest_predictions(rows, test_start, with_headroom))
 
 
 def _r(v):
@@ -151,28 +151,33 @@ def summarise(preds: list[dict]) -> dict:
     y = [p["y"] for p in preds]
     heavy = [p["heavy"] for p in preds]
     persist_heavy = [1.0 if p["persist"] > HEAVY_MWH else 0.0 for p in preds]
+    has_head = preds[0]["head_mean"] is not None
+    mae = {
+        "model": round(stats.mae([p["p50"] for p in preds], y), 1),
+        "persistence": round(stats.mae([p["persist"] for p in preds], y), 1),
+        "training_mean": round(stats.mae([p["train_mean"] for p in preds], y), 1),
+    }
+    brier = {
+        "model": round(stats.brier([p["p_heavy"] for p in preds], heavy), 3),
+        "persistence": round(stats.brier(persist_heavy, heavy), 3),
+        "prior": round(stats.brier([p["prior"] for p in preds], heavy), 3),
+    }
+    auc = {
+        "model": _r(stats.auc([p["p_heavy"] for p in preds], heavy)),
+        "persistence": _r(stats.auc([p["persist"] for p in preds], heavy)),
+    }
+    if has_head:                        # the headroom rule only exists for the flow-utilisation feature
+        mae["headroom_rule"] = round(stats.mae([p["head_mean"] for p in preds], y), 1)
+        brier["headroom_rule"] = round(stats.brier([p["head_p"] for p in preds], heavy), 3)
+        auc["headroom_rule"] = _r(stats.auc([p["head_p"] for p in preds], heavy))
     return {
         "test_window": [min(p["date"] for p in preds), max(p["date"] for p in preds)],
         "n_periods": len(preds),
         "heavy_threshold_mwh": HEAVY_MWH,
         "heavy_share_in_test": round(sum(heavy) / len(heavy), 3),
-        "mae_mwh": {
-            "model": round(stats.mae([p["p50"] for p in preds], y), 1),
-            "persistence": round(stats.mae([p["persist"] for p in preds], y), 1),
-            "training_mean": round(stats.mae([p["train_mean"] for p in preds], y), 1),
-            "headroom_rule": round(stats.mae([p["head_mean"] for p in preds], y), 1),
-        },
-        "brier_heavy": {
-            "model": round(stats.brier([p["p_heavy"] for p in preds], heavy), 3),
-            "persistence": round(stats.brier(persist_heavy, heavy), 3),
-            "prior": round(stats.brier([p["prior"] for p in preds], heavy), 3),
-            "headroom_rule": round(stats.brier([p["head_p"] for p in preds], heavy), 3),
-        },
-        "auc_heavy": {
-            "model": _r(stats.auc([p["p_heavy"] for p in preds], heavy)),
-            "persistence": _r(stats.auc([p["persist"] for p in preds], heavy)),
-            "headroom_rule": _r(stats.auc([p["head_p"] for p in preds], heavy)),
-        },
+        "mae_mwh": mae,
+        "brier_heavy": brier,
+        "auc_heavy": auc,
         "interval_coverage_p10_p90": round(
             sum(1 for p in preds if p["p10"] <= p["y"] <= p["p90"]) / len(preds), 3),
         "reliability": stats.reliability([p["p_heavy"] for p in preds], heavy),

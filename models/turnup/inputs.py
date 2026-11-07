@@ -190,3 +190,19 @@ def dfs_summary(refresh: bool = False) -> list[dict]:
             "settled_mw": r["Settled Volume MW"], "settled_cost": r["Settled Cost GBP"],
         })
     return out
+
+
+def wind_feature(refresh: bool = False) -> dict[tuple[str, int], float]:
+    """National incentive wind forecast load factor, history plus NESO's current day-ahead file.
+
+    The history is the archived value (stamped on the target morning for recent days); the current
+    "Day Ahead Wind Forecast" resource holds the genuine day-ahead forecast for the next day and
+    overrides the archive for any date it covers. Never cached, because it changes daily.
+    """
+    out = dict(national_wind_forecast(refresh))
+    rid = fetch.resource_id("day-ahead-wind-forecast", r"Day Ahead Wind Forecast")
+    for r in fetch.datastore_all(rid):
+        f, c = r.get("Incentive_forecast"), r.get("Capacity")
+        if f is not None and c:
+            out[(str(r["Date"])[:10], int(r["Settlement_period"]))] = f / c
+    return out

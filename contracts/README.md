@@ -83,8 +83,8 @@ The zone-to-region mapping is unconfirmed (PRD risk K-2). The UI shows zone IDs,
 Optional fields (lane B writes them; the web app may ignore them):
 
 - Top level: `target_date` (the day the periods cover) and `mode`: `next_day` when the target is after `issued_utc`'s date, or `same_day_replay` when no future day-ahead snapshot had been published (a retrospective replay, not a forecast of tomorrow).
-- `meta`: `leakage_note`, `mode`, `target_note`, `persistence_note`, `region_definition`, `last_actual_date`.
-- `backtest`: `heavy_threshold_mwh`, `heavy_share_in_test`, `interval_coverage_p10_p90`, `by_month`, `method`, `turnup` (provisional request-probability scores) and `morning_update` (a same-morning wind-forecast sensitivity, not the tomorrow model). `mae_mwh`, `brier_heavy` and `auc_heavy` may also carry a `headroom_rule` baseline.
+- `meta`: `model` (`flow_utilisation` or `wind_forecast`), `leakage_note`, `mode`, `target_note`, `persistence_note`, `region_definition`, `last_actual_date`.
+- `backtest`: `heavy_threshold_mwh`, `heavy_share_in_test`, `interval_coverage_p10_p90`, `by_month`, `method`, `turnup` (provisional request-probability scores) and `morning_update` (a same-morning wind-forecast sensitivity, not the tomorrow model, flow model only) and `flow_model` (the flow model's scores, present when the wind model produced the periods). `mae_mwh`, `brier_heavy` and `auc_heavy` carry a `headroom_rule` baseline only when `meta.model` is `flow_utilisation`.
 
 ### `copilot.json`
 
