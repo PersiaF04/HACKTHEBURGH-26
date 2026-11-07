@@ -244,24 +244,52 @@ def archive_year_counts(rows: Iterable[Mapping]) -> dict[int, int]:
     return dict(sorted(counts.items()))
 
 
+_OLD_STYLE = re.compile(r"^[a-z][a-z\-]*(?:\.[a-z]{2})?/\d{7}$")
+_NEW_STYLE_ID = re.compile(r"^\d{4}\.\d{4,5}$")
+
+
+def arxiv_id_kind(raw: str | None) -> str:
+    """``new_style`` (``YYMM.NNNNN``), ``old_style`` (``hep-th/9901001``, ``cs.AI/0301001``) or ``none``.
+
+    Version suffixes and an ``arXiv:`` prefix are stripped first. Both styles are real arXiv ids
+    that can match the archive; only old-style ids have no month to derive.
+    """
+    text = normalise_arxiv_id(raw)
+    if text is None:
+        return "none"
+    if _NEW_STYLE_ID.match(text):
+        return "new_style"
+    if _OLD_STYLE.match(text):
+        return "old_style"
+    return "none"
+
+
 def archive_coverage_states(
     year_counts: Mapping[int, int],
     min_linked: int,
     archive_date: dt.date = PWC_ARCHIVE_DATE,
     years: Iterable[int] | None = None,
 ) -> dict:
-    """Grey logic. ``cutoff_year`` is the first year with at least ``min_linked`` linked papers.
+    """Per-year state from an explicit archive date and a data-derived thin cutoff.
 
-    Years before the cutoff are ``grey`` (archive too thin); years after ``archive_date.year``
-    are ``grey`` (out of vintage). ``min_linked`` is a parameter, and the cutoff is reported.
+    ``outside_archive_vintage``: the year starts after ``archive_date``. ``partial``: the year ends
+    after ``archive_date`` (the archive covers only part of it). ``thin``: before ``cutoff_year``,
+    the first year with at least ``min_linked`` linked papers. Otherwise ``ok``. Only ``ok`` years
+    get a code rate. ``min_linked`` is a parameter and the cutoff is reported.
     """
     qualifying = [y for y, n in sorted(year_counts.items()) if n >= min_linked]
     cutoff = qualifying[0] if qualifying else None
     span = sorted(set(years) if years is not None else set(year_counts))
     states = {}
     for year in span:
-        grey = cutoff is None or year < cutoff or year > archive_date.year
-        states[year] = "grey" if grey else "ok"
+        if dt.date(year, 1, 1) > archive_date:
+            states[year] = "outside_archive_vintage"
+        elif dt.date(year, 12, 31) > archive_date:
+            states[year] = "partial"
+        elif cutoff is None or year < cutoff:
+            states[year] = "thin"
+        else:
+            states[year] = "ok"
     return {"cutoff_year": cutoff, "min_linked": min_linked, "archive_date": archive_date.isoformat(), "states": states}
 
 
@@ -270,42 +298,52 @@ def coverage_table(
     linked: set[str],
     year_counts: Mapping[int, int],
     min_linked: int,
+    archive_date: dt.date = PWC_ARCHIVE_DATE,
 ) -> dict:
     """Per (concept, year): papers with an archive link, all papers, rate and coverage state.
 
     ``papers`` items have ``concepts`` (iterable of str), ``arxiv_id`` (or ``None``) and
-    ``fallback_date`` (``dt.date`` or ``None``). The year is the arXiv-id month's year, else the
-    fallback date's. Papers with no date at all are skipped and counted in ``undated``. Papers
-    without an arXiv id stay in the denominator and are flagged unmatchable by construction.
+    ``fallback_date`` (the OpenAlex publication date, ``dt.date`` or ``None``). New-style arXiv
+    ids take their year from the id month (``date_source`` ``arxiv_id_month``); old-style ids and
+    papers without an arXiv id use the publication date (``publication_date``). Papers with no
+    date are skipped and counted in ``undated``. Old-style ids are arXiv papers and can match the
+    archive; only papers with no usable arXiv id are flagged unmatchable by construction.
+    ``code_rate`` is ``None`` unless the year is ``ok`` (a partial or thin year gives no rate).
     """
     num: dict = defaultdict(int)
     den: dict = defaultdict(int)
-    non_arxiv: dict = defaultdict(int)
+    no_id: dict = defaultdict(int)
+    sources: dict = defaultdict(Counter)
     undated = 0
     for paper in papers:
-        arxiv_id = normalise_arxiv_id(paper.get("arxiv_id"))
+        kind = arxiv_id_kind(paper.get("arxiv_id"))
+        arxiv_id = normalise_arxiv_id(paper.get("arxiv_id")) if kind != "none" else None
         try:
             year = paper_date(arxiv_id, paper.get("fallback_date")).year
         except ValueError:
             undated += 1
             continue
+        source = "arxiv_id_month" if arxiv_month(arxiv_id) else "publication_date"
         has_link = arxiv_id is not None and arxiv_id in linked
         for concept in set(paper.get("concepts") or ()):
-            den[(concept, year)] += 1
-            num[(concept, year)] += has_link
-            non_arxiv[(concept, year)] += arxiv_month(arxiv_id) is None
+            key = (concept, year)
+            den[key] += 1
+            num[key] += has_link
+            no_id[key] += kind == "none"
+            sources[key][source] += 1
     years = {year for _, year in den}
-    cov = archive_coverage_states(year_counts, min_linked, years=years)
+    cov = archive_coverage_states(year_counts, min_linked, archive_date, years=years)
     rows = [
         {
             "concept": concept,
             "year": year,
             "linked": num[(concept, year)],
             "papers": den[(concept, year)],
-            "code_rate": num[(concept, year)] / den[(concept, year)],
+            "code_rate": num[(concept, year)] / den[(concept, year)] if cov["states"][year] == "ok" else None,
             "coverage_state": cov["states"][year],
-            "non_arxiv_papers": non_arxiv[(concept, year)],
-            "unmatchable_by_construction": non_arxiv[(concept, year)] > 0,
+            "papers_without_arxiv_id": no_id[(concept, year)],
+            "unmatchable_by_construction": no_id[(concept, year)] > 0,
+            "date_sources": dict(sources[(concept, year)]),
         }
         for concept, year in sorted(den)
     ]
