@@ -1,0 +1,41 @@
+name: Vercel preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # Do not expose the Vercel token to forked pull requests.
+    if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Explain missing Vercel token
+        if: env.VERCEL_TOKEN == ''
+        run: echo 'Preview skipped. Add the repository Actions secret VERCEL_TOKEN to enable Vercel previews.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Link this checkout to the existing Vercel project
+        if: env.VERCEL_TOKEN != ''
+        run: npx --yes vercel@latest link --yes --project whitespace --scope persia3 --token "$VERCEL_TOKEN"
+
+      - name: Deploy preview
+        if: env.VERCEL_TOKEN != ''
+        run: npx --yes vercel@latest deploy --yes --scope persia3 --token "$VERCEL_TOKEN"
