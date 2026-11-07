@@ -11,7 +11,7 @@ Every number is computed by `python models/panel_numbers.py` from `data/public/`
 | # | Line | Source file : field | Value |
 | --- | --- | --- | --- |
 | 1 | Scotland's wind farms can make more power than the cables to England can carry, so wind is paid to switch off. | `replay/2026-10-27.json` : `scotex_flow_mw` vs `scotex_limit_mw` | 48 of 48 half-hours over the limit |
-| 2 | Since 1 April, 7.12 TWh of Scottish wind was turned down. | `curtailment_daily.json` : sum of `days[].curtailed_mwh` (220 days to 6 Nov) | 7.12 TWh |
+| 2 | Since 1 April, at least 7.12 TWh of Scottish wind was turned down. | `curtailment_daily.json` : sum of `days[].curtailed_mwh` (192 of 220 days to 6 Nov have data; 28 are blank, so it is a floor) | 7.12 TWh |
 | 3 | That is roughly 2.6 million homes' electricity for a year (approximate, about 2,700 kWh per home). | derived from line 2 | 2.6 million homes |
 | 4 | On 27 October alone, 168,351 MWh was turned down: roughly 62,000 homes for a year (approximate). | `curtailment_daily.json` : `days[date=2026-10-27].curtailed_mwh` | 168,351 MWh; 62,000 homes |
 | 5 | Wind farms were paid £6.4m to switch off that day. | `curtailment_daily.json` : `days[date=2026-10-27].wind_paid_gbp` | £6.4m |
