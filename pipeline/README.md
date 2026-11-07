@@ -16,6 +16,7 @@ Run every command from `pipeline/`.
 | Warm the Elexon cache for the backfill window (slow first time) | `python -m turnup.prefetch` |
 | Regenerate every lane A contract file in `data/public/` | `python -m turnup.backfill` |
 | Regenerate some files only | `python -m turnup.backfill --only farms,daily,dfs,replay` |
+| Power-line geometry for the map (`data/public/grid.json`, OpenStreetMap) | `python -m turnup.grid` |
 | Live poller: refresh `data/public/replay/live.json` every 5 minutes | `python -m turnup.live` |
 | Check `data/public/` against `contracts/fixtures/` | `python -m turnup.validate` |
 
