@@ -98,3 +98,33 @@ def test_contract_compare_allows_null_numbers_and_flags_missing_keys():
     expected = {"days": [{"date": "2026-01-01", "curtailed_mwh": 1}]}
     assert compare(expected, {"days": [{"date": "2026-01-02", "curtailed_mwh": None}]}) == []
     assert compare(expected, {"days": [{"date": "2026-01-02"}]}) == ["days[].curtailed_mwh: missing"]
+
+
+def test_scotex_series_converts_local_time_and_clock_change():
+    rows = [
+        {"Constraint Group": "SCOTEX", "Date_ Time GMT_BST": "2026-10-14T00:00:00", "Limit_MW": "5900", "Flow_MW": "4984"},
+        {"Constraint Group": "FLOWSTH", "Date_ Time GMT_BST": "2026-10-14T00:00:00", "Limit_MW": "1", "Flow_MW": "1"},
+        # 25 Oct: local 01:00 appears twice (BST then GMT)
+        {"Constraint Group": "SCOTEX", "Date_ Time GMT_BST": "2026-10-25T01:00:00", "Limit_MW": "6000", "Flow_MW": "100"},
+        {"Constraint Group": "SCOTEX", "Date_ Time GMT_BST": "2026-10-25T01:00:00", "Limit_MW": "6000", "Flow_MW": "200"},
+        {"Constraint Group": "SCOTEX", "Date_ Time GMT_BST": "2026-11-01T12:00:00", "Limit_MW": "", "Flow_MW": "300"},
+    ]
+    s = b.scotex_series(rows)
+    assert s["2026-10-13T23:00:00Z"] == (5900, 4984)
+    assert s["2026-10-25T00:00:00Z"] == (6000, 100)   # BST occurrence
+    assert s["2026-10-25T01:00:00Z"] == (6000, 200)   # GMT occurrence
+    assert s["2026-11-01T12:00:00Z"] == (None, 300)
+    assert len(s) == 4
+    periods = [{"start_utc": "2026-10-13T23:00:00Z"}, {"start_utc": "2026-10-13T23:30:00Z"}]
+    assert b.add_scotex(periods, s) == 1
+    assert periods[0]["scotex_flow_mw"] == 4984 and periods[1]["scotex_limit_mw"] is None
+
+
+def test_scotex_lookup_failure_gives_null_fields_not_an_abort(monkeypatch):
+    def boom(refresh=False):
+        raise RuntimeError("NESO unreachable")
+    monkeypatch.setattr(b, "scotex_lookup", boom)
+    assert b.scotex_lookup_or_empty() == {}
+    periods = [{"start_utc": "2026-10-14T00:00:00Z"}]
+    assert b.add_scotex(periods, b.scotex_lookup_or_empty()) == 0
+    assert periods[0]["scotex_limit_mw"] is None and periods[0]["scotex_flow_mw"] is None

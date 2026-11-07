@@ -13,7 +13,10 @@ from __future__ import annotations
 import argparse
 import collections
 import datetime as dt
+import json
 import logging
+import shutil
+import subprocess
 import time
 
 from . import backfill as bf
@@ -21,6 +24,8 @@ from . import fetch, http, sources
 
 log = logging.getLogger("turnup.live")
 INTERVAL_SECONDS = 300
+SCOTEX_MAX_AGE_SECONDS = 3600
+GIST_STATE = bf.REPO_ROOT / "data" / "cache" / "live_gist.json"  # gitignored; holds the gist id
 
 
 def fetch_boalf(start: dt.datetime, end: dt.datetime) -> list[dict]:
@@ -53,8 +58,23 @@ def latest_acceptance_level(rows: list[dict], start: dt.datetime, end: dt.dateti
     return None
 
 
+_scotex_cache: dict = {"at": None, "data": {}}
+
+
+def live_scotex(now: dt.datetime) -> dict:
+    """SCOTEX lookup, re-downloaded at most hourly; on failure the previous copy is kept."""
+    at = _scotex_cache["at"]
+    if at is None or (now - at).total_seconds() > SCOTEX_MAX_AGE_SECONDS:
+        try:
+            _scotex_cache["data"] = bf.scotex_lookup(refresh=at is not None)
+            _scotex_cache["at"] = now
+        except Exception as exc:  # noqa: BLE001 - optional field
+            log.warning("SCOTEX refresh failed, keeping previous: %s", exc)
+    return _scotex_cache["data"]
+
+
 def build_live(now: dt.datetime, farm_ids: set[str], physical=fetch.elexon_physical,
-               boalf=fetch_boalf) -> dict:
+               boalf=fetch_boalf, scotex=None) -> dict:
     day = now.astimezone(bf.LONDON).date().isoformat()
     day_start = bf.sp_start_utc(day, 1)
     acc_by_unit = collections.defaultdict(list)
@@ -89,34 +109,76 @@ def build_live(now: dt.datetime, farm_ids: set[str], physical=fetch.elexon_physi
                           "paid_gbp": None,
                           "state": bf.classify(pn, mel, curtailed)}
         periods.append({"sp": sp, "start_utc": bf.iso_z(start), "farms": farms})
-    return {"meta": {"source": ["Elexon PN", "Elexon MELS", "Elexon BOALF (live)"],
+    bf.add_scotex(periods, scotex if scotex is not None else live_scotex(now))
+    return {"meta": {"source": ["Elexon PN", "Elexon MELS", "Elexon BOALF (live)",
+                                "NESO day-ahead constraint flows and limits (SCOTEX)"],
+                     "scotex_note": bf.SCOTEX_NOTE,
                      "generated_utc": bf.iso_z(now), "retrospective": False, "live": True,
                      "method": "curtailed_mwh = (PN - latest accepted BOALF level) / 2 when below PN; "
                                "paid_gbp is null until Elexon publishes indicative cashflows next morning"},
             "date": day, "periods": periods}
 
 
-def refresh(farm_ids: set[str], now: dt.datetime | None = None) -> bool:
+def refresh(farm_ids: set[str], now: dt.datetime | None = None, publish: bool = False) -> bool:
     now = now or dt.datetime.now(dt.timezone.utc)
     try:
         obj = build_live(now, farm_ids)
     except Exception as exc:  # noqa: BLE001 - keep the last good file
         log.warning("live refresh failed, keeping last good live.json: %s", exc)
         return False
-    bf.write_json("replay/live.json", obj, compact=True)
+    path = bf.write_json("replay/live.json", obj, compact=True)
+    if publish:
+        publish_gist(path)
     return True
+
+
+def publish_gist(path) -> bool:
+    """Upload live.json to an unlisted GitHub Gist with the gh CLI (creates it on first use).
+
+    The gist id is kept in data/cache/live_gist.json. Failures are logged, never raised.
+    """
+    gh = shutil.which("gh")
+    if not gh:
+        log.warning("gh CLI not found; live.json not published")
+        return False
+    try:
+        state = json.loads(GIST_STATE.read_text(encoding="utf-8")) if GIST_STATE.exists() else {}
+        if not state.get("id"):
+            out = subprocess.run([gh, "gist", "create", "--desc", "Turn Up Scotland live.json (auto-updated)",
+                                  str(path)], capture_output=True, text=True, timeout=120, check=True)
+            gist_id = out.stdout.strip().rstrip("/").rsplit("/", 1)[-1]
+            owner = subprocess.run([gh, "api", "user", "-q", ".login"], capture_output=True, text=True,
+                                   timeout=60, check=True).stdout.strip()
+            state = {"id": gist_id, "raw_url": f"https://gist.githubusercontent.com/{owner}/{gist_id}/raw/live.json"}
+            GIST_STATE.parent.mkdir(parents=True, exist_ok=True)
+            GIST_STATE.write_text(json.dumps(state, indent=1), encoding="utf-8")
+            log.info("created gist %s (%s)", gist_id, state["raw_url"])
+            return True
+        payload = GIST_STATE.with_name("live_gist_payload.json")
+        payload.write_text(json.dumps({"files": {"live.json": {"content": path.read_text(encoding="utf-8")}}}),
+                           encoding="utf-8")
+        subprocess.run([gh, "api", "-X", "PATCH", f"gists/{state['id']}", "--input", str(payload), "--silent"],
+                       capture_output=True, text=True, timeout=180, check=True)
+        log.info("published live.json to gist %s", state["id"])
+        return True
+    except Exception as exc:  # noqa: BLE001 - publishing is best-effort
+        detail = getattr(exc, "stderr", "") or exc
+        log.warning("gist publish failed: %s", detail)
+        return False
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Refresh data/public/replay/live.json")
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--publish", action="store_true",
+                        help="also upload live.json to an unlisted GitHub Gist (gh CLI) after each refresh")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     farm_ids = set(bf.scottish_wind_ids(bf.wind_bmu_reference(), bf.ng_to_elexon()))
     if args.once:
-        return 0 if refresh(farm_ids) else 1
+        return 0 if refresh(farm_ids, publish=args.publish) else 1
     while True:
-        refresh(farm_ids)
+        refresh(farm_ids, publish=args.publish)
         time.sleep(INTERVAL_SECONDS)
 
 
