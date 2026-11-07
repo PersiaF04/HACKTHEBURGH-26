@@ -32,7 +32,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
     <section className="evidence-page" aria-labelledby="evidence-title">
       <header className="evidence-header">
         <p className="evidence-eyebrow">Methods and evaluation</p>
-        <h1 id="evidence-title">Evidence</h1>
+          <h2 id="evidence-title">Evidence</h2>
         <p>See what was measured, which baselines were compared, and where evidence is still missing.</p>
       </header>
 
