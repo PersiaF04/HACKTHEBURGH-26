@@ -8,6 +8,7 @@ Python, standard library only (no install step). Writes contract JSON to `data/p
 | `python models/build_forecast.py --refresh` | same, re-downloading every input first | |
 | `python models/build_copilot.py` | `data/public/copilot.json` (default: 50 MW electrolyser, zone Z1) | #30 |
 | `python models/build_copilot.py --type data_centre --mw 20 --zone Z2 --value 80 --periods 8` | the same replay for another load | |
+| `python models/build_sandbox.py` | `data/public/sandbox.json` (optional): inputs and a scoring rule for the interactive load sandbox | #76 |
 | `python -m pytest models` | offline unit tests (no network) | |
 
 Inputs are keyless public NESO data. They are cached in `data/cache/models/` (git-ignored), so reruns are fast and reproducible. Delete the folder or pass `--refresh` to refetch.
@@ -33,6 +34,8 @@ Money is kept plain: pay-as-bid settlement, perfect delivery, electricity at the
 **Settlement check (PRD K-5).** `copilot.json` carries a `validation` block. The pay-as-bid arithmetic reproduces NESO's published accepted cost exactly (1,130 of 1,130 half-hours, including all 86 Upwards/System ones). But NESO's published *settled* cost is only about 39% of accepted cost across DFS so far (and settlement is published for only 2 of the 86 Upwards/System half-hours), so the Copilot's full-delivery assumption is optimistic and its absolute pound figures are an upper bound.
 
 **How "ours" was built:** a first version used only the request probability from the forecast and trailed the naive rule; the version here learns acceptance by electricity price and utilisation instead. It was adjusted once after seeing the first replay, on the same 13 days, so its edge is not an out-of-sample claim.
+
+**Sandbox (`sandbox.json`, issue #76).** Exports, for every day with a turn-up request, the per-half-hour facts the Copilot's scoring depends on (electricity price, request flag, per-zone caps and accepted-price ceilings, curtailment) and the naive, ours and oracle schedules for each zone and site value. `turnup/sandbox.py` holds a short reference scorer (`score_schedule`), written in plain words in the file, for a client to port to TypeScript; test vectors with expected outputs are included. The builder refuses to write the file if the scorer disagrees with the Copilot's own replay on the real data.
 
 ## How the forecast is validated
 
