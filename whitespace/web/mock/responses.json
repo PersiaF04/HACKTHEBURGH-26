@@ -8,8 +8,11 @@
     "headline_metrics": {}
   },
   "map": { "placeholder": true, "year": 2026, "concepts": [], "edges": [], "focus": null },
+  "search": { "papers": [], "concepts": [], "focus": null },
   "gaps": { "placeholder": true, "items": [] },
+  "gap_detail": { "summary": null, "closest_a": [], "closest_b": [], "shared_neighbours": [], "open_problems": [] },
   "open_problems": { "placeholder": true, "concept_options": [], "items": [] },
+  "backtest": { "placeholder": true, "metrics": {} },
   "coverage": {
     "placeholder": true,
     "year": 2026,

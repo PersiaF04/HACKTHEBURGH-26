@@ -1,3 +1,5 @@
+import fixtures from "../mock/responses.json";
+
 /** Frontend-facing shapes for the proposed Whitespace API in PRD.md §14. */
 export type YearRange = { min: number; max: number };
 export type PaperSummary = {
@@ -22,6 +24,11 @@ export type MapResponse = {
   year: number;
   concepts: ConceptPoint[];
   edges: PredictedEdge[];
+  focus: FocusPoint;
+};
+export type SearchResponse = {
+  papers: PaperSummary[];
+  concepts: ConceptSummary[];
   focus: FocusPoint;
 };
 export type MetaResponse = {
@@ -82,6 +89,7 @@ export type CoverageResponse = {
   caveat: string;
 };
 export type GapListResponse = { placeholder: boolean; items: GapSummary[] };
+export type BacktestResponse = { placeholder: boolean; metrics: Record<string, unknown> };
 
 export const API_ROUTES = {
   meta: "/api/meta",
@@ -100,7 +108,30 @@ export const API_ROUTES = {
   coverage: (year: number) => `/api/coverage?year=${year}`,
 } as const;
 
-/** Data interface intentionally stays on local placeholder fixtures for the offline demo. */
-export async function readMock<T>(fixture: T): Promise<T> {
-  return fixture;
+const mockMode = import.meta.env.VITE_USE_MOCK !== "false";
+
+async function requestJson<T>(route: string, fixture: T): Promise<T> {
+  if (mockMode) return fixture;
+  const response = await fetch(route);
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  return (await response.json()) as T;
+}
+
+/** Local placeholders are the default, so the demo has no judging-time network dependency. */
+export const api = {
+  meta: () => requestJson<MetaResponse>(API_ROUTES.meta, fixtures.meta),
+  map: (year: number) => requestJson<MapResponse>(API_ROUTES.map(year), { ...fixtures.map, year }),
+  search: (query: string, k = 20) => requestJson<SearchResponse>(API_ROUTES.search(query, k), fixtures.search),
+  gaps: (query = "") => requestJson<GapListResponse>(API_ROUTES.gaps(query), fixtures.gaps),
+  gap: (a: string, b: string) =>
+    requestJson<GapDetail>(API_ROUTES.gap(a, b), fixtures.gap_detail as unknown as GapDetail),
+  openProblems: (concept = "", type = "") =>
+    requestJson<OpenProblemResponse>(API_ROUTES.openProblems(concept, type), fixtures.open_problems),
+  backtest: () => requestJson<BacktestResponse>(API_ROUTES.backtest, fixtures.backtest),
+  coverage: (year: number) =>
+    requestJson<CoverageResponse>(API_ROUTES.coverage(year), { ...fixtures.coverage, year }),
+};
+
+export function isPlaceholder(data: { placeholder?: boolean }): boolean {
+  return data.placeholder === true;
 }
