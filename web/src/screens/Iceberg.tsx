@@ -10,7 +10,7 @@ export function Iceberg() {
 
   return (
     <Screen eyebrow="2 · The hidden bill" title="The bill you can't see"
-      lede={`Headlines count what wind farms are paid to stop. The far bigger cost sits below the waterline: paying gas plants in England to turn up instead.`}>
+      lede={`Headlines count what wind farms are paid to stop. Below the waterline sit two far larger, parallel measures of what managing the constraint costs the system.`}>
       <div className="iceberg card">
         <div className="above">
           <div className="bar bar-wind" style={{ height: h(data.wind_bids_gbp) }} />
@@ -20,7 +20,7 @@ export function Iceberg() {
         <div className="below">
           <div className="col">
             <div className="bar bar-gas" style={{ height: h(data.ccgt_offers_gbp) }} />
-            <div className="berg-figure">{fmtGbp(data.ccgt_offers_gbp)}<span>paid to gas plants to turn up</span></div>
+            <div className="berg-figure">{fmtGbp(data.ccgt_offers_gbp)}<span>CCGT turn-up offers (same window)</span></div>
           </div>
           <div className="col">
             <div className="bar bar-neso" style={{ height: h(data.neso_thermal_gbp) }} />
@@ -29,9 +29,9 @@ export function Iceberg() {
         </div>
       </div>
       <div className="callout">
-        <strong>{ratio.toFixed(1)}×</strong> more is paid to gas turn-up than to wind turn-down over {data.days} days ({data.window[0]} to {data.window[1]}).
-        Gas turn-up payments track NESO's total closely (daily correlation {data.ccgt_vs_neso_corr_daily.toFixed(2)}).
-        <span className="muted"> {data.note}: these figures overlap and don't sum.</span>
+        <strong>{ratio.toFixed(1)}×</strong> is the size of CCGT turn-up offers relative to wind turn-down payments over {data.days} days ({data.window[0]} to {data.window[1]}).
+        CCGT turn-up offers track NESO's total closely (daily correlation {data.ccgt_vs_neso_corr_daily.toFixed(2)}).
+        <span className="muted"> {data.note}: parallel measures that overlap, not an additive breakdown or proof of who ultimately paid.</span>
       </div>
       <Source meta={data.meta} />
     </Screen>

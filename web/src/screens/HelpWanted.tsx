@@ -1,6 +1,9 @@
 import { Loading, Screen, Source, Stat } from "../components";
 import { fmtGbp, fmtNum, useJson, type DfsRequests } from "../data";
 
+// Median of a sorted array; averages the two central values for even sizes.
+const median = (s: number[]) => (s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null);
+
 export function HelpWanted() {
   const { data, error } = useJson<DfsRequests>("dfs_requests.json");
   if (!data) return <Screen eyebrow="3 · The unanswered call" title="Help wanted" lede=""><Loading error={error} /></Screen>;
@@ -11,9 +14,9 @@ export function HelpWanted() {
   const fill = required ? procured / required : 0;
   const events = new Set(reqs.map((r) => r.event_id)).size;
   const prices = reqs.map((r) => r.accepted_price_median_gbp_per_mwh).filter((p): p is number => p != null).sort((a, b) => a - b);
-  const medianPrice = prices.length ? prices[Math.floor(prices.length / 2)] : null;
+  const medianPrice = median(prices);
   const leads = reqs.filter((r) => r.auction_close_utc).map((r) => (Date.parse(r.start_utc) - Date.parse(r.auction_close_utc!)) / 36e5).sort((a, b) => a - b);
-  const medianLead = leads.length ? leads[Math.floor(leads.length / 2)] : null;
+  const medianLead = median(leads);
   const zones = [...new Set(reqs.flatMap((r) => Object.entries(r.zone_caps_mw).filter(([, v]) => v > 0).map(([z]) => z)))].sort();
   const recent = [...reqs].sort((a, b) => b.start_utc.localeCompare(a.start_utc)).slice(0, 8);
 
