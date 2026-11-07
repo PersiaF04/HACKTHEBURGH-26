@@ -124,6 +124,7 @@ export default function App() {
           {isPlaceholder && <div className="placeholder-banner" role="status"><strong>Placeholder data</strong><span>{MOCK_NOTICE}</span></div>}
           {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} yearRange={yearRange} selectedConceptId={selectedConceptId} onYearChange={setYear} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <p role="status">Loading research map…</p>}
+          {path === "/gaps" && status === "loading" && !gaps && <p role="status">Loading gap finder…</p>}
           {path === "/gaps" && gaps && <GapsPage response={gaps} loadDetail={loadGap} loading={status === "loading"} error={status === "error" ? error : null} />}
           {path === "/open-problems" && <OpenProblemsPage response={openProblems} selectedConcept={problemConcept} onConceptChange={setProblemConcept} selectedType={problemType} onTypeChange={setProblemType} status={status} errorMessage={error} onRetry={retryPage} />}
           {path === "/evidence" && <EvidencePage response={backtest} status={status} errorMessage={error} />}
