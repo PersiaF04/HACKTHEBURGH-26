@@ -7,6 +7,8 @@
 .evidence-section { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #e0e6e2; border-radius: .9rem; background: #fff; }
 .evidence-section h2 { margin: 0 0 .75rem; font-size: 1.2rem; }
 .evidence-metric-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .65rem; }
+.evidence-strata { display: grid; gap: 1rem; }
+.evidence-stratum h3 { margin: 1rem 0 .5rem; font-size: 1rem; }
 .evidence-metric { display: grid; gap: .35rem; padding: .85rem; border: 1px solid #e4eae6; border-radius: .65rem; }
 .evidence-metric strong { font-size: 1.1rem; }
 .evidence-base-rate { color: #596a60; font-size: .85rem; }

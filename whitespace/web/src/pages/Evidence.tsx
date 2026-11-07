@@ -1,4 +1,4 @@
-import type { BacktestHit, BacktestResponse, CalibrationBin } from "../api";
+import type { BacktestHit, BacktestResponse, CalibrationBin, RankingMetrics } from "../api";
 import "./evidence.css";
 
 type EvidencePageProps = {
@@ -9,14 +9,19 @@ type EvidencePageProps = {
 
 export default function EvidencePage({ response, status, errorMessage }: EvidencePageProps) {
   const placeholder = response?.placeholder === true;
-  const ranking = [
-    ["Precision@100", response?.precision_at_100],
-    ["PR-AUC", response?.pr_auc],
-    ["ROC-AUC", response?.roc_auc],
-    ["Average precision", response?.average_precision],
-    ["Preferential attachment", response?.baselines.preferential_attachment],
-    ["Adamic-Adar", response?.baselines.adamic_adar],
-    ["Cosine similarity", response?.baselines.cosine],
+  const aggregate: RankingMetrics | null = response ? response.by_starting_weight?.all ?? {
+    base_rate: response.base_rate,
+    roc_auc: response.roc_auc,
+    pr_auc: response.pr_auc,
+    average_precision: response.average_precision,
+    precision_at_100: response.precision_at_100,
+    baselines: response.baselines,
+  } : null;
+  const strata = [
+    { key: "all", label: "All eligible pairs", metrics: aggregate },
+    { key: "0", label: "Pairs with 0 shared papers at origin", metrics: response?.by_starting_weight?.["0"] ?? null },
+    { key: "1", label: "Pairs with 1 shared paper at origin", metrics: response?.by_starting_weight?.["1"] ?? null },
+    { key: "2", label: "Pairs with 2 shared papers at origin", metrics: response?.by_starting_weight?.["2"] ?? null },
   ] as const;
   const bins = response?.calibration.bins ?? [];
   const hits = response?.hits ?? [];
@@ -41,15 +46,9 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
 
       <section aria-labelledby="ranking-title" className="evidence-section">
         <h2 id="ranking-title">Ranking quality</h2>
-        <p className="evidence-muted">Read each ranking metric alongside the share of eligible pairs that link within three years (the base rate).</p>
-        <div className="evidence-metric-list">
-          {ranking.map(([label, value]) => (
-            <div className="evidence-metric" key={label}>
-              <span>{label}</span>
-              <strong>{formatMetric(value)}</strong>
-              <span className="evidence-base-rate">Base rate: {formatMetric(response?.base_rate)}</span>
-            </div>
-          ))}
+        <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight. Each ranking value is shown beside its own base rate.</p>
+        <div className="evidence-strata">
+          {strata.map((stratum) => <RankingTable key={stratum.key} label={stratum.label} metrics={stratum.metrics} />)}
         </div>
       </section>
 
@@ -75,9 +74,16 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
       <section className="evidence-section">
         <h2>Paper-to-code matching</h2>
         <p>Code-link precision: <strong>{formatMetric(codeLink?.precision)}</strong></p>
-        <p>Uncertainty interval: <strong>{formatMetric(codeLink?.lower)} to {formatMetric(codeLink?.upper)}</strong></p>
+        <p>Binomial precision interval: <strong>{codeLink?.interval_method === "binomial" ? `${formatMetric(codeLink.lower)} to ${formatMetric(codeLink.upper)}` : "Not yet measured"}</strong></p>
         <p>Hand-checked sample size: <strong>{formatMetric(codeLink?.sample_size)}</strong></p>
+        <p>Correct matches: <strong>{formatMetric(codeLink?.correct_matches)}</strong></p>
         <p>Sampling protocol: <strong>{codeLink?.protocol || "Not yet available"}</strong></p>
+        <div>
+          <strong>Sample composition</strong>
+          {codeLink?.sample_composition && Object.keys(codeLink.sample_composition).length > 0
+            ? <ul>{Object.entries(codeLink.sample_composition).map(([kind, count]) => <li key={kind}>{kind}: {count}</li>)}</ul>
+            : <p>Not yet available.</p>}
+        </div>
         <p className="evidence-muted">Coverage is a lower bound from an incomplete historical archive. "No linked code in this archive" does not mean no implementation exists.</p>
       </section>
     </section>
@@ -114,14 +120,38 @@ function CalibrationTable({ bins }: { bins: CalibrationBin[] }) {
   );
 }
 
+function RankingTable({ label, metrics }: { label: string; metrics: RankingMetrics | null }) {
+  const metricRows: [string, unknown][] = metrics ? [
+    ["Model Precision@100", metrics.precision_at_100],
+    ["Model PR-AUC", metrics.pr_auc],
+    ["Model ROC-AUC", metrics.roc_auc],
+    ["Model average precision", metrics.average_precision],
+    ["Current co-occurrence weight Precision@100", metrics.baselines.current_weight?.precision_at_100],
+    ["Degree product Precision@100", metrics.baselines.degree_product?.precision_at_100],
+    ["Preferential attachment Precision@100", metrics.baselines.preferential_attachment?.precision_at_100],
+    ["Adamic-Adar Precision@100", metrics.baselines.adamic_adar?.precision_at_100],
+    ["Cosine Precision@100", metrics.baselines.cosine?.precision_at_100],
+  ] : [];
+  return (
+    <section className="evidence-stratum" aria-label={label}>
+      <h3>{label}</h3>
+      {metrics ? <div className="evidence-table-scroll" tabIndex={0} aria-label={`Scrollable ranking metrics for ${label}`}>
+        <table><caption>Ranking metrics and corresponding base rate</caption><thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Base rate</th></tr></thead>
+          <tbody>{metricRows.map(([name, value]) => <tr key={name}><th scope="row">{name}</th><td>{formatMetric(value)}</td><td>{formatMetric(metrics.base_rate)}</td></tr>)}</tbody>
+        </table>
+      </div> : <p className="evidence-empty">Not yet measured for this starting weight.</p>}
+    </section>
+  );
+}
+
 function EvidenceTable({ title, rows, empty, error }: { title: string; rows: BacktestHit[]; empty: string; error: boolean }) {
   return (
     <div>
       <h2>{title}</h2>
       {error ? <p>Unable to load examples.</p> : rows.length ? (
         <div className="evidence-table-scroll" tabIndex={0} aria-label={`Scrollable ${title.toLowerCase()} table`}>
-          <table><caption>{title} from the evaluation artifact</caption><thead><tr><th scope="col">Concept pair</th><th scope="col">Score</th><th scope="col">Year</th></tr></thead>
-            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}</td><td>{formatMetric(row.score)}</td><td>{formatMetric(row.year)}</td></tr>)}</tbody>
+          <table><caption>{title} from the evaluation artifact</caption><thead><tr><th scope="col">Concept pair</th><th scope="col">Score</th><th scope="col">Starting weight</th><th scope="col">Year</th></tr></thead>
+            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}</td><td>{formatMetric(row.score)}</td><td>{formatMetric(row.starting_weight)}</td><td>{formatMetric(row.year)}</td></tr>)}</tbody>
           </table>
         </div>
       ) : <p>{empty}</p>}
