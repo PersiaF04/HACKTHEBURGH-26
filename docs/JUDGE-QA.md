@@ -181,9 +181,9 @@ Homes use an assumed 2,700 kWh per home per year: 168,351 MWh is about 62,000 ho
 
 In priority order: (1) score the forecast on our own archived day-ahead snapshots so the backtest stops being retrospective; (2) confirm the DFS zone mapping with NESO; (3) reconcile the two "paid to wind" totals and fill the 28 empty days; (4) model partial delivery from NESO settled volumes; (5) re-run the Copilot per load type, size and zone as DFS events accumulate; (6) add a power-flow-based counterfactual in place of the simple cable rule; (7) choose a code licence. Source: `DEMO.md` "What's next", PRD K-2 and K-3.
 
-### Q26. Is any of this made up by AI, including "Ask the Grid"?
+### Note on AI and "Ask the Grid" (not one of the 25 questions)
 
-Every figure comes from the pipeline and models over public NESO and Elexon data, and no model writes a number into the committed files. AI agents wrote and reviewed code. If "Ask the Grid" ships ([PR #93](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/93)), its answers must come from read-only tool calls over these files with citations, and the claim above must be re-checked then. Limit: an LLM can still phrase a number wrongly, so verify the shipped answers against the golden question set before the demo.
+The numbers in the committed data files come from the pipeline and models over public NESO and Elexon data, and no language model writes a value into them. Not every figure we say aloud is pipeline output: the homes-equivalent uses an assumed 2,700 kWh per home per year, the £134/MWh crossover is our interpolation of the sensitivity table, and the DFS, cable and licence context in Part 2 comes from general knowledge and is marked as such. AI agents wrote and reviewed much of the code. If "Ask the Grid" ships ([PR #93](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/93)), its figures must come from read-only tool calls over these files, with citations. The golden question set checks that the tools return fixed, expected values; it does not check every natural-language answer, because a language model can still phrase a number wrongly. Check the shipped answers against the golden set before the demo.
 
 ## Part 3: source table
 
