@@ -181,3 +181,32 @@ Summaries for the map dashboard (#73), derived from `forecast.json`, `copilot.js
 - `tomorrow.request_probability` has one entry per half-hour of the target day and lines up with `forecast.json` `periods`.
 - `replay_days` has one entry per day in `replay/index.json`. `request_probability` has 48 entries aligned to the replay timeline (`start_utc`, the same instants as the replay periods). `p_turnup_request` is a **walk-forward** value (the model saw only earlier days) and `null` when there is not enough history; `actual_request` is whether NESO really published a turn-up request that half-hour.
 - `copilot.status` is `scored` or `not_scored`. A `not_scored` day carries a `reason` (before requests began, a warm-up day, or not in the scored set) and no numbers. On a `scored` day with nothing tradable, `pct_of_oracle` is `null` and a `note` says there was nothing to answer. The Copilot only has a scored call on days after its warm-up; today that is 27 Oct among the replay days.
+
+#### `dashboard.json` `predictions` (optional, issue #101)
+
+The content of the Tomorrow's Predictions section, ready to render. It is derived only from `forecast.json` and `copilot.json`; every sentence is templated from those numbers. The web app must still work when `predictions` is absent. **Contract change: all three lanes must approve.**
+
+```json
+{ "predictions": {
+    "target_date": "2026-11-08", "mode": "next_day", "is_tomorrow": true, "section_title": "Tomorrow's Predictions",
+    "issued_utc": "2026-11-07T17:00:00Z", "headline": "Tomorrow, Sunday 8 Nov: calm. ...",
+    "calm": { "is_calm": true, "title": "A calm day", "message": "The median forecast for tomorrow is 0 MWh ..." },
+    "facts": [ { "id": "request_chance", "label": "...", "value": 0.233, "unit": "probability", "display": "23%",
+                 "source": "forecast.json periods[].p_turnup_request", "caveat": "Provisional: ...", "window_utc": ["11:00", "22:30"] } ],
+    "table": [ { "start_utc": "2026-11-08T11:00:00Z", "time_utc": "11:00", "p_heavy": 0.0, "p50_mwh": 0,
+                 "p10_mwh": 0, "p90_mwh": 0, "p_request": 0.233 } ],
+    "how_we_know": { "retrospective": true, "test_window": ["2026-09-01", "2026-11-05"], "n_half_hours": 3170,
+      "method": "...", "leakage_note": "...",
+      "metrics": [ { "id": "mae_mwh", "label": "...", "unit": "MWh", "lower_is_better": true, "model": 663.2,
+                     "baselines": [ { "id": "persistence", "label": "Same as 2 days ago", "value": 1225.0 } ] } ],
+      "band": { "p10_p90_coverage": 0.71, "nominal": 0.8, "note": "..." },
+      "request_model": { "available": true, "scored_days": 27, "auc": 0.647, "brier": 0.238, "brier_base_rate": 0.268, "caveat": "..." } },
+    "caveats": [ "..." ] } }
+```
+
+- `facts` has 4 or 5 cards (`wasted_wind`, `heavy_chance`, `request_chance`, `backtest_mae`, and `copilot_vs_hindsight` when `copilot.json` is present). Every card has `value`, `unit`, a ready-to-show `display`, a `source` and a `caveat`; show the caveat with the number.
+- `table` has one row per half-hour of the target day, lining up with `forecast.json` `periods`. `p_request` is `null` when there is no request probability.
+- `calm.is_calm` is true when the median total is 0 MWh and the peak chance of a heavy half-hour is under 20%. Render a deliberate calm state then (`calm.message`), not a row of zeros. On 8 Nov the median is 0 and the request probability rises to 23% between 11:00 and 22:30 UTC.
+- `is_tomorrow` and `section_title` follow `mode`: the word "Tomorrow" is used only when `mode` is `next_day`.
+- `how_we_know` is retrospective: scored on archived data, so probably optimistic (`leakage_note`). `band.p10_p90_coverage` is the share of outcomes the shaded p10-p90 band held in the backtest (0.71, not the nominal 0.8). `request_model` is provisional (about 4 weeks of NESO demand-flexibility history, AUC about 0.65). Results are retrospective, not revenue; the Copilot figure is a replay of procured and accepted data, not delivery.
+- The committed fixture shows an illustrative windy day (synthetic numbers) to exercise the non-calm path; `data/public/dashboard.json` has the real calm day.

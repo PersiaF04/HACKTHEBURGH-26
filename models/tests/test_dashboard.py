@@ -131,3 +131,68 @@ def test_replay_probability_uses_only_earlier_days():
     flipped = [T.Obs(o.date, o.sp, o.util, not o.event) if o.date >= "2026-10-16" else o for o in obs]
     again = D.replay_request_probability("2026-10-16", flipped, feature, events, "2026-10-07")
     assert [p["p_turnup_request"] for p in base] == [p["p_turnup_request"] for p in again]
+
+
+# --- Issue #101: the Tomorrow's Predictions content block -------------------------------------------------
+
+def _full_forecast(**kw):
+    fc = _forecast(**kw)
+    fc["issued_utc"] = "2026-11-07T17:00:00Z"
+    fc["meta"]["leakage_note"] = "leak"
+    fc["backtest"] = {
+        "test_window": ["2026-09-01", "2026-11-05"], "n_periods": 3170, "heavy_threshold_mwh": 1000.0, "method": "m",
+        "mae_mwh": {"model": 663.2, "persistence": 1225.0, "training_mean": 999.0},
+        "brier_heavy": {"model": 0.149, "persistence": 0.471, "prior": 0.299},
+        "auc_heavy": {"model": 0.914, "persistence": 0.528},
+        "interval_coverage_p10_p90": 0.71,
+        "turnup": {"available": True, "scored_days": 27, "auc": {"model": 0.647},
+                   "brier": {"model": 0.238, "base_rate": 0.268}},
+    }
+    return fc
+
+
+COPILOT = {"meta": {"scored_days": 13}, "summary": {"pct_of_oracle": 0.946, "tradable_half_hours": 28}}
+
+
+def test_predictions_calm_day_has_state_table_and_cards():
+    p = D.predictions_block(_full_forecast(req=0.233), COPILOT)
+    assert p["is_tomorrow"] and p["section_title"] == "Tomorrow's Predictions"
+    assert p["calm"]["is_calm"] and "23%" in p["calm"]["message"] and "11:00 and 22:30 UTC" in p["calm"]["message"]
+    assert 3 <= len(p["facts"]) <= 5
+    for c in p["facts"]:
+        assert c["label"] and c["source"] and c["caveat"] and "display" in c and "value" in c
+    assert len(p["table"]) == 48 and set(p["table"][0]) >= {"p_heavy", "p50_mwh", "p_request", "time_utc"}
+
+
+def test_predictions_honest_caveats_and_scores():
+    p = D.predictions_block(_full_forecast(req=0.233), COPILOT)
+    by_id = {c["id"]: c for c in p["facts"]}
+    assert "71%" in by_id["heavy_chance"]["caveat"] and "not 80%" in by_id["heavy_chance"]["caveat"]
+    assert "4 weeks" in by_id["request_chance"]["caveat"] and "0.647" in by_id["request_chance"]["caveat"]
+    assert "Not a revenue claim" in by_id["copilot_vs_hindsight"]["caveat"]
+    hw = p["how_we_know"]
+    assert hw["retrospective"] and hw["leakage_note"] == "leak" and hw["band"]["p10_p90_coverage"] == 0.71
+    mae = next(m for m in hw["metrics"] if m["id"] == "mae_mwh")
+    assert mae["model"] == 663.2 and {b["id"]: b["value"] for b in mae["baselines"]}["persistence"] == 1225.0
+    assert [m["id"] for m in hw["metrics"]] == ["mae_mwh", "brier_heavy", "auc_heavy"]
+
+
+def test_predictions_windy_day_is_not_calm():
+    fc = _full_forecast(p50=lambda sp: 1200 if sp == 30 else 100, p90=2500,
+                        p_heavy=lambda sp: 0.8 if sp == 30 else 0.1, req=0.5)
+    p = D.predictions_block(fc, COPILOT)
+    assert not p["calm"]["is_calm"] and p["calm"]["message"] is None
+    assert "1,200 MWh at 14:30 UTC" in p["headline"]
+
+
+def test_predictions_replay_mode_never_says_tomorrow():
+    p = D.predictions_block(_full_forecast(mode="same_day_replay", req=0.2), COPILOT)
+    assert not p["is_tomorrow"]
+    text = str({k: v for k, v in p.items() if k not in ("table", "is_tomorrow")})
+    assert "omorrow" not in text.replace("not tomorrow", "")
+
+
+def test_predictions_without_copilot_or_request_probability():
+    p = D.predictions_block(_full_forecast(req=None))
+    assert all(c["id"] != "copilot_vs_hindsight" for c in p["facts"])
+    assert "NESO still" not in p["calm"]["message"] and all(r["p_request"] is None for r in p["table"])

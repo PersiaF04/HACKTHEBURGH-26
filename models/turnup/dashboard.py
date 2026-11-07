@@ -38,8 +38,7 @@ def headline(facts: dict, date: str, mode: str) -> str:
         lo, hi = facts["request_window_utc"]
         req = (f" NESO has up to a {_pct(facts['peak_p_request'])} chance of asking for flexible demand "
                f"between {lo} and {hi} UTC.")
-    calm = facts["total_p50_mwh"] == 0 and facts["peak_p_heavy"] < CALM_P_HEAVY
-    if calm:
+    if is_calm(facts):
         heavy = ("essentially no chance" if facts["peak_p_heavy"] < 0.005
                  else f"at most a {_pct(facts['peak_p_heavy'])} chance")
         return f"{prefix}: calm. Little or no wasted wind is expected, with {heavy} of a heavy half-hour.{req}"
@@ -155,3 +154,104 @@ def build_replay_days(dates: list[str], copilot: dict, obs: list[T.Obs], feature
     return [{"date": d,
              "request_probability": replay_request_probability(d, obs, feature, events, era_start),
              "copilot": copilot_call(d, copilot, event_days, era_start)} for d in dates]
+
+
+# Issue #100: the content of the "Tomorrow's Predictions" section, so the web app only has to render it.
+# Every sentence and number below is templated from forecast.json and copilot.json.
+
+def is_calm(facts: dict) -> bool:
+    return facts["total_p50_mwh"] == 0 and facts["peak_p_heavy"] < CALM_P_HEAVY
+
+
+def _metric(bt: dict, key: str, label: str, unit: str, lower_is_better: bool, baselines: dict[str, str]) -> dict:
+    """One row of the 'how we know' strip: our score beside the baselines it has to beat."""
+    scores = bt[key]
+    return {"id": key, "label": label, "unit": unit, "lower_is_better": lower_is_better,
+            "model": scores["model"],
+            "baselines": [{"id": k, "label": lbl, "value": scores[k]} for k, lbl in baselines.items() if k in scores]}
+
+
+def predictions_block(forecast: dict, copilot: dict | None = None) -> dict:
+    """Everything the Tomorrow's Predictions section shows, as data: headline, fact cards, a per-half-hour
+    table, a calm-day state and a backtest strip. 'Tomorrow' appears only when the forecast mode is next_day."""
+    t = tomorrow_block(forecast)
+    facts, bt, meta = t["facts"], forecast["backtest"], forecast["meta"]
+    mode, date = t["mode"], t["target_date"]
+    next_day = mode == "next_day"
+    day = "tomorrow" if next_day else f"the latest published day ({_weekday_label(date)})"
+    turnup = bt.get("turnup") or {}
+    mae = bt["mae_mwh"]
+    cov = bt["interval_coverage_p10_p90"]
+    lo, hi = facts["request_window_utc"] or (None, None)
+
+    retro = {"source": "forecast.json backtest",
+             "caveat": "Scored after the fact on archived data; probably optimistic for a true day-ahead forecast."}
+    cards = [
+        {"id": "wasted_wind", "label": f"Wasted wind expected {day} (median)", "value": facts["total_p50_mwh"],
+         "unit": "MWh", "display": f"{facts['total_p50_mwh']:,} MWh", "source": "forecast.json periods[].curtailed_mwh_p50",
+         "caveat": f"Median of the model's range; the upper end (p90) peaks at {facts['peak_p90_mwh']:,} MWh in one half-hour."},
+        {"id": "heavy_chance",
+         "label": f"Highest chance of a heavy half-hour (over {round(bt['heavy_threshold_mwh']):,} MWh)",
+         "value": facts["peak_p_heavy"], "unit": "probability", "display": _pct(facts["peak_p_heavy"]),
+         "source": "forecast.json periods[].p_heavy",
+         "caveat": f"The p10-p90 band covered {round(cov * 100)}% of outcomes in the backtest, not 80%."},
+        {"id": "request_chance", "label": "Highest chance NESO asks for flexible demand",
+         "value": facts["peak_p_request"], "unit": "probability", "display": _pct(facts["peak_p_request"]),
+         "window_utc": facts["request_window_utc"], "source": "forecast.json periods[].p_turnup_request",
+         "caveat": (f"Provisional: about 4 weeks of NESO demand-flexibility history ({turnup.get('scored_days', '?')} "
+                    f"scored days), AUC {turnup.get('auc', {}).get('model', '?')}.")},
+        {"id": "backtest_mae", "label": "Typical miss per half-hour in the backtest",
+         "value": mae["model"], "unit": "MWh",
+         "display": f"{round(mae['model']):,} MWh vs {round(mae['persistence']):,} for 'same as 2 days ago'", **retro},
+    ]
+    if copilot:
+        s = copilot["summary"]
+        cards.append({"id": "copilot_vs_hindsight",
+                      "label": "Copilot on past request days (retrospective, not revenue)",
+                      "value": s["pct_of_oracle"], "unit": "fraction of perfect hindsight",
+                      "display": f"{round(s['pct_of_oracle'] * 100, 1)}% of perfect hindsight",
+                      "source": "copilot.json summary.pct_of_oracle",
+                      "caveat": (f"Replay over {copilot['meta']['scored_days']} scored days; only {s['tradable_half_hours']} "
+                                 "half-hours were tradable, full delivery assumed. Not a revenue claim.")})
+
+    table = [{"start_utc": p["start_utc"], "time_utc": _hhmm(p["start_utc"]),
+              "p_heavy": p["p_heavy"], "p50_mwh": p["curtailed_mwh_p50"],
+              "p10_mwh": p["curtailed_mwh_p10"], "p90_mwh": p["curtailed_mwh_p90"],
+              "p_request": p.get("p_turnup_request")} for p in forecast["periods"]]
+
+    calm_state = {"is_calm": False, "title": None, "message": None}
+    if is_calm(facts):
+        req = (f" NESO still has up to a {_pct(facts['peak_p_request'])} chance of asking for flexible demand between "
+               f"{lo} and {hi} UTC, so a request is possible even on a quiet day." if facts["request_window_utc"] else "")
+        calm_state = {"is_calm": True, "title": "A calm day",
+                      "message": (f"The median forecast for {day} is {facts['total_p50_mwh']} MWh of wasted wind, and the "
+                                  f"highest chance of a heavy half-hour is {_pct(facts['peak_p_heavy'])}.{req}")}
+
+    return {
+        "target_date": date, "mode": mode, "is_tomorrow": next_day,
+        "section_title": "Tomorrow's Predictions" if next_day else "Latest published day (a replay, not tomorrow)",
+        "issued_utc": forecast.get("issued_utc"), "headline": t["headline"],
+        "calm": calm_state, "facts": cards, "table": table,
+        "how_we_know": {
+            "retrospective": True, "test_window": bt["test_window"], "n_half_hours": bt["n_periods"],
+            "method": bt["method"], "leakage_note": meta["leakage_note"],
+            "metrics": [
+                _metric(bt, "mae_mwh", "Average miss per half-hour", "MWh", True,
+                        {"persistence": "Same as 2 days ago", "training_mean": "Training average"}),
+                _metric(bt, "brier_heavy", "Brier score for 'heavy half-hour' (0 is perfect)", "score", True,
+                        {"persistence": "Same as 2 days ago", "prior": "Always the base rate"}),
+                _metric(bt, "auc_heavy", "AUC for 'heavy half-hour' (0.5 is a coin flip)", "score", False,
+                        {"persistence": "Same as 2 days ago"}),
+            ],
+            "band": {"p10_p90_coverage": cov, "nominal": 0.8,
+                     "note": f"The shaded p10-p90 band is meant to hold 80% of outcomes; in the backtest it held {round(cov * 100)}%."},
+            "request_model": {"available": bool(turnup.get("available")), "scored_days": turnup.get("scored_days"),
+                              "auc": turnup.get("auc", {}).get("model"), "brier": turnup.get("brier", {}).get("model"),
+                              "brier_base_rate": turnup.get("brier", {}).get("base_rate"),
+                              "caveat": "Provisional: about 4 weeks of NESO demand-flexibility history, AUC about 0.65."},
+        },
+        "caveats": [
+            "Results are retrospective: scored after the fact, and probably optimistic for a true day-ahead forecast.",
+            "Nothing here is a revenue claim; the Copilot figure replays procured and accepted data, not delivery.",
+        ],
+    }

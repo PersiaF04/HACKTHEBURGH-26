@@ -51,6 +51,7 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
                      "when there is not enough history. Nothing here is a revenue claim."),
         },
         "tomorrow": D.tomorrow_block(forecast),
+        "predictions": D.predictions_block(forecast, copilot),
         "replay_days": D.build_replay_days(replay_dates, copilot, obs, feature, events, event_days,
                                            inputs.DFS_ERA_START),
     }

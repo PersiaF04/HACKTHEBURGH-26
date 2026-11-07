@@ -5,7 +5,7 @@
    "derived: copilot.json",
    "NESO demand-flexibility (DFS)"
   ],
-  "generated_utc": "2026-11-07T18:25:23Z",
+  "generated_utc": "2026-11-07T20:04:07Z",
   "retrospective": true,
   "request_model_feature": "national wind forecast",
   "note": "Summaries for the map dashboard. The headline sentence is templated from the numbers next to it. Replay-day request probabilities are walk-forward (the model sees only earlier days) and null when there is not enough history. Nothing here is a revenue claim."
@@ -223,6 +223,585 @@
    }
   ],
   "caveat": "Retrospective: the backtest uses archived data and is probably optimistic. The request probability is provisional (about one month of NESO events)."
+ },
+ "predictions": {
+  "target_date": "2026-11-08",
+  "mode": "next_day",
+  "is_tomorrow": true,
+  "section_title": "Tomorrow's Predictions",
+  "issued_utc": "2026-11-07T17:36:31Z",
+  "headline": "Tomorrow, Sunday 8 Nov: calm. Little or no wasted wind is expected, with essentially no chance of a heavy half-hour. NESO has up to a 23% chance of asking for flexible demand between 11:00 and 22:30 UTC.",
+  "calm": {
+   "is_calm": true,
+   "title": "A calm day",
+   "message": "The median forecast for tomorrow is 0 MWh of wasted wind, and the highest chance of a heavy half-hour is 0%. NESO still has up to a 23% chance of asking for flexible demand between 11:00 and 22:30 UTC, so a request is possible even on a quiet day."
+  },
+  "facts": [
+   {
+    "id": "wasted_wind",
+    "label": "Wasted wind expected tomorrow (median)",
+    "value": 0,
+    "unit": "MWh",
+    "display": "0 MWh",
+    "source": "forecast.json periods[].curtailed_mwh_p50",
+    "caveat": "Median of the model's range; the upper end (p90) peaks at 0 MWh in one half-hour."
+   },
+   {
+    "id": "heavy_chance",
+    "label": "Highest chance of a heavy half-hour (over 1,000 MWh)",
+    "value": 0,
+    "unit": "probability",
+    "display": "0%",
+    "source": "forecast.json periods[].p_heavy",
+    "caveat": "The p10-p90 band covered 71% of outcomes in the backtest, not 80%."
+   },
+   {
+    "id": "request_chance",
+    "label": "Highest chance NESO asks for flexible demand",
+    "value": 0.233,
+    "unit": "probability",
+    "display": "23%",
+    "window_utc": [
+     "11:00",
+     "22:30"
+    ],
+    "source": "forecast.json periods[].p_turnup_request",
+    "caveat": "Provisional: about 4 weeks of NESO demand-flexibility history (27 scored days), AUC 0.647."
+   },
+   {
+    "id": "backtest_mae",
+    "label": "Typical miss per half-hour in the backtest",
+    "value": 663.2,
+    "unit": "MWh",
+    "display": "663 MWh vs 1,225 for 'same as 2 days ago'",
+    "source": "forecast.json backtest",
+    "caveat": "Scored after the fact on archived data; probably optimistic for a true day-ahead forecast."
+   },
+   {
+    "id": "copilot_vs_hindsight",
+    "label": "Copilot on past request days (retrospective, not revenue)",
+    "value": 0.946,
+    "unit": "fraction of perfect hindsight",
+    "display": "94.6% of perfect hindsight",
+    "source": "copilot.json summary.pct_of_oracle",
+    "caveat": "Replay over 13 scored days; only 28 half-hours were tradable, full delivery assumed. Not a revenue claim."
+   }
+  ],
+  "table": [
+   {
+    "start_utc": "2026-11-08T00:00:00Z",
+    "time_utc": "00:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T00:30:00Z",
+    "time_utc": "00:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T01:00:00Z",
+    "time_utc": "01:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T01:30:00Z",
+    "time_utc": "01:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T02:00:00Z",
+    "time_utc": "02:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T02:30:00Z",
+    "time_utc": "02:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T03:00:00Z",
+    "time_utc": "03:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T03:30:00Z",
+    "time_utc": "03:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T04:00:00Z",
+    "time_utc": "04:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T04:30:00Z",
+    "time_utc": "04:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T05:00:00Z",
+    "time_utc": "05:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T05:30:00Z",
+    "time_utc": "05:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T06:00:00Z",
+    "time_utc": "06:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T06:30:00Z",
+    "time_utc": "06:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T07:00:00Z",
+    "time_utc": "07:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T07:30:00Z",
+    "time_utc": "07:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T08:00:00Z",
+    "time_utc": "08:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T08:30:00Z",
+    "time_utc": "08:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T09:00:00Z",
+    "time_utc": "09:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T09:30:00Z",
+    "time_utc": "09:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T10:00:00Z",
+    "time_utc": "10:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T10:30:00Z",
+    "time_utc": "10:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T11:00:00Z",
+    "time_utc": "11:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T11:30:00Z",
+    "time_utc": "11:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T12:00:00Z",
+    "time_utc": "12:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T12:30:00Z",
+    "time_utc": "12:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T13:00:00Z",
+    "time_utc": "13:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T13:30:00Z",
+    "time_utc": "13:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T14:00:00Z",
+    "time_utc": "14:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T14:30:00Z",
+    "time_utc": "14:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T15:00:00Z",
+    "time_utc": "15:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T15:30:00Z",
+    "time_utc": "15:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T16:00:00Z",
+    "time_utc": "16:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T16:30:00Z",
+    "time_utc": "16:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T17:00:00Z",
+    "time_utc": "17:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T17:30:00Z",
+    "time_utc": "17:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T18:00:00Z",
+    "time_utc": "18:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T18:30:00Z",
+    "time_utc": "18:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T19:00:00Z",
+    "time_utc": "19:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T19:30:00Z",
+    "time_utc": "19:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T20:00:00Z",
+    "time_utc": "20:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T20:30:00Z",
+    "time_utc": "20:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T21:00:00Z",
+    "time_utc": "21:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T21:30:00Z",
+    "time_utc": "21:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T22:00:00Z",
+    "time_utc": "22:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T22:30:00Z",
+    "time_utc": "22:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.233
+   },
+   {
+    "start_utc": "2026-11-08T23:00:00Z",
+    "time_utc": "23:00",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T23:30:00Z",
+    "time_utc": "23:30",
+    "p_heavy": 0.0,
+    "p50_mwh": 0,
+    "p10_mwh": 0,
+    "p90_mwh": 0,
+    "p_request": 0.0
+   }
+  ],
+  "how_we_know": {
+   "retrospective": true,
+   "test_window": [
+    "2026-09-01",
+    "2026-11-05"
+   ],
+   "n_half_hours": 3170,
+   "method": "Rolling-origin, expanding window, weekly folds; each fold trains only on earlier dates. The point forecast for MAE is the median (p50). Persistence is the same half-hour 2 days earlier.",
+   "leakage_note": "Features: NESO's national incentive wind forecast for the target day and Scottish curtailment from 2 or more days earlier. The live value for the target day is a genuine day-ahead forecast, but the archive used to fit and score the model is stamped on the target morning (a later, better-informed vintage), so the backtest scores are retrospective and probably optimistic for a day-ahead forecast. Each fold trains only on dates before the fold.",
+   "metrics": [
+    {
+     "id": "mae_mwh",
+     "label": "Average miss per half-hour",
+     "unit": "MWh",
+     "lower_is_better": true,
+     "model": 663.2,
+     "baselines": [
+      {
+       "id": "persistence",
+       "label": "Same as 2 days ago",
+       "value": 1225.0
+      },
+      {
+       "id": "training_mean",
+       "label": "Training average",
+       "value": 999.0
+      }
+     ]
+    },
+    {
+     "id": "brier_heavy",
+     "label": "Brier score for 'heavy half-hour' (0 is perfect)",
+     "unit": "score",
+     "lower_is_better": true,
+     "model": 0.149,
+     "baselines": [
+      {
+       "id": "persistence",
+       "label": "Same as 2 days ago",
+       "value": 0.471
+      },
+      {
+       "id": "prior",
+       "label": "Always the base rate",
+       "value": 0.299
+      }
+     ]
+    },
+    {
+     "id": "auc_heavy",
+     "label": "AUC for 'heavy half-hour' (0.5 is a coin flip)",
+     "unit": "score",
+     "lower_is_better": false,
+     "model": 0.914,
+     "baselines": [
+      {
+       "id": "persistence",
+       "label": "Same as 2 days ago",
+       "value": 0.528
+      }
+     ]
+    }
+   ],
+   "band": {
+    "p10_p90_coverage": 0.71,
+    "nominal": 0.8,
+    "note": "The shaded p10-p90 band is meant to hold 80% of outcomes; in the backtest it held 71%."
+   },
+   "request_model": {
+    "available": true,
+    "scored_days": 27,
+    "auc": 0.647,
+    "brier": 0.238,
+    "brier_base_rate": 0.268,
+    "caveat": "Provisional: about 4 weeks of NESO demand-flexibility history, AUC about 0.65."
+   }
+  },
+  "caveats": [
+   "Results are retrospective: scored after the fact, and probably optimistic for a true day-ahead forecast.",
+   "Nothing here is a revenue claim; the Copilot figure replays procured and accepted data, not delivery."
+  ]
  },
  "replay_days": [
   {
