@@ -128,14 +128,16 @@ export type ConceptResponse = {
 export type GapQuery = { concepts?: string[]; min_p?: number; sort?: string; limit?: number };
 export type GapDetailResponse = GapDetail | null;
 export type BacktestMetric = number | string | null;
-export type BacktestHit = { a: string; b: string; score: number | null; year: number | null; paper?: PaperSummary };
+export type BacktestHit = { a: string; b: string; score: number | null; year: number | null; starting_weight?: 0 | 1 | 2; paper?: PaperSummary };
+export type BaselineName = "current_weight" | "degree_product" | "preferential_attachment" | "adamic_adar" | "cosine";
+export type BaselineMetrics = Partial<Record<"roc_auc" | "pr_auc" | "average_precision" | "precision_at_100", BacktestMetric>>;
 export type RankingMetrics = {
   base_rate: BacktestMetric;
   roc_auc: BacktestMetric;
   pr_auc: BacktestMetric;
   average_precision: BacktestMetric;
   precision_at_100: BacktestMetric;
-  baselines: Partial<Record<"current_weight" | "degree_product" | "preferential_attachment" | "adamic_adar" | "cosine", BacktestMetric>>;
+  baselines: Partial<Record<BaselineName, BaselineMetrics>>;
 };
 export type StartingWeightMetrics = Partial<Record<"all" | "0" | "1" | "2", RankingMetrics>>;
 export type CalibrationBin = { predicted: number; observed: number; count: number };
@@ -156,7 +158,7 @@ export type BacktestResponse = {
   pr_auc: BacktestMetric;
   average_precision: BacktestMetric;
   precision_at_100: BacktestMetric;
-  baselines: Record<string, BacktestMetric>;
+  baselines: Partial<Record<BaselineName, BaselineMetrics>>;
   by_starting_weight?: StartingWeightMetrics;
   calibration: { bins: CalibrationBin[]; note?: string | null };
   hits: BacktestHit[];
