@@ -18,10 +18,10 @@ Run the live poller from a checkout that is up to date with `main`. A running pr
    ```
 
    The raw URL the website fetches is cached for about 5 minutes, so it can lag the API by that long.
-2. **The poller log keeps moving.** The last lines of `data/cache/live.log` should say `published live.json to gist` every 5 minutes.
+2. **The poller log keeps moving.** The poller prints to its console only. If you started it with the redirect shown under "Restart" below, the last lines of `data/cache/live.log` should say `published live.json to gist` every 5 minutes. If you started it any other way, read its console, or use step 1 (the Gist's `generated_utc` age) instead.
 3. **Both programs are running.** In PowerShell: `Get-CimInstance Win32_Process -Filter "Name like 'python%'" | Select ProcessId,CommandLine`. You should see exactly one `turnup.live --publish` and one `turnup.archiver`. Two copies of the poller waste calls and fight over the Gist.
 4. **The site shows Live.** Open the hosted site, choose Live and check the time. Live shows the day so far, so on a calm day there may be nothing curtailed. That is correct, not a fault.
-5. **Archiver is healthy.** `data/snapshots/archiver.log` should show `boalf: ok` every 5 minutes, and `data/snapshots/state.json` should have no `errors` key.
+5. **Archiver is healthy.** `data/snapshots/archiver.log` should show `boalf: ok` every 5 minutes, and `data/snapshots/state.json` should show a recent `last_run` for `boalf`. An old entry under `errors` can stay after the job has recovered, so judge health by the current timestamps, not by that key being absent.
 
 ## 2. Restart a program
 
@@ -32,8 +32,8 @@ Stop the old copy first, then start one new copy. Never run two.
 Get-CimInstance Win32_Process -Filter "Name like 'python%'" | Select ProcessId,CommandLine
 # stop only that one
 Stop-Process -Id <ProcessId>
-# start it again from pipeline/
-python -m turnup.live --publish
+# start it again from pipeline/ (the redirect makes the log file the checks above read)
+cmd /c "python -m turnup.live --publish > ..\data\cache\live.log 2>&1"
 python -m turnup.archiver
 ```
 
