@@ -85,9 +85,12 @@ def test_coverage_states_and_year_maths():
     rows = [{"paper_arxiv_id": f"{yy}01.{n:05d}"} for yy, k in ((14, 3), (18, 5), (25, 4)) for n in range(k)]
     counts = cl.archive_year_counts(rows)
     assert counts == {2014: 3, 2018: 5, 2025: 4}
-    cov = cl.archive_coverage_states(counts, min_linked=4, years=[2014, 2018, 2025, 2026])
+    cov = cl.archive_coverage_states(counts, min_linked=4, years=[2014, 2018, 2024, 2025, 2026])
     assert cov["cutoff_year"] == 2018
-    assert cov["states"] == {2014: "grey", 2018: "ok", 2025: "ok", 2026: "grey"}
+    assert cov["states"] == {2014: "thin", 2018: "ok", 2024: "ok", 2025: "partial",
+                             2026: "outside_archive_vintage"}
+    late = cl.archive_coverage_states(counts, 4, archive_date=dt.date(2025, 12, 31), years=[2025, 2026])
+    assert late["states"] == {2025: "ok", 2026: "outside_archive_vintage"}
     assert cl.archive_coverage_states(counts, min_linked=99)["cutoff_year"] is None
 
 
@@ -103,11 +106,11 @@ def test_coverage_table():
     out = cl.coverage_table(papers, linked, {2014: 3, 2018: 5}, min_linked=4)
     table = {(r["concept"], r["year"]): r for r in out["rows"]}
     r = table[("x", 2018)]
-    assert (r["linked"], r["papers"], r["non_arxiv_papers"]) == (1, 3, 1)
+    assert (r["linked"], r["papers"], r["papers_without_arxiv_id"]) == (1, 3, 1)
     assert r["code_rate"] == pytest.approx(1 / 3) and r["unmatchable_by_construction"]
     assert r["coverage_state"] == "ok"
     assert table[("y", 2018)]["code_rate"] == 1.0
-    assert table[("x", 2014)]["coverage_state"] == "grey"
+    assert table[("x", 2014)]["coverage_state"] == "thin" and table[("x", 2014)]["code_rate"] is None
     assert out["undated"] == 1 and out["cutoff_year"] == 2018
 
 
@@ -146,3 +149,30 @@ def test_draw_sample_reproducible():
     rows = [{"paper_arxiv_id": f"{yy}01.{n:05d}"} for yy in (15, 19, 22, 24) for n in range(30)]
     a, b = cl.draw_sample(rows, seed=1, per_band=10), cl.draw_sample(rows, seed=1, per_band=10)
     assert a == b and len(a) == 40
+
+
+def test_arxiv_id_kind():
+    assert cl.arxiv_id_kind("2101.00001v2") == "new_style"
+    assert cl.arxiv_id_kind("arXiv:hep-th/9901001v1") == "old_style"
+    assert cl.arxiv_id_kind("cs.AI/0301001") == "old_style"
+    assert cl.arxiv_id_kind("10.1109/x") == "none" and cl.arxiv_id_kind(None) == "none"
+
+
+def test_old_style_id_is_arxiv_and_matchable_and_partial_year_has_no_rate():
+    linked = {"hep-th/9901001"}
+    papers = [
+        {"concepts": ("x",), "arxiv_id": "hep-th/9901001v2", "fallback_date": dt.date(1999, 1, 5)},
+        {"concepts": ("x",), "arxiv_id": None, "fallback_date": dt.date(1999, 3, 1)},
+        {"concepts": ("x",), "arxiv_id": "2503.00001", "fallback_date": None},
+    ]
+    out = cl.coverage_table(papers, linked, {2015: 2000}, min_linked=1000)
+    table = {r["year"]: r for r in out["rows"]}
+    old = table[1999]
+    assert (old["linked"], old["papers"], old["papers_without_arxiv_id"]) == (1, 2, 1)
+    assert old["date_sources"] == {"publication_date": 2}
+    assert old["coverage_state"] == "thin" and old["code_rate"] is None
+    assert table[2025]["coverage_state"] == "partial" and table[2025]["code_rate"] is None
+    assert table[2025]["date_sources"] == {"arxiv_id_month": 1}
+    only_old = cl.coverage_table(papers[:1], linked, {1999: 5}, min_linked=1)["rows"][0]
+    assert not only_old["unmatchable_by_construction"] and only_old["code_rate"] == 1.0
+
