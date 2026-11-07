@@ -5,7 +5,7 @@
    "Elexon indicative cashflows (bids, Scottish wind BMUs, net)",
    "NESO Constraint Breakdown 2026-2027 (thermal)"
   ],
-  "generated_utc": "2026-11-07T16:55:11Z",
+  "generated_utc": "2026-11-07T20:39:14Z",
   "retrospective": true
  },
  "days": [
@@ -1550,6 +1550,13 @@
    "neso_thermal_gbp": null
   }
  ],
+ "coverage": {
+  "days_in_window": 220,
+  "days_with_figure": 192,
+  "days_without_figure": 28,
+  "total_curtailed_mwh": 7116615,
+  "note": "Days without a figure have no row in NESO's Wind BOA volumes (null, not zero), so the total is a floor: say 'at least', and quote the number of days it covers."
+ },
  "validation": {
   "window": [
    "2026-04-01",

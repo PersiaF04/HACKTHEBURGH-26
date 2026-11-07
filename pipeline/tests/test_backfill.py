@@ -136,3 +136,10 @@ def test_tagged_volumes_keeps_only_the_settled_rows():
     kept = b.tagged_volumes(rows)
     assert [r.get("dataType") for r in kept] == ["Tagged", None]
     assert sum(r["totalVolumeAccepted"] for r in kept) == -4.0
+
+
+def test_daily_coverage_counts_null_days_and_totals_the_rest():
+    days = [{"curtailed_mwh": 100}, {"curtailed_mwh": None}, {"curtailed_mwh": 50}, {"curtailed_mwh": None}]
+    c = b.daily_coverage(days)
+    assert (c["days_in_window"], c["days_with_figure"], c["days_without_figure"]) == (4, 2, 2)
+    assert c["total_curtailed_mwh"] == 150 and "at least" in c["note"]
