@@ -112,7 +112,6 @@ function SensitivityChart({ points, scale, current }: { points: CopilotSensitivi
       </svg>
       <p className="cp-sens-summary"><strong>{summary}</strong>{" "}
         {current != null && <>The cards above use £{current}/MWh, an illustrative assumption, not a measurement. </>}
-        {cross && "Above the crossover, simply running in the cheapest-electricity hours wins."}
       </p>
     </div>
   );
@@ -162,7 +161,8 @@ export function Copilot() {
   const gross = data.summary.gross_settlement_gbp;
   const energyCost = data.summary.energy_cost_gbp;
   const settlementShort = energyCost != null && energyCost > gross;
-  const caveat = data.summary.caveat.trim().replace(/([^.])$/, "$1.");
+  const rawCaveat = data.summary.caveat.trim();
+  const caveat = /[.!?]$/.test(rawCaveat) ? rawCaveat : `${rawCaveat}.`;
 
   return (
     <Screen {...head}

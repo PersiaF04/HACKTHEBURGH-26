@@ -153,16 +153,20 @@ function Reliability({ bins }: { bins: Forecast["backtest"]["reliability"] }) {
 
 export function Tomorrow() {
   const { data, error } = useJson<Forecast>("forecast.json");
-  const eyebrow = "4 · Tomorrow";
-  if (!data) return <Screen eyebrow={eyebrow} title="Tomorrow's wasted wind" lede=""><Loading error={error} /></Screen>;
+  if (!data) return <Screen eyebrow="4 · Forecast" title="Curtailment outlook" lede=""><Loading error={error} /></Screen>;
   const { periods, backtest: bt } = data;
+  const sameDayReplay = data.mode === "same_day_replay";
+  const title = sameDayReplay ? "Latest available curtailment" : "Tomorrow's wasted wind";
+  const eyebrow = sameDayReplay ? "4 · Same-day replay" : "4 · Tomorrow";
+  const lede = sameDayReplay
+    ? data.meta.target_note ?? "Same-day replay. This is not a day-ahead forecast."
+    : "A day-ahead forecast of how much Scottish wind will be paid to switch off, half-hour by half-hour, with the uncertainty shown honestly.";
   const total = periods.reduce((s, p) => s + (p.curtailed_mwh_p50 ?? 0), 0);
   const heavy = periods.filter((p) => (p.p_heavy ?? 0) >= 0.5).length;
   const issued = new Date(data.issued_utc);
 
   return (
-    <Screen eyebrow={eyebrow} title="Tomorrow's wasted wind"
-      lede="A day-ahead forecast of how much Scottish wind will be paid to switch off, half-hour by half-hour, with the uncertainty shown honestly.">
+    <Screen eyebrow={eyebrow} title={title} lede={lede}>
       <div className="fc-head">
         <p className="muted">
           Issued <time dateTime={data.issued_utc}>{issued.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })} at {fmtTime(data.issued_utc)}</time>
@@ -184,11 +188,11 @@ export function Tomorrow() {
       </p>
       <div className="backtest">
         <Metric title="Volume error" unit="MAE, MWh per half-hour" better="lower" fmt={fmtNum}
-          rows={[{ name: "Our model", value: bt.mae_mwh.model, ours: true }, { name: "Persistence", value: bt.mae_mwh.persistence }, { name: "Training mean", value: bt.mae_mwh.training_mean }]} />
+          rows={[{ name: "Our model", value: bt.mae_mwh.model, ours: true }, { name: "Persistence", value: bt.mae_mwh.persistence }, { name: "Training mean", value: bt.mae_mwh.training_mean }, ...(bt.mae_mwh.headroom_rule == null ? [] : [{ name: "Headroom rule", value: bt.mae_mwh.headroom_rule }])]} />
         <Metric title="Heavy-period calls" unit="Brier score" better="lower" fmt={(v) => v.toFixed(3)}
-          rows={[{ name: "Our model", value: bt.brier_heavy.model, ours: true }, { name: "Persistence", value: bt.brier_heavy.persistence }, { name: "Training mean (prior)", value: bt.brier_heavy.prior }]} />
+          rows={[{ name: "Our model", value: bt.brier_heavy.model, ours: true }, { name: "Persistence", value: bt.brier_heavy.persistence }, { name: "Training mean (prior)", value: bt.brier_heavy.prior }, ...(bt.brier_heavy.headroom_rule == null ? [] : [{ name: "Headroom rule", value: bt.brier_heavy.headroom_rule }])]} />
         <Metric title="Ranking heavy periods" unit="AUC, 0.5 = coin flip" better="higher" fmt={(v) => v.toFixed(2)}
-          rows={[{ name: "Our model", value: bt.auc_heavy.model, ours: true }, { name: "Persistence", value: bt.auc_heavy.persistence }]} />
+          rows={[{ name: "Our model", value: bt.auc_heavy.model, ours: true }, { name: "Persistence", value: bt.auc_heavy.persistence }, ...(bt.auc_heavy.headroom_rule == null ? [] : [{ name: "Headroom rule", value: bt.auc_heavy.headroom_rule }])]} />
         <Reliability bins={bt.reliability} />
       </div>
       <Source meta={data.meta} />

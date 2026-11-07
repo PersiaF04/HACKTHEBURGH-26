@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Types mirror contracts/README.md (data contract v1).
-export interface Meta { source: string[]; generated_utc: string; retrospective: boolean; fixture?: boolean }
+export interface Meta { source: string[]; generated_utc: string; retrospective: boolean; fixture?: boolean; target_note?: string }
 export interface Farm { id: string; name: string; region: string; lat: number | null; lon: number | null; capacity_mw: number | null }
 export type FarmState = "generating" | "instructed" | "unavailable" | "unknown";
 export interface FarmPeriod { pn_mw: number | null; level_mw: number | null; curtailed_mwh: number | null; paid_gbp: number | null; state: FarmState }
@@ -69,12 +69,12 @@ export interface ForecastPeriod {
 }
 export interface ReliabilityBin { bin: number; predicted: number; observed: number; n: number }
 export interface Forecast {
-  meta: Meta; issued_utc: string; periods: ForecastPeriod[];
+  meta: Meta; issued_utc: string; mode?: "next_day" | "same_day_replay"; periods: ForecastPeriod[];
   backtest: {
     test_window: [string, string]; n_periods: number;
-    mae_mwh: { model: number; persistence: number; training_mean: number };
-    brier_heavy: { model: number; persistence: number; prior: number };
-    auc_heavy: { model: number; persistence: number };
+    mae_mwh: { model: number; persistence: number; training_mean: number; headroom_rule?: number };
+    brier_heavy: { model: number; persistence: number; prior: number; headroom_rule?: number };
+    auc_heavy: { model: number; persistence: number; headroom_rule?: number };
     reliability: ReliabilityBin[];
   };
 }
