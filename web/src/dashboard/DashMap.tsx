@@ -178,14 +178,14 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
           })}
         </g>
 
-        {showLines && (
-          <g className={`dm-cables${over ? " is-over" : ""}`} aria-hidden="true">
-            {grid.kv275 && <path className="dm-line dm-line-275" d={grid.kv275} />}
-            {grid.kv400 && <path className="dm-line dm-line-400" d={grid.kv400} />}
-            {grid.schematic && <path className="dm-line-schematic" d={grid.schematic} />}
-            {grid.schematicAt && <text className="dm-line-label" x={grid.schematicAt.x - 8} y={grid.schematicAt.y + 14} textAnchor="end">Western Link (schematic route)</text>}
-            {grid.border && <path className="dm-line-border" d={grid.border} />}
-            {grid.border && !reduced && (
+        {(
+          <g className={`dm-cables${over ? " is-over" : ""}`}>
+            {showLines && grid.kv275 && <path className="dm-line dm-line-275" d={grid.kv275} />}
+            {showLines && grid.kv400 && <path className="dm-line dm-line-400" d={grid.kv400} />}
+            {showLines && grid.schematic && <path className="dm-line-schematic" d={grid.schematic} />}
+            {showLines && grid.schematicAt && <text className="dm-line-label" x={grid.schematicAt.x - 8} y={grid.schematicAt.y + 14} textAnchor="end">Western Link (schematic route)</text>}
+            {showLines && grid.border && <path className="dm-line-border" d={grid.border} />}
+            {showLines && grid.border && !reduced && (
               // No per-line flow is published: this speed only reflects forecast demand on the cables vs their limit.
               <path className="dm-line-flow" d={grid.border} style={{ animationDuration: `${Math.max(0.4, 2.4 - Math.min(ratio, 4) * 0.5)}s` }} />
             )}
@@ -194,14 +194,10 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
             <path className="dm-pipe-core" d={PIPE} />
             {boundary && <path className="dm-pipe-fill" d={PIPE} pathLength={100} strokeDasharray={`${Math.min(1, ratio) * 100} 100`} />}
             {!reduced && (!boundary || over) && <path className="dm-pipe-flow" d={PIPE} />}
-            <text className="dm-pipe-label" x={262} y={622}>
+            <text className="dm-pipe-label" x={262} y={626}>
+              <title>{boundary ? `NESO day-ahead forecast flow ${fmtNum(boundary.flow)} MW; published limit ${fmtNum(boundary.limit)} MW. Forecast, not outturn. Above the limit signals potential constraint pressure, not proof.` : "The SCOTEX boundary, from Scotland to England."}</title>
               Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit (estimate)` : `  ${Math.round(ratio * 100)}% full (estimate)`}</tspan>}
             </text>
-            <text className="dm-pipe-sub" x={262} y={637}>
-              {boundary ? `NESO day-ahead forecast flow: ${fmtNum(boundary.flow)} MW; published limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
-            </text>
-            {boundary && <text className="dm-pipe-sub" x={262} y={651}>Forecast demand on the cables vs their limit, not outturn.</text>}
-            {boundary && over && <text className="dm-pipe-sub" x={262} y={665}>Above the limit signals potential constraint pressure, not proof.</text>}
           </g>
         )}
 
@@ -254,13 +250,12 @@ function Glyph({ state }: { state: FarmState }) {
   );
 }
 
-export function MapLegend({ unplaced }: { unplaced: number }) {
+export function MapLegend() {
   return (
     <ul className="dm-legend" aria-label="Map key">
-      <li><Glyph state="generating" />{STATE_TEXT.generating}</li>
-      <li><Glyph state="instructed" />{STATE_TEXT.instructed}</li>
-      <li><Glyph state="unavailable" />{STATE_TEXT.unavailable}</li>
-      <li className="dm-legend-note">Each turbine is a wind farm; bigger means more capacity.{unplaced > 0 && ` ${unplaced} not yet located.`}</li>
+      <li title="NESO accepted a bid for this farm to turn down. Delivery is not verified."><Glyph state="instructed" />Told to stop</li>
+      <li><Glyph state="generating" />Generating</li>
+      <li title={STATE_TEXT.unavailable}><Glyph state="unavailable" />Unavailable</li>
     </ul>
   );
 }

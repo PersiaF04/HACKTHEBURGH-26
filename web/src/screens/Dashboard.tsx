@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CoachMark, useCoach } from "../dashboard/Coach";
+import { LiveStale } from "../components";
+import { SidePanel, type PanelId, PANELS } from "../dashboard/SidePanel";
 import { DashMap, MapLegend, type MapPin } from "../dashboard/DashMap";
-import { PlaceLoad, type LoadSettings } from "../dashboard/PlaceLoad";
+import { LoadOptions, TryCard, type LoadSettings } from "../dashboard/PlaceLoad";
 import { avoidedMwh, boundaryOf, estimateLoad, scoreUserLoad, tradablePot, type LoadResult, type Sandbox } from "../sandbox";
-import { AskingCard, BillCard, CopilotCard, TomorrowCard, fmtFill } from "../dashboard/RailCards";
+import { AskingCard, BillCard, CopilotCard, TomorrowCard } from "../dashboard/RailCards";
 import { Timeline, type TimelinePoint } from "../dashboard/Timeline";
 import {
   fmtEnergy, fmtGbp, fmtNum, fmtTime, useJson,
   type Copilot, type CurtailmentDaily, type DashboardSummary, type DfsRequests, type Farms, type Forecast, type GridFile, type Iceberg, type Replay,
 } from "../data";
 import { SectionNav } from "../dashboard/SectionNav";
+import { DEEP_DIVES } from "../routes";
 import { LIVE, fmtDay, parseReplay, project, useLiveReplay, useReplayIndex, type PlacedFarm } from "./WasteMap";
 
 const STEP_MS = 220;
@@ -38,12 +41,11 @@ const KWH_PER_HOME_YEAR = 2700;
 const homesTip = (mwh: number | undefined) =>
   mwh ? `About ${Number(((mwh * 1000) / KWH_PER_HOME_YEAR).toPrecision(2)).toLocaleString("en-GB")} homes' annual electricity (≈2,700 kWh/home/yr, approximate)` : undefined;
 
-function Kpi({ value, label, hint, tone, tip }: { value: string; label: string; hint?: string; tone?: string; tip?: string }) {
+function Big({ value, label, tip, signal }: { value: string; label: string; tip?: string; signal?: boolean }) {
   return (
-    <div className={`kpi${tone ? ` kpi-${tone}` : ""}`} title={tip}>
-      <span className="kpi-value">{value}</span>
-      <span className="kpi-label">{label}</span>
-      {hint && <span className="kpi-hint">{hint}</span>}
+    <div className={`big${signal ? " big-signal" : ""}`} title={tip}>
+      <dd>{value}</dd>
+      <dt>{label}</dt>
     </div>
   );
 }
@@ -61,7 +63,8 @@ export function Dashboard() {
   const gridFile = useJson<GridFile>("grid.json"); // optional (lane A); without it the map draws the simple cables-south pipe
   const grid = useMemo(() => (Array.isArray(gridFile.data?.lines) ? gridFile.data.lines.filter((l) => l && Array.isArray(l.coords) && l.coords.length > 1) : []), [gridFile.data]);
   const [pin, setPin] = useState<MapPin>(() => project(56.0, -3.8)); // decorative: the score depends on the zone, not the pin
-  const [showLines, setShowLines] = useState(true);
+  const [showLines, setShowLines] = useState(false);
+  const [panel, setPanel] = useState<PanelId | null>(null);
   const [extraGw, setExtraGw] = useState(0);
   const [load, setLoad] = useState<LoadSettings>({ type: "electrolyser", mw: 50, bid: 60, zone: "Z1", value: 100 });
 
@@ -134,18 +137,9 @@ export function Dashboard() {
     }
     return { points, cumMwh, cumGbp, off };
   }, [replay.data, dfs.data, copilot.data, summary.data, isLive, loadResult, extraGw]);
-  const hasProb = series.points.some((p) => p.p != null);
   const hasBoundary = useMemo(() => (replay.data?.periods ?? []).some((p) => boundaryOf(p) != null), [replay.data]);
   const avoidedTotal = series.points.reduce((s, p) => s + (p.avoided ?? 0), 0);
   const dayTotal = series.cumMwh[series.cumMwh.length - 1] ?? 0;
-
-  const fill = useMemo(() => {
-    const reqs = (dfs.data?.requests ?? []).filter((r) => r.direction === "Upwards" && r.tag === "System");
-    const req = reqs.reduce((s, r) => s + r.required_mw, 0);
-    if (!req) return null;
-    const dates = reqs.map((r) => r.start_utc.slice(0, 10)).sort();
-    return { fill: reqs.reduce((s, r) => s + (r.procured_mw ?? 0), 0) / req, from: dates[0], to: dates[dates.length - 1] };
-  }, [dfs.data]);
 
   // The "what the data shows" sentences, all computed. Missing days are null, not zero, so they are counted out.
   const windowLine = useMemo(() => {
@@ -175,7 +169,6 @@ export function Dashboard() {
 
   const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null), [farms.data]);
   const period = replay.data?.periods[at];
-  const boundary = period ? boundaryOf(period) : null;
   const total = period ? Object.keys(period.farms).length : 0;
   const date = replay.data?.date ?? (day && day !== LIVE ? day : "");
 
@@ -193,67 +186,40 @@ export function Dashboard() {
   const onNow = !!(period && loadResult?.on.has(period.start_utc));
   const allMeta = [farms.data?.meta, replay.data?.meta, iceberg.data?.meta, dfs.data?.meta, forecast.data?.meta, copilot.data?.meta, summary.data?.meta, sandbox.data?.meta];
   const anySample = allMeta.some((m) => m?.fixture);
+  const liveGenerated = isLive && replay.data?.meta.generated_utc && !Number.isNaN(Date.parse(replay.data.meta.generated_utc)) ? replay.data.meta.generated_utc : null;
+  const calm = isLive && series.off[at] === 0;
+  const unplaced = farms.data ? farms.data.farms.length - placed.length : 0;
+  const togglePanel = (id: PanelId) => setPanel((p) => (p === id ? null : id));
 
   return (
-    <div className="dash">
+    <div className={`dash${panel ? " has-panel" : ""}`}>
       <header className="dash-top">
-        <div className="dash-brand">
+        <div className="dash-bar">
           <h1 className="dash-title">Turn Up Scotland</h1>
-          <p className="dash-lede">When Scotland's cables south are full, NESO pays wind farms to switch off. <span className="dash-lede-key">Orange = NESO accepted a bid to turn down.</span></p>
+          <SectionNav menu={false} />
         </div>
-        <SectionNav />
+        <div className="dash-head">
+          <p className="dash-lede">NESO pays wind farms in Scotland to switch off when the cables south are full.</p>
+          <dl className="bigs">
+            <Big value={fmtEnergy(series.cumMwh[at])} label="wasted" signal tip={[homesTip(series.cumMwh[at]), "Elexon accepted bid volumes; see Proof."].filter(Boolean).join(". ")} />
+            <Big value={fmtGbp(series.cumGbp[at])} label={isLive && series.cumGbp[at] == null ? "paid to stop (settles next morning)" : "paid to stop"} />
+            <Big value={period ? `${series.off[at]}` : "—"} label="farms told to stop now" tip={total ? `${series.off[at]} of ${total} farms have an accepted bid to turn down. Delivery is not verified.` : undefined} />
+          </dl>
+        </div>
       </header>
 
-      <aside className="dash-left" aria-label="What's going on and what the data shows">
-        <div className="dash-kpis">
-          <Kpi value={fmtEnergy(series.cumMwh[at])} label="wind wasted so far" hint={period ? `by ${fmtTime(period.start_utc)}` : undefined} tone="stopped" tip={homesTip(series.cumMwh[at])} />
-          <Kpi value={fmtGbp(series.cumGbp[at])} label="paid to wind so far" hint={isLive && series.cumGbp[at] == null ? "settles next morning" : undefined} />
-          <Kpi value={period ? `${series.off[at]}` : "—"} label={`of ${total || "—"} farms with accepted bids now`} />
-          <Kpi value={fill ? fmtFill(fill.fill) : "—"} label="of requested turn-up procured" hint={fill ? `all requests, ${fmtDay(fill.from).replace(/ \d{4}$/, "")}–${fmtDay(fill.to)}` : undefined} />
-        </div>
-        {sourceNote && <p className="dash-kpi-note">{sourceNote}</p>}
-        <section className="dash-explain">
-          <h2>What's going on</h2>
-          <p>Scotland has far more wind than it uses. The surplus travels to England over a handful of high-voltage cables, and on windy days they are full.</p>
-          <h2>Why it's a problem</h2>
-          <p>Then NESO, the grid operator, pays wind farms to turn down. It also pays gas plants to turn up, and a far larger sum is spent managing the constraint overall. These are parallel measures, not additive.</p>
-        </section>
-        <AskingCard data={dfs.data} date={date} />
-        <BillCard data={iceberg.data} />
-        <section className="dash-explain">
-          <h2>What the data shows</h2>
-          <ul>
-            {windowLine && <li>{windowLine}</li>}
-            {dayLine && <li>{dayLine}</li>}
-            {cableLine && <li>{cableLine}</li>}
-          </ul>
-        </section>
-        <p className="dash-sources">
-          {anySample && <span className="badge badge-warn">Sample data</span>}
-          {isLive ? "Live estimate; payments settle the next morning." : "Retrospective replay."} Sources: Elexon, NESO. Coastline: Natural Earth.
-        </p>
-      </aside>
-
-      <main className="dash-centre">
+      <main className="dash-stage">
         <section className={`dash-map${coachOn("map")}`} aria-label="Map of Scottish wind farms">
           {period && farms.data ? (
             <>
-              <div className="dash-clock">
-                <span className="dash-clock-time">{fmtTime(period.start_utc).replace(" UTC", "")}<small> UTC</small></span>
-                <span className="dash-clock-day">
-                  {isLive ? <><b className="dash-live-tag">Live</b> estimate · {shortDay(date)}</> : <>{shortDay(date)} · replay, retrospective</>}
-                </span>
-                {isLive && series.off[at] === 0 && <span className="dash-clock-day">No farms have an accepted bid right now. Try a replay day.</span>}
-              </div>
               <DashMap farms={placed} period={period} showLines={showLines} lines={grid}
                 label={`Wind farm states at ${fmtTime(period.start_utc)} on ${fmtDay(date)}: ${series.off[at]} of ${total} with an accepted bid to turn down`}
                 pin={pin} pinOn={onNow} onMovePin={setPin} />
-              <MapLegend unplaced={farms.data.farms.length - placed.length} />
+              <MapLegend />
               {showLines && grid.length > 0 && (
                 <p className="dash-credit">
                   <a href={gridFile.data?.meta?.attribution_url ?? "https://www.openstreetmap.org/copyright"} target="_blank" rel="noreferrer"
-                    title={gridFile.data?.meta?.attribution}>© OpenStreetMap contributors (ODbL)</a><br />
-                  Western Link route is schematic. No per-line flow is published.
+                    title={gridFile.data?.meta?.attribution}>© OpenStreetMap contributors (ODbL)</a>
                 </p>
               )}
             </>
@@ -261,75 +227,123 @@ export function Dashboard() {
           {coach.target === "map" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
         </section>
 
-        {/* The map's own cable label is too small to read on a phone, so its honesty text moves here. */}
-        {boundary && showLines && (
-          <p className="dash-pipe-note">
-            <strong>Cables south: {boundary.flow > boundary.limit ? `${(boundary.flow / boundary.limit).toFixed(1)}× over the limit` : `${Math.round((boundary.flow / boundary.limit) * 100)}% full`} (estimate).</strong>{" "}
-            NESO day-ahead forecast flow: {fmtNum(boundary.flow)} MW; published limit {fmtNum(boundary.limit)} MW. Forecast demand on the cables vs their limit, not outturn. Above the limit signals potential constraint pressure, not proof.
-          </p>
-        )}
+        <nav className="dash-edge" aria-label="More about this">
+          {PANELS.map((p) => (
+            <button key={p.id} type="button" className={panel === p.id ? "on" : ""} aria-expanded={panel === p.id} aria-controls="dash-panel" onClick={() => togglePanel(p.id)}>{p.label}</button>
+          ))}
+        </nav>
 
-        <section className={`dash-time${coachOn("timeline")}`} aria-label="The day, half-hour by half-hour">
-          <div className="dash-time-head">
-            <h2 className="dash-time-title">Accepted turn-down bids</h2>
-            <ul className="dash-time-key">
-              <li><i className="tk tk-area" aria-hidden="true" />MWh accepted</li>
-              <li title="NESO's Demand Flexibility Service (DFS) requests"><i className="tk tk-ask" aria-hidden="true" />NESO asked</li>
-              <li><i className="tk tk-ready" aria-hidden="true" />Copilot ready</li>
-              {hasProb && <li title="Walk-forward: the model saw only earlier days"><i className="tk tk-prob" aria-hidden="true" />Forecast chance</li>}
-              {loadResult && loadResult.on.size > 0 && <li><i className="tk tk-mine" aria-hidden="true" />Your load</li>}
-              {extraGw > 0 && <li><i className="tk tk-avoided" aria-hidden="true" />+{extraGw.toFixed(1)} GW est.</li>}
-            </ul>
-          </div>
-          {n > 0 ? <Timeline points={series.points} at={at} onSeek={seek} /> : <div className="tl-plot" />}
-          {coach.target === "timeline" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
+        <section className={`dash-card${coachOn("try")}`} aria-label={isLive ? "Live status" : "Try it"}>
+          {isLive ? (
+            <>
+              <p className="live-now"><i aria-hidden="true" /><b>LIVE</b>{liveGenerated && <span>updated {fmtTime(liveGenerated)}</span>}</p>
+              {liveGenerated && <p className="live-stale"><LiveStale generatedUtc={liveGenerated} /></p>}
+              <p className="try-result">{calm ? "No farms have an accepted bid right now." : `${series.off[at]} farms have an accepted bid now.`}</p>
+              <p className="try-note">Live estimate from accepted bids. Payments settle the next morning.</p>
+              {defaultDay && <button type="button" className="try-go" onClick={() => choose(defaultDay)}>Show {shortDay(defaultDay).replace(/^\w+ /, "")}</button>}
+            </>
+          ) : (
+            <TryCard settings={load} result={loadResult} title="Run a 50 MW load on this storm" onExplain={() => setPanel("proof")}
+              onBid={(bid) => { setLoad({ ...load, bid }); if (coach.target === "try") coach.close(); }} />
+          )}
+          {coach.target === "try" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
         </section>
 
-        <div className="dash-next">
-          <TomorrowCard data={forecast.data} summary={summary.data} />
-          <div className={`dash-copilot-wrap${coachOn("copilot")}`}>
-            <CopilotCard data={copilot.data} summary={summary.data} date={date} />
-            {coach.target === "copilot" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
-          </div>
-        </div>
+        {panel && (
+          <SidePanel id={panel} onClose={() => setPanel(null)}>
+            {panel === "why" && (
+              <>
+                <p className="dash-story">Scotland has far more wind than it uses, and on windy days the cables south fill up. NESO then pays wind farms to turn down, and also pays gas plants to turn up. It now asks flexible demand to use that wind instead, and hardly anyone answers.</p>
+                <AskingCard data={dfs.data} date={date} />
+                <BillCard data={iceberg.data} />
+              </>
+            )}
+            {panel === "tomorrow" && (
+              <>
+                <TomorrowCard data={forecast.data} summary={summary.data} />
+                <CopilotCard data={copilot.data} summary={summary.data} date={date} />
+              </>
+            )}
+            {panel === "whatif" && (
+              <>
+                {!isLive && <LoadOptions settings={load} onChange={setLoad} result={loadResult} pot={pot} onNow={onNow} />}
+                <section className={`dash-whatif${hasBoundary ? "" : " is-off"}`} aria-label="What if there were more cables">
+                  <h3 className="pl-title">More cables south</h3>
+                  <label htmlFor="whatif-gw" className="dash-whatif-label">What if: <b>+{extraGw.toFixed(1)} GW</b></label>
+                  <input id="whatif-gw" type="range" min={0} max={6} step={0.5} value={extraGw} disabled={!hasBoundary}
+                    aria-describedby="whatif-out" onChange={(e) => setExtraGw(Number(e.target.value))} />
+                  <output id="whatif-out" htmlFor="whatif-gw">
+                    {!hasBoundary ? "Needs boundary data."
+                      : <>{extraGw > 0 && <><b>{fmtEnergy(avoidedTotal)}</b> of {fmtEnergy(dayTotal)} might be avoided ({Math.round((avoidedTotal / Math.max(dayTotal, 1)) * 100)}%). </>}Estimate: simple counterfactual, not a power-flow model.</>}
+                  </output>
+                  <label className="dash-toggle">
+                    <input type="checkbox" checked={showLines} onChange={(e) => setShowLines(e.target.checked)} />
+                    <span>Show power lines</span>
+                    <small>No per-line flow is published. The Western Link route is schematic. Border-line animation shows forecast demand on the cables vs their limit.</small>
+                  </label>
+                </section>
+              </>
+            )}
+            {panel === "proof" && (
+              <>
+                <section className="dash-explain">
+                  <h3>What the data shows</h3>
+                  <ul>
+                    {windowLine && <li>{windowLine}</li>}
+                    {dayLine && <li>{dayLine}</li>}
+                    {cableLine && <li>{cableLine}</li>}
+                    {sourceNote && <li>{sourceNote}</li>}
+                  </ul>
+                  <h3>How to read it</h3>
+                  <ul>
+                    <li>Orange means NESO accepted a bid to turn down. Delivery is not verified.</li>
+                    <li>"Your bid" is scored against NESO's accepted prices, pay-as-bid, assuming full delivery. Change the assumptions under What if.</li>
+                    <li>On the scrubber, shaded bands are half-hours when NESO asked for extra demand. With a panel open, it also shows your load, the Copilot's plan and the forecast chance NESO asks.</li>
+                    {unplaced > 0 && <li>{unplaced} farms have no location yet, so they aren't on the map.</li>}
+                  </ul>
+                  <h3>Sources</h3>
+                  <p className="dash-sources">
+                    {anySample && <span className="badge badge-warn">Sample data</span>}
+                    {isLive ? "Live estimate; payments settle the next morning." : "Retrospective replay."} Elexon, NESO. Coastline: Natural Earth.
+                  </p>
+                  <h3>Go deeper</h3>
+                  <ul className="dash-deep">
+                    {DEEP_DIVES.map((d) => <li key={d.id}><a href={`#${d.id}`}>{d.label}</a></li>)}
+                  </ul>
+                </section>
+              </>
+            )}
+          </SidePanel>
+        )}
       </main>
 
-      <aside className="dash-right" aria-label="Try it">
-        <div className="dash-controls">
-          <div className="dash-days" role="radiogroup" aria-label="Day">
-            {options.map((d) => (
-              <button key={d} type="button" role="radio" aria-checked={d === day} className={d === day ? "on" : ""} onClick={() => choose(d)}>
-                {shortDay(d).replace(/^\w+ /, "")}
-              </button>
-            ))}
-            {hasLive && (
-              <button type="button" role="radio" aria-checked={isLive} className={`dash-live${isLive ? " on" : ""}`} onClick={() => choose(LIVE)}>
-                <i aria-hidden="true" />Live
-              </button>
-            )}
-          </div>
-          <button type="button" className="dash-play" onClick={togglePlay} aria-label={playing ? "Pause replay" : "Play replay"} aria-pressed={playing} disabled={!n}>
-            {playing
-              ? <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1" /><rect x="9.5" y="2.5" width="3" height="11" rx="1" /></svg>
-              : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4c0 .6.7 1 1.2.6l8-5.2a.7.7 0 0 0 0-1.2l-8-5.2c-.5-.4-1.2 0-1.2.6z" /></svg>}
-          </button>
+      <section className={`dash-scrub${coachOn("timeline")}`} aria-label="The day, half-hour by half-hour">
+        <button type="button" className="dash-play" onClick={togglePlay} aria-label={playing ? "Pause replay" : "Play replay"} aria-pressed={playing} disabled={!n}>
+          {playing
+            ? <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1" /><rect x="9.5" y="2.5" width="3" height="11" rx="1" /></svg>
+            : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.8v10.4c0 .6.7 1 1.2.6l8-5.2a.7.7 0 0 0 0-1.2l-8-5.2c-.5-.4-1.2 0-1.2.6z" /></svg>}
+        </button>
+        <div className="dash-days" role="radiogroup" aria-label="Day">
+          {options.map((d) => (
+            <button key={d} type="button" role="radio" aria-checked={d === day} className={d === day ? "on" : ""} onClick={() => choose(d)}>
+              {shortDay(d).replace(/^\w+ /, "")}
+            </button>
+          ))}
+          {hasLive && (
+            <button type="button" role="radio" aria-checked={isLive} className={`dash-live${isLive ? " on" : ""}`} onClick={() => choose(LIVE)}>
+              <i aria-hidden="true" />Live
+            </button>
+          )}
         </div>
-        {!isLive && <PlaceLoad settings={load} onChange={setLoad} result={loadResult} onNow={onNow} pot={pot} dayLabel={shortDay(date)} />}
-        <section className={`dash-whatif${hasBoundary ? "" : " is-off"}`} aria-label="What if there were more cables">
-          <label className="dash-toggle">
-            <input type="checkbox" checked={showLines} onChange={(e) => setShowLines(e.target.checked)} />
-            <span>Power lines</span>
-            <small>forecast demand on the cables vs their limit</small>
-          </label>
-          <label htmlFor="whatif-gw" className="dash-whatif-label">What if: <b>+{extraGw.toFixed(1)} GW</b> cables south</label>
-          <input id="whatif-gw" type="range" min={0} max={6} step={0.5} value={extraGw} disabled={!hasBoundary}
-            aria-describedby="whatif-out" onChange={(e) => setExtraGw(Number(e.target.value))} />
-          <output id="whatif-out" htmlFor="whatif-gw">
-            {!hasBoundary ? "Needs boundary data."
-              : <>{extraGw > 0 && <><b>{fmtEnergy(avoidedTotal)}</b> of {fmtEnergy(dayTotal)} might be avoided ({Math.round((avoidedTotal / Math.max(dayTotal, 1)) * 100)}%). </>}Estimate: simple counterfactual, not a power-flow model.</>}
-          </output>
-        </section>
-      </aside>
+        {n > 0 ? <Timeline points={series.points} at={at} onSeek={seek} detail={panel != null} /> : <div className="tl-plot" />}
+        {period && (
+          <p className="dash-clock">
+            <b>{fmtTime(period.start_utc)}</b>
+            <span>{isLive ? "live estimate" : `${shortDay(date)} · retrospective`}</span>
+          </p>
+        )}
+        {coach.target === "timeline" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
+      </section>
     </div>
   );
 }

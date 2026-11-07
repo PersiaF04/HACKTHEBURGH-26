@@ -161,12 +161,12 @@ export function CopilotCard({ data, summary, date }: { data: Copilot | null; sum
       {call ? (
         <p className="rc-line">
           {load}, this day{call.windows.length > 1 && <>, plus {call.windows.length - 1} more window{call.windows.length > 2 ? "s" : ""}</>}.
-          {call.pct != null && <> Captured <strong>{Math.round(call.pct * 100)}%</strong> of the hindsight-perfect plan.</>}
+          {call.pct != null && <> Captured <strong>{Math.round(call.pct * 100)}%</strong> of the best possible plan.</>}
         </p>
       ) : (
         <p className="rc-line">
           {reason}{" "}
-          {bestCall && best.date !== date && <>Its scored call on {shortDay(`${best.date}T12:00:00Z`)}: {callText(bestCall).toLowerCase()}{bestCall.pct != null && <>, <strong>{Math.round(bestCall.pct * 100)}%</strong> of perfect hindsight</>}.</>}
+          {bestCall && best.date !== date && <>Its scored call on {shortDay(`${best.date}T12:00:00Z`)}: {callText(bestCall).toLowerCase()}{bestCall.pct != null && <>, <strong>{Math.round(bestCall.pct * 100)}%</strong> of best possible</>}.</>}
         </p>
       )}
       <p className="rc-caveat">

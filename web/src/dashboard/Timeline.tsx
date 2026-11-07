@@ -4,7 +4,7 @@ import { fmtNum } from "../data";
 export interface TimelinePoint { start_utc: string; mwh: number; asked: boolean; ready: number | null; mine?: boolean; avoided?: number; p?: number | null }
 
 const hhmm = (iso: string) => iso.slice(11, 16);
-const L = 8, R = 8, T = 22, B = 22;
+const L = 6, R = 6, T = 6, B = 15;
 
 function useSize<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -27,7 +27,7 @@ const runs = (flags: boolean[]) => flags.reduce<[number, number][]>((acc, f, i) 
   return acc;
 }, []);
 
-export function Timeline({ points, at, onSeek }: { points: TimelinePoint[]; at: number; onSeek: (i: number) => void }) {
+export function Timeline({ points, at, onSeek, detail = false }: { points: TimelinePoint[]; at: number; onSeek: (i: number) => void; detail?: boolean }) {
   const [ref, { w, h }] = useSize<HTMLDivElement>();
   const n = points.length;
   const slot = (w - L - R) / Math.max(n, 1);
@@ -45,7 +45,6 @@ export function Timeline({ points, at, onSeek }: { points: TimelinePoint[]; at: 
   const mine = runs(points.map((p) => !!p.mine));
   // Walk-forward P(request) on its own 0–1 scale over the plot; breaks at nulls.
   const probLine = w ? points.map((p, i) => (p.p == null ? "" : `${i && points[i - 1].p != null ? "L" : "M"}${x(i).toFixed(1)},${(baseY - p.p * (baseY - T)).toFixed(1)}`)).join("") : "";
-  const peak = points.reduce((b, p, i) => (p.mwh > points[b].mwh ? i : b), 0);
 
   const seekFrom = (e: PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -78,8 +77,7 @@ export function Timeline({ points, at, onSeek }: { points: TimelinePoint[]; at: 
           </defs>
           {asked.map(([a, b]) => (
             <g key={`a${a}`} className="tl-ask">
-              <rect x={x(a) - slot / 2} y={T - 14} width={(b - a + 1) * slot} height={baseY - T + 14} rx={4} />
-              <text x={x(a) - slot / 2 + 6} y={T - 3}>NESO asks for turn-up · {hhmm(points[a].start_utc)}–{hhmm(new Date(Date.parse(points[b].start_utc) + 18e5).toISOString())}</text>
+              <rect x={x(a) - slot / 2} y={T - 4} width={(b - a + 1) * slot} height={baseY - T + 4} rx={3}><title>NESO asked for extra demand, {hhmm(points[a].start_utc)}–{hhmm(new Date(Date.parse(points[b].start_utc) + 18e5).toISOString())} UTC</title></rect>
             </g>
           ))}
           <line className="tl-base" x1={L} x2={w - R} y1={baseY} y2={baseY} />
@@ -87,22 +85,19 @@ export function Timeline({ points, at, onSeek }: { points: TimelinePoint[]; at: 
           <path className="tl-area" d={area} clipPath="url(#tl-past)" />
           <path className="tl-line" d={line} clipPath="url(#tl-past)" />
           {avoidedBand && <path className="tl-avoided" d={avoidedBand} />}
-          {probLine && <path className="tl-prob" d={probLine} />}
-          <text className="tl-peak" x={Math.min(x(peak), w - R - 4)} y={y(points[peak].mwh) - 6} textAnchor={x(peak) > w - 120 ? "end" : "middle"}>
-            peak {fmtNum(points[peak].mwh)} MWh
-          </text>
-          {ready.map(([a, b]) => (
-            <rect key={`r${a}`} className="tl-ready" x={x(a) - slot / 2 + 1} y={baseY - 7} width={(b - a + 1) * slot - 2} height={7} rx={3.5} />
+          {detail && probLine && <path className="tl-prob" d={probLine} />}
+                    {detail && ready.map(([a, b]) => (
+            <rect key={`r${a}`} className="tl-ready" x={x(a) - slot / 2 + 1} y={baseY - 4} width={(b - a + 1) * slot - 2} height={4} rx={2} />
           ))}
-          {mine.map(([a, b]) => (
-            <rect key={`m${a}`} className="tl-mine" x={x(a) - slot / 2 + 1} y={baseY - 17} width={(b - a + 1) * slot - 2} height={7} rx={3.5} />
+          {detail && mine.map(([a, b]) => (
+            <rect key={`m${a}`} className="tl-mine" x={x(a) - slot / 2 + 1} y={baseY - 9} width={(b - a + 1) * slot - 2} height={4} rx={2} />
           ))}
           {points.map((p, i) => i % 6 === 0 && (
-            <text key={p.start_utc} className="tl-tick" x={x(i) - slot / 2} y={h - 6}>{hhmm(p.start_utc)}</text>
+            <text key={p.start_utc} className="tl-tick" x={x(i) - slot / 2} y={h - 3}>{hhmm(p.start_utc)}</text>
           ))}
           <g className="tl-head" transform={`translate(${px.toFixed(1)} 0)`}>
-            <line y1={T - 14} y2={baseY + 4} />
-            <circle cy={baseY} r={6} />
+            <line y1={T - 4} y2={baseY + 3} />
+            <circle cy={baseY} r={5} />
           </g>
         </svg>
       )}
