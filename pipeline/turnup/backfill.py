@@ -23,7 +23,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from . import cache, fetch, geo
-from .backfill_config import REPLAY_EXTRA_DAYS, REPLAY_FIXED_DAYS, WINDOW_END, WINDOW_START
+from .backfill_config import LIVE_URL, REPLAY_EXTRA_DAYS, REPLAY_FIXED_DAYS, WINDOW_END, WINDOW_START
 
 log = logging.getLogger("turnup.backfill")
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -132,7 +132,9 @@ def scottish_wind_ids(ref: dict[str, dict], ng2e: dict[str, str]) -> dict[str, s
 REPD_ALIASES = {"moray firth eastern": "moray east", "pauls hill": "paul's hill and extension"}
 # NESO BMU prefix -> REPD Ref ID, checked by hand where automatic matching fails or is wrong.
 REPD_OVERRIDES = {"HOWAO": "2525", "HOWBO": "2502", "ABRBO": "2505", "HYWDW": "2479", "LNCSO": "2513",
-                  "RSHLW": "4051", "ACHRW": "4331", "TACHW": None}
+                  "RSHLW": "4051", "ACHRW": "4331", "BRDUW": "3119", "WISTW": "4431",
+                  # Tacher: the operating site has no operational REPD row; use the site location (Land at Tacher).
+                  "TACHW": "6755"}
 _STOP = r"\b(wind ?farm|windfarm|offshore|onshore|wind|farm|phase|stage|extension|ext|repower(?:ing)?|project|energy|[ivx]+|\d+[a-z]?)\b"
 _STATUS_RANK = {"Operational": 0, "Under Construction": 1, "Awaiting Construction": 2}
 
@@ -293,6 +295,64 @@ def build_daily_and_iceberg(start: str = WINDOW_START, end: str = WINDOW_END) ->
     return daily, iceberg
 
 
+# ---------------------------------------------------------------- SCOTEX (cables south)
+
+FLOWS_RESOURCE = "38a18ec1-9e40-465d-93fb-301e80fd1352"
+SCOTEX_NOTE = ("scotex_limit_mw / scotex_flow_mw: NESO day-ahead constraint flows and limits for the SCOTEX "
+               "boundary (Scotland to England). flow is NESO's day-ahead scheduled-flow forecast, made before later "
+               "changes and without expected constraint actions. When the flow is above the limit it signals "
+               "potential constraint pressure; it is not a measured flow and does not prove how much was turned "
+               "down. Latest published values, not outturn.")
+
+
+def scotex_series(rows: list[dict]) -> dict[str, tuple[float | None, float | None]]:
+    """SCOTEX rows (UK local time) -> {start_utc ISO Z: (limit_mw, flow_mw)}.
+
+    On the autumn clock change the local 01:00 and 01:30 appear twice; the second occurrence is
+    the GMT one (fold=1).
+    """
+    out: dict[str, tuple[float | None, float | None]] = {}
+    seen: dict[str, int] = {}
+    for r in sorted((r for r in rows if r.get("Constraint Group") == "SCOTEX"),
+                    key=lambda r: r["Date_ Time GMT_BST"]):
+        local = r["Date_ Time GMT_BST"][:16]
+        fold = seen.get(local, 0)
+        seen[local] = fold + 1
+        try:
+            naive = dt.datetime.fromisoformat(local)
+        except ValueError:
+            continue
+        utc = naive.replace(tzinfo=LONDON, fold=min(fold, 1)).astimezone(dt.timezone.utc)
+        out[iso_z(utc)] = (fnum(r.get("Limit_MW")), fnum(r.get("Flow_MW")))
+    return out
+
+
+def scotex_lookup(refresh: bool = False) -> dict[str, tuple[float | None, float | None]]:
+    rows = fetch.neso_resource("day-ahead-constraint-flows-and-limits", resource_id=FLOWS_RESOURCE,
+                               refresh=refresh)
+    return scotex_series(rows)
+
+
+def scotex_lookup_or_empty(refresh: bool = False) -> dict:
+    """The SCOTEX lookup, or an empty one if NESO cannot be reached: the fields are optional (null)."""
+    try:
+        return scotex_lookup(refresh)
+    except Exception as exc:  # noqa: BLE001 - optional supplementary data must not stop replay generation
+        log.warning("SCOTEX unavailable (%s); writing null scotex fields", exc)
+        return {}
+
+
+def add_scotex(periods: list[dict], scotex: dict[str, tuple[float | None, float | None]]) -> int:
+    """Attach optional scotex_limit_mw / scotex_flow_mw to each period; returns how many matched."""
+    hits = 0
+    for p in periods:
+        limit, flow = scotex.get(p["start_utc"], (None, None))
+        p["scotex_limit_mw"] = limit
+        p["scotex_flow_mw"] = flow
+        hits += limit is not None or flow is not None
+    return hits
+
+
 # ---------------------------------------------------------------- dfs_requests.json
 
 
@@ -389,7 +449,7 @@ def classify(pn: float | None, mel: float | None, curtailed_mwh: float) -> str:
     return "generating"
 
 
-def build_replay(day: str, farm_ids: set[str]) -> dict:
+def build_replay(day: str, farm_ids: set[str], scotex: dict | None = None) -> dict:
     vols = collections.defaultdict(float)
     for r in fetch.elexon_volumes("bid", day):
         if r["bmUnit"] in farm_ids:
@@ -421,8 +481,11 @@ def build_replay(day: str, farm_ids: set[str]) -> dict:
                           "paid_gbp": round(cash.get((fid, sp), 0.0), 2),
                           "state": classify(pn, mel, curtailed)}
         periods.append({"sp": sp, "start_utc": iso_z(start), "farms": farms})
+    add_scotex(periods, scotex if scotex is not None else scotex_lookup_or_empty())
     return {"meta": meta(["Elexon PN", "Elexon MELS", "Elexon indicative volumes (bids)",
-                          "Elexon indicative cashflows (bids)"],
+                          "Elexon indicative cashflows (bids)",
+                          "NESO day-ahead constraint flows and limits (SCOTEX)"],
+                         scotex_note=SCOTEX_NOTE,
                          method="curtailed_mwh = accepted bid volume; level_mw = pn_mw - 2 x curtailed_mwh; "
                                 "state: instructed if curtailed; unavailable if PN exceeds MEL by >max(1 MW, 5%) "
                                 "or PN and MEL are both ~0; unknown if PN ~0 while MEL > 0 (farm planned "
@@ -434,7 +497,7 @@ def write_replay_index() -> Path:
     """replay/index.json: the replay days on disk, so the map's day picker can list them."""
     days = sorted(p.stem for p in (PUBLIC / "replay").glob("*.json") if p.stem not in ("index", "live"))
     return write_json("replay/index.json", {"meta": meta(["data/public/replay/*.json"]),
-                                            "days": days, "live": "live.json"})
+                                            "days": days, "live": LIVE_URL or "live.json"})
 
 
 # ---------------------------------------------------------------- entry point
@@ -464,8 +527,9 @@ def run(only: set[str]) -> None:
                         key=lambda d: -d["curtailed_mwh"])
         days = list(REPLAY_FIXED_DAYS)
         days += [d["date"] for d in ranked if d["date"] not in days][:REPLAY_EXTRA_DAYS]
+        scotex = scotex_lookup_or_empty()
         for day in days:
-            write_json(f"replay/{day}.json", build_replay(day, scot_ids), compact=True)
+            write_json(f"replay/{day}.json", build_replay(day, scot_ids, scotex), compact=True)
         write_replay_index()
 
 

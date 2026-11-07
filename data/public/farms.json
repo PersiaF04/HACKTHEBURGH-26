@@ -4,9 +4,9 @@
    "NESO Day Ahead Wind BMU Forecast (Region)",
    "DESNZ Renewable Energy Planning Database Q2 2026 (coordinates, name-matched)"
   ],
-  "generated_utc": "2026-11-07T16:37:29Z",
+  "generated_utc": "2026-11-07T18:22:55Z",
   "retrospective": true,
-  "geocoded": 227,
+  "geocoded": 230,
   "total": 231
  },
  "farms": [
@@ -254,8 +254,8 @@
    "id": "E_BRDUW-1",
    "name": "Braes of Doune",
    "region": "North Scotland",
-   "lat": null,
-   "lon": null,
+   "lat": 56.26983,
+   "lon": -4.05894,
    "capacity_mw": 72.0
   },
   {
@@ -1638,8 +1638,8 @@
    "id": "2__PSMAE003",
    "name": "Tacher",
    "region": "North Scotland",
-   "lat": null,
-   "lon": null,
+   "lat": 58.3651,
+   "lon": -3.4035,
    "capacity_mw": 13.0
   },
   {
@@ -1814,8 +1814,8 @@
    "id": "T_WISTW-2",
    "name": "Brockloch Rig",
    "region": "South Scotland",
-   "lat": null,
-   "lon": null,
+   "lat": 55.29221,
+   "lon": -4.20315,
    "capacity_mw": 62.0
   },
   {

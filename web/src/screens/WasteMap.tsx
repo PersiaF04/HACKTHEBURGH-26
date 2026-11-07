@@ -26,7 +26,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object
 const isNumOrNull = (v: unknown) => v === null || (typeof v === "number" && Number.isFinite(v));
 const isOptNum = (v: unknown) => v === undefined || isNumOrNull(v);
 const isFarmPeriod = (f: unknown) =>
-  isObj(f) && typeof f.state === "string" && f.state in STATE_LABEL && isNumOrNull(f.pn_mw) && isOptNum(f.curtailed_mwh) && isOptNum(f.paid_gbp);
+  isObj(f) && typeof f.state === "string" && Object.prototype.hasOwnProperty.call(STATE_LABEL, f.state) && isNumOrNull(f.pn_mw) && isOptNum(f.curtailed_mwh) && isOptNum(f.paid_gbp);
 const isPeriod = (p: unknown) =>
   isObj(p) && typeof p.start_utc === "string" && !Number.isNaN(Date.parse(p.start_utc)) && typeof p.sp === "number"
   && isObj(p.farms) && Object.values(p.farms).every(isFarmPeriod);

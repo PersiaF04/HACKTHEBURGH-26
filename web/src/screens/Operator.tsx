@@ -14,7 +14,7 @@ const DATE = "2026-10-14";
 const LOAD_MW = 50;
 const BLOCKS = 12;
 const BUDGET = 6;
-const CAP_MWH = LOAD_MW * 0.5; // what a 50 MW load can soak up in one half-hour
+const CAP_MWH = LOAD_MW * 0.5; // the most a 50 MW load can consume in one half-hour
 const STEP_MS = 140; // reveal animation: one half-hour per step
 
 interface Block { index: number; label: string; periods: ReplayPeriod[]; soak: number; hint: Hint }
@@ -24,7 +24,8 @@ const HINTS = ["Calm", "Breezy", "Windy", "Stormy"] as const;
 const localTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
 
-// Curtailed MWh a 50 MW load could have absorbed in one half-hour, across all farms.
+// System-wide upper bound for one half-hour: the load's cap or all farms' curtailment, whichever is less.
+// It ignores location and grid constraints, so it is not wind physically matched to the load.
 const soakIn = (p: ReplayPeriod) => Math.min(CAP_MWH, sum(Object.values(p.farms).map((f) => f.curtailed_mwh ?? 0)));
 const blockScore = (blocks: Block[], picked: Set<number>) => sum(blocks.filter((b) => picked.has(b.index)).map((b) => b.soak));
 
@@ -130,7 +131,7 @@ export function Operator() {
 
   return (
     <Screen eyebrow="5b · Your turn" title="You're the operator"
-      lede={`You run a ${LOAD_MW} MW flexible load in Scotland. Pick up to ${BUDGET} two-hour blocks to be ready to switch on and soak up wind that would otherwise be paid to switch off.`}>
+      lede={`You run a ${LOAD_MW} MW flexible load in Scotland. Pick up to ${BUDGET} two-hour blocks to be ready to switch on while wind is being paid to switch off.`}>
       <div className="op-layout">
         <div className="card op-board">
           <div className="op-head">
@@ -145,13 +146,13 @@ export function Operator() {
                 <li key={b.index}>
                   <button type="button" className={`op-block${on ? " on" : ""}${b.index === currentBlock ? " now" : ""}`}
                     aria-pressed={on} disabled={revealed || full} onClick={() => toggle(b.index)}
-                    aria-label={`${b.label}, hint ${b.hint.text}, ${on ? "ready" : "off"}${revealed ? `, soaked ${fmtNum(b.soak)} MWh` : ""}`}>
+                    aria-label={`${b.label}, hint ${b.hint.text}, ${on ? "ready" : "off"}${revealed ? `, at most about ${fmtNum(b.soak)} MWh` : ""}`}>
                     <span className="op-time">{b.label}</span>
                     <span className="op-hint" aria-hidden="true"><Gusts level={b.hint.level} /> {b.hint.text}</span>
                     <span className="op-state">{on ? "Ready" : "Off"}</span>
                     {revealed && (
                       <span className="op-result">
-                        <strong>{fmtNum(b.soak)} MWh</strong>
+                        <strong>≤ {fmtNum(b.soak)} MWh</strong>
                         <span className="op-tags">
                           {copilotPicks.has(b.index) && <span className="op-tag">Copilot</span>}
                           {oraclePicks.has(b.index) && <span className="op-tag">Oracle</span>}
@@ -196,10 +197,10 @@ export function Operator() {
             <div key={s.id} className={`op-score op-score-${s.id}`}>
               <span className="op-score-name">{s.name}</span>
               <div className="op-track"><div className="op-bar" style={{ width: `${(s.mwh / scale) * 100}%` }} /></div>
-              <span className="op-score-value">{fmtNum(s.mwh)} MWh</span>
+              <span className="op-score-value">≤ {fmtNum(s.mwh)} MWh</span>
             </div>
           ))}
-          <p className="muted small">Soaked-up MWh in replay; not revenue. Each selected two-hour block scores the same four half-hours for every player. You, Copilot and Oracle each get at most {BUDGET} blocks; Copilot's schedule maps to blocks with the most ready half-hours. Each half-hour absorbs up to {CAP_MWH} MWh ({LOAD_MW} MW × 0.5 h) of curtailed wind across all farms. Oracle knows the outcome and takes the best {BUDGET} blocks.</p>
+          <p className="muted small">Scores are an approximate system-wide upper bound in MWh, not wind physically matched to your load and not revenue. Each selected two-hour block scores the same four half-hours for every player. You, Copilot and Oracle each get at most {BUDGET} blocks; Copilot's schedule maps to blocks with the most ready half-hours. Each half-hour counts the smaller of {CAP_MWH} MWh ({LOAD_MW} MW × 0.5 h) and curtailment across all farms, wherever they are, ignoring grid constraints. Oracle knows the outcome and takes the best {BUDGET} blocks.</p>
         </div>
       )}
       <Source meta={replay.data.meta} />
