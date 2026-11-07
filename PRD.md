@@ -218,7 +218,7 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 | K-2: DFS zones Z1–Z3 are Scottish | Wrong claim on screen | NESO DFS terms or the Ofgem pack; until then, show zone IDs | Lane B | Open |
 | K-3: Flows snapshot vintage unknown | Leakage in the backtest | Label results retrospective; archiver from tonight | Lanes A and B | Open |
 | K-4: Calm weather at demo time | No live action | Replay first (R-7) | Lane C | Mitigated |
-| K-5: Reproduce one DFS settlement before showing £ | Wrong money claims | Varshil's Codex method from #25 | Lane B | Open |
+| K-5: Reproduce one DFS settlement before showing £ | Wrong money claims | Keep full-delivery assumption visible; validate accepted and settled cost separately | Lane B | **Partly verified:** PR #48 reproduces accepted-cost arithmetic in the checked sample, but settled cost is about 39% of accepted cost. Do not present gross accepted cost as income. |
 | K-6: Hardware parts on hand | P2 cut | Ask at the venue | Persia | Open |
 | K-7: Tiger Data signup | Sponsor fit | A human signs up for the trial if wanted | Varshil | Open |
 
