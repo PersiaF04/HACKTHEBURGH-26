@@ -155,3 +155,20 @@ def test_scottish_curtailment_converts_mw_to_mwh_and_filters(monkeypatch):
         ["2026-10-14", 32, "A", None],     # missing: ignored
     ])
     assert inputs.scottish_curtailment() == {("2026-10-14", 30): 60.0}
+
+
+def test_morning_update_sensitivity_uses_same_rows_and_improves_with_informative_wind():
+    rows, _ = synthetic_rows()
+    # Informative stand-in "wind forecast": the synthetic hidden driver level, recovered from the target.
+    wind = {}
+    for r in rows:
+        wind[(r.date, r.sp)] = (r.y or 0.0) / 10000.0
+    out = F.morning_update_backtest(rows, wind, test_start="2026-06-01")
+    assert out["available"] and out["n_periods"] > 0
+    assert out["mae_mwh"]["with_wind_forecast"] < out["mae_mwh"]["main_model"]
+    assert "Sensitivity, not the tomorrow model" in out["note"]
+
+
+def test_morning_update_unavailable_without_wind_data():
+    rows, _ = synthetic_rows()
+    assert F.morning_update_backtest(rows, {}, test_start="2026-06-01") == {"available": False}

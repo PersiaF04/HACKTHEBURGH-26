@@ -225,3 +225,42 @@ def period_record(date: str, sp: int, m: dict, p_request: float | None) -> dict:
         "curtailed_mwh_p90": round(m["p90"]), "p_heavy": round(m["p_heavy"], 3),
         "p_turnup_request": None if p_request is None else round(p_request, 3),
     }
+
+
+MORNING_FIRST_SP = 19   # 09:00 local: the same-morning update is issued at 08:45 UTC
+
+
+def morning_update_backtest(rows: list[Row], wind: dict, test_start: str = TEST_START) -> dict:
+    """Sensitivity: what if NESO's same-morning national wind forecast were available?
+
+    Scored only on half-hours from 09:00 local, on exactly the same rows for both models. The archived
+    wind forecast is stamped on the target day (not a day-ahead vintage), so this is NOT the "tomorrow"
+    model and is reported separately.
+    """
+    keep = {(r.date, r.sp) for r in rows if r.sp >= MORNING_FIRST_SP and (r.date, r.sp) in wind}
+    main_rows = [r for r in rows if (r.date, r.sp) in keep or r.date < test_start]
+    wind_rows = [Row(r.date, r.sp, r.util, wind[(r.date, r.sp)] * 10000.0 if (r.date, r.sp) in wind else None, r.y)
+                 for r in main_rows]
+    main = {(p["date"], p["sp"]): p for p in backtest_predictions(main_rows, test_start) if (p["date"], p["sp"]) in keep}
+    withw = {(p["date"], p["sp"]): p for p in backtest_predictions(wind_rows, test_start) if (p["date"], p["sp"]) in keep}
+    common = sorted(set(main) & set(withw))
+    if not common:
+        return {"available": False}
+    a, b = [main[k] for k in common], [withw[k] for k in common]
+    y = [p["y"] for p in a]
+    heavy = [p["heavy"] for p in a]
+    return {
+        "available": True,
+        "test_window": [min(k[0] for k in common), max(k[0] for k in common)],
+        "n_periods": len(common),
+        "mae_mwh": {"with_wind_forecast": round(stats.mae([p["p50"] for p in b], y), 1),
+                    "main_model": round(stats.mae([p["p50"] for p in a], y), 1),
+                    "persistence": round(stats.mae([p["persist"] for p in a], y), 1)},
+        "brier_heavy": {"with_wind_forecast": round(stats.brier([p["p_heavy"] for p in b], heavy), 3),
+                        "main_model": round(stats.brier([p["p_heavy"] for p in a], heavy), 3)},
+        "auc_heavy": {"with_wind_forecast": _r(stats.auc([p["p_heavy"] for p in b], heavy)),
+                      "main_model": _r(stats.auc([p["p_heavy"] for p in a], heavy))},
+        "note": ("Sensitivity, not the tomorrow model. Uses NESO's national incentive wind forecast as archived, "
+                 "stamped 08:45 UTC on the target day, so it is a same-morning update and scored only from "
+                 "09:00 local. A day-ahead vintage would help less. Retrospective."),
+    }

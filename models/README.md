@@ -24,6 +24,8 @@ Rolling-origin, expanding window, weekly folds from 1 Sep 2026. Each fold trains
 
 Baselines: persistence (same half-hour two days earlier), the training mean, a headroom rule (is boundary flow above its limit?) and, for the heavy-curtailment probability, the training prior. Metrics: MAE of the median forecast, Brier score and AUC for "heavy", p10 to p90 coverage, a reliability curve, and results by month.
 
+**Wind-forecast sensitivity (`backtest.morning_update`).** Adding NESO's national incentive wind forecast cuts the median error from about 638 to 477 MWh per half-hour on the same rows (persistence: 1,142), but the archived forecast for recent days is stamped 08:45 UTC *on the target day*, so it is a same-morning update, not a day-ahead vintage. It is scored only from 09:00 local and kept out of the "tomorrow" model, whose features are all known the afternoon before.
+
 ## Honest limits
 
 - **Retrospective.** NESO's day-ahead flows file has no per-row publication time, so every score is retrospective. The leakage note is written into `meta` in the JSON.

@@ -27,6 +27,7 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
     last_actual = max(d for d, _ in curtail)
     rows = F.build_rows(curtail, util, last_actual)
     backtest = F.backtest(rows)
+    backtest["morning_update"] = F.morning_update_backtest(rows, inputs.national_wind_forecast(refresh))
 
     target = F.latest_target_date(util, fallback=now.date().isoformat())
     day = F.forecast_day(rows, target)
@@ -82,6 +83,8 @@ def main() -> None:
     print("Brier (heavy):      ", bt["brier_heavy"])
     print("AUC (heavy):        ", bt["auc_heavy"])
     print("turn-up request:    ", {k: bt["turnup"].get(k) for k in ("brier", "auc", "scored_days")})
+    mu = bt["morning_update"]
+    print("morning update (sensitivity):", mu.get("mae_mwh"), mu.get("brier_heavy"))
 
 
 if __name__ == "__main__":

@@ -131,3 +131,17 @@ def turnup_events(requirements: list[dict]) -> dict[tuple[str, int], dict]:
                 and r["date"] >= DFS_ERA_START and any(v > 0 for v in r["caps"].values())):
             out[(r["date"], r["sp"])] = r
     return out
+
+
+def national_wind_forecast(refresh: bool = False) -> dict[tuple[str, int], float]:
+    """NESO national incentive wind forecast as a load factor (forecast / capacity), keyed by (date, sp).
+
+    For recent days the archived value is stamped 08:45 UTC on the target day itself, i.e. a
+    same-morning update rather than a day-ahead vintage, so it is only used as a labelled sensitivity.
+    """
+    def build():
+        rid = fetch.resource_id("day-ahead-wind-forecast", r"Historic Day Ahead Wind Forecasts")
+        return [[r["Date"], r["Settlement_period"], r["Incentive_forecast"], r["Capacity"]]
+                for r in fetch.datastore_all(rid) if str(r["Date"])[:10] >= "2025-04-01"]
+    return {(str(d)[:10], int(sp)): f / c
+            for d, sp, f, c in fetch.cached("national_wind_hist", refresh, build) if f is not None and c}
