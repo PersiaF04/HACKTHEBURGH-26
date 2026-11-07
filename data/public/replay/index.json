@@ -3,7 +3,7 @@
   "source": [
    "data/public/replay/*.json"
   ],
-  "generated_utc": "2026-11-07T16:57:50Z",
+  "generated_utc": "2026-11-07T18:24:20Z",
   "retrospective": true
  },
  "days": [
@@ -11,5 +11,5 @@
   "2026-10-14",
   "2026-10-27"
  ],
- "live": "live.json"
+ "live": "https://gist.githubusercontent.com/varshil247/79a5156614171e58934c6ec3fc32beec/raw/live.json"
 }

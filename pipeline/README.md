@@ -17,6 +17,7 @@ Run every command from `pipeline/`.
 | Regenerate every lane A contract file in `data/public/` | `python -m turnup.backfill` |
 | Regenerate some files only | `python -m turnup.backfill --only farms,daily,dfs,replay` |
 | Live poller: refresh `data/public/replay/live.json` every 5 minutes | `python -m turnup.live` |
+| Live poller that also publishes `live.json` to the hosted site's Gist | `python -m turnup.live --publish` |
 | Check `data/public/` against `contracts/fixtures/` | `python -m turnup.validate` |
 
 ## Snapshot archiver (#28)
@@ -50,3 +51,11 @@ Replay `state` rules: `instructed` when the farm has an accepted bid in the peri
 ## Live poller (#28)
 
 `python -m turnup.live` rewrites `data/public/replay/live.json` every 5 minutes in the same shape as a replay day, for today's settlement periods up to now. Elexon publishes indicative cashflows and volumes only the next morning, so live curtailment is estimated from BOALF: `(PN - latest accepted level) / 2` when the accepted level is below PN, and `paid_gbp` is `null`. Checked on 14 October 2026, this estimate gave 149,424 MWh against 149,263 MWh from settled indicative volumes. If a refresh fails, the last good file is kept. `live.json` changes every 5 minutes, so it is gitignored.
+
+### Hosted live mode
+
+With `--publish`, the poller uploads `live.json` after each refresh to an unlisted GitHub Gist, using the logged-in `gh` CLI. The Gist id is kept in `data/cache/live_gist.json` (gitignored), and the Gist is created on first use. GitHub serves the raw file with `Access-Control-Allow-Origin: *` and a 5-minute cache, so the hosted app can fetch it. `LIVE_URL` in `turnup/backfill_config.py` holds the raw URL, and `replay/index.json`'s `live` field points to it. Publishing failures are logged and never stop the poller. Live data on the hosted site updates only while the poller runs.
+
+### Cables south (SCOTEX)
+
+Each replay period, and each live period, carries optional `scotex_limit_mw` and `scotex_flow_mw` from NESO's day-ahead constraint flows and limits dataset. NESO publishes them in UK local time; `scotex_series` converts them to UTC, including the repeated hour when the clocks go back. They are NESO's latest published day-ahead values, not measured outturn.

@@ -50,6 +50,12 @@ This is the shared interface between the three lanes. The web app (lane C) only 
 
 `state` is one of `generating`, `instructed` (paid to turn down), `unavailable` (outage: PN above MEL with no bid) or `unknown`.
 
+Optional fields (lane A writes them; the web app may ignore them):
+
+- `periods[]`: `scotex_limit_mw` and `scotex_flow_mw`. These are NESO's day-ahead limit for the SCOTEX boundary (the "cables south" from Scotland to England) and NESO's day-ahead forecast of the flow the market wants across it. When the flow is above the limit, the excess has to be turned down. They are the latest published day-ahead values, not measured outturn, and are `null` when NESO has no value for that half-hour. `meta.scotex_note` explains this.
+- `replay/live.json` (written by the lane A live poller) has the same shape, with `meta.live: true`, `meta.retrospective: false` and `paid_gbp: null` (Elexon settles payments the next morning).
+- `replay/index.json`: `{ "meta": {}, "days": ["2026-10-13", ...], "live": "<file name under replay/ or an absolute https URL>" }`. When `live` is an absolute URL, the app fetches it as-is (CORS-enabled).
+
 ### `iceberg.json`
 
 ```json
