@@ -77,7 +77,7 @@ def validate_file(public_path: Path, fixture_path: Path) -> list[str]:
 def main() -> int:
     targets = [(PUBLIC / f, FIXTURES / f) for f in LANE_A_FILES]
     fixture_replay = next((FIXTURES / "replay").glob("*.json"))
-    targets += [(p, fixture_replay) for p in sorted((PUBLIC / "replay").glob("*.json")) if p.name != "live.json"]
+    targets += [(p, fixture_replay) for p in sorted((PUBLIC / "replay").glob("*.json")) if p.name not in ("live.json", "index.json")]
     bad = 0
     for public_path, fixture_path in targets:
         if not public_path.exists():

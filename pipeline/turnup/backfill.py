@@ -280,7 +280,7 @@ def build_daily_and_iceberg(start: str = WINDOW_START, end: str = WINDOW_END) ->
 
     full = [r for r in ice_rows if None not in r[1:]]
     iceberg = {
-        "meta": meta(["Elexon indicative cashflows by fuel (bids: Scottish wind; offers: CCGT)",
+        "meta": meta(["Elexon indicative cashflows by fuel (bids: Scottish wind; offers: CCGT; CCGT offers include energy balancing as well as constraint actions)",
                       "NESO Constraint Breakdown 2026-2027 (thermal)"]),
         "window": [full[0][0], full[-1][0]] if full else [start, end],
         "days": len(full),
@@ -288,7 +288,7 @@ def build_daily_and_iceberg(start: str = WINDOW_START, end: str = WINDOW_END) ->
         "ccgt_offers_gbp": round(sum(r[2] for r in full)),
         "neso_thermal_gbp": round(sum(r[3] for r in full)),
         "ccgt_vs_neso_corr_daily": (round(c, 3) if (c := pearson([r[2] for r in full], [r[3] for r in full])) is not None else None),
-        "note": "Magnitude comparison, not additive. CCGT offers include energy balancing as well as constraint actions.",
+        "note": "Magnitude comparison, not additive",
     }
     return daily, iceberg
 
