@@ -74,12 +74,12 @@
   },
   {
    "name": "dfs_requests_for_day",
-   "description": "NESO demand-flexibility Upwards/System requests starting on a UTC day (or all days if date is omitted): how many, MW asked for, MW procured. Zone IDs are not confirmed as Scotland.",
+   "description": "NESO demand-flexibility Upwards/System requests starting on a UTC day (or all days if date is omitted): how many, energy asked for and procured in MWh (each request's MW times its interval length; rows are 30 minutes), and the procured share. Zone IDs are not confirmed as Scotland.",
    "parameters": {
     "type": "object",
     "properties": {"date": {"type": "string", "format": "date", "description": "UTC date of start_utc; omit for the whole file"}}
    },
-   "returns": {"date": "string|null", "requests": "integer", "required_mw_total": "number", "procured_mw_total": "number", "procured_pct": "number|null"},
+   "returns": {"date": "string|null", "requests": "integer", "required_mwh_total": "number (MW x interval hours)", "procured_mwh_total": "number (MW x interval hours)", "procured_pct": "number|null"},
    "reads": [{"file": "data/public/dfs_requests.json", "fields": ["requests[].start_utc", "requests[].required_mw", "requests[].procured_mw"]}]
   },
   {

@@ -8,6 +8,7 @@ expected answers in contracts/fixtures/ask-golden.json are verified, not typed.
     python models/ask_golden.py            # print the golden set
     python models/ask_golden.py --write    # rewrite contracts/fixtures/ask-golden.json
 """
+import datetime as dt
 import json
 import re
 import sys
@@ -93,9 +94,13 @@ def scotex_gap(date):
 def dfs_requests_for_day(date=None):
     reqs = [r for r in _load("dfs_requests.json")["requests"]
             if date is None or r["start_utc"][:10] == date]
-    req = round(sum(r["required_mw"] for r in reqs), 3)      # rounded: float sums differ by platform
-    got = round(sum(r["procured_mw"] for r in reqs), 3)
-    return {"date": date, "requests": len(reqs), "required_mw_total": req, "procured_mw_total": got,
+    # Each row is a requested interval of `required_mw` MW, so volume in MWh is MW x the row's duration in hours.
+    # Summing the MW figures alone would double count (rows are 30 minutes). Rounded: float sums differ by platform.
+    hours = lambda r: (dt.datetime.fromisoformat(r["end_utc"].replace("Z", "+00:00"))
+                       - dt.datetime.fromisoformat(r["start_utc"].replace("Z", "+00:00"))).total_seconds() / 3600
+    req = round(sum(r["required_mw"] * hours(r) for r in reqs), 3)
+    got = round(sum(r["procured_mw"] * hours(r) for r in reqs), 3)
+    return {"date": date, "requests": len(reqs), "required_mwh_total": req, "procured_mwh_total": got,
             "procured_pct": round(100 * got / req, 2) if req else None,
             "source": _src("dfs_requests.json", "start_utc", "required_mw", "procured_mw")}
 
@@ -166,7 +171,7 @@ ANSWERABLE = [
     ("How many demand-flexibility requests did NESO publish for 8 October?",
      [("dfs_requests_for_day", {"date": "2026-10-08"})], ["requests", "procured_pct"]),
     ("How much of the DFS volume asked for on 27 October was procured?",
-     [("dfs_requests_for_day", {"date": "2026-10-27"})], ["required_mw_total", "procured_mw_total", "procured_pct"]),
+     [("dfs_requests_for_day", {"date": "2026-10-27"})], ["required_mwh_total", "procured_mwh_total", "procured_pct"]),
     ("Overall, how much of the requested DFS volume was filled?",
      [("dfs_requests_for_day", {})], ["requests", "procured_pct"]),
     ("What is tomorrow's outlook?",

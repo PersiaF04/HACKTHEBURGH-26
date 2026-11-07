@@ -438,8 +438,8 @@
     {
      "date": "2026-10-08",
      "requests": 8,
-     "required_mw_total": 4000.0,
-     "procured_mw_total": 0,
+     "required_mwh_total": 2000.0,
+     "procured_mwh_total": 0.0,
      "procured_pct": 0.0
     }
    ],
@@ -464,14 +464,14 @@
     {
      "date": "2026-10-27",
      "requests": 24,
-     "required_mw_total": 12000.0,
-     "procured_mw_total": 4.8,
+     "required_mwh_total": 6000.0,
+     "procured_mwh_total": 2.4,
      "procured_pct": 0.04
     }
    ],
    "key_values": {
-    "required_mw_total": 12000.0,
-    "procured_mw_total": 4.8,
+    "required_mwh_total": 6000.0,
+    "procured_mwh_total": 2.4,
     "procured_pct": 0.04
    }
   },
@@ -489,8 +489,8 @@
     {
      "date": null,
      "requests": 324,
-     "required_mw_total": 162000.0,
-     "procured_mw_total": 75.3,
+     "required_mwh_total": 81000.0,
+     "procured_mwh_total": 37.65,
      "procured_pct": 0.05
     }
    ],
