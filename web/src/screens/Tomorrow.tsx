@@ -9,16 +9,23 @@ const plotW = W - PAD_L - PAD_R;
 const hhmm = (iso: string) => iso.slice(11, 16);
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
-function niceMax(v: number) {
-  const step = 10 ** Math.floor(Math.log10(Math.max(v, 1)));
-  return Math.ceil(v / step) * step;
+// Smallest y-axis top, so a calm day reads as flat at zero rather than as noise on a tiny scale.
+const MIN_Y_MAX = 10;
+
+// Round ticks from zero. The floor keeps the step at 5 or more, so whole-number labels never repeat.
+function yTicks(v: number) {
+  const top = Math.max(v, MIN_Y_MAX);
+  const mag = 10 ** Math.floor(Math.log10(top / 4));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= top / 4)!;
+  return Array.from({ length: Math.ceil(top / step) + 1 }, (_, i) => i * step);
 }
 
 function ForecastChart({ periods }: { periods: ForecastPeriod[] }) {
   const n = periods.length;
   const slot = plotW / n;
   const x = (i: number) => PAD_L + slot * (i + 0.5);
-  const yMax = niceMax(Math.max(1, ...periods.map((p) => p.curtailed_mwh_p90 ?? p.curtailed_mwh_p50 ?? 0)));
+  const ticks = yTicks(Math.max(...periods.map((p) => p.curtailed_mwh_p90 ?? p.curtailed_mwh_p50 ?? 0)));
+  const yMax = ticks[ticks.length - 1];
   const y = (v: number) => TOP_H - (v / yMax) * TOP_H;
   const pTop = TOP_H + GAP;
   const yp = (v: number) => pTop + BOT_H - v * BOT_H;
@@ -39,7 +46,6 @@ function ForecastChart({ periods }: { periods: ForecastPeriod[] }) {
   const turnup = hasTurnup
     ? periods.map((p, i) => (p.p_turnup_request == null ? "" : `${i && periods[i - 1].p_turnup_request != null ? "L" : "M"}${x(i)},${yp(p.p_turnup_request)}`)).join("")
     : "";
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * yMax);
   const peak = periods.reduce((b, p, i) => ((p.curtailed_mwh_p50 ?? -1) > (periods[b].curtailed_mwh_p50 ?? -1) ? i : b), 0);
 
   const label = `Half-hourly forecast for ${n} periods from ${hhmm(periods[0].start_utc)} UTC. ` +
@@ -177,7 +183,7 @@ export function Tomorrow() {
         )}
       </div>
       <div className="stats">
-        <div className="stat"><div className="stat-value">{fmtEnergy(total)}</div><div className="stat-label">median curtailment, whole day</div></div>
+        <div className="stat"><div className="stat-value">{fmtEnergy(total)}</div><div className="stat-label">sum of half-hourly medians</div></div>
         <div className="stat"><div className="stat-value">{heavy}</div><div className="stat-label">half-hours with P(heavy) ≥ 50%</div></div>
       </div>
       {periods.length ? <ForecastChart periods={periods} /> : <p className="muted">No periods in this forecast.</p>}
