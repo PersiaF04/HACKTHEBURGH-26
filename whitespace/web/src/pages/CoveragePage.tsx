@@ -1,12 +1,12 @@
 import type { CoverageResponse } from '../api';
-import { CoverageHeatmap } from './CoverageHeatmap';
+import { CoverageHeatmap, type SelectedCoverageCell } from './CoverageHeatmap';
 import './coverage.css';
 
 export interface CoveragePageProps {
   response: CoverageResponse | null;
   selectedYear: number;
   onYearChange: (year: number) => void;
-  onSelectCell: (conceptId: string, year: number) => void;
+  onSelectCell: (cell: SelectedCoverageCell) => void;
   status: 'loading' | 'ready' | 'empty' | 'error';
   errorMessage?: string;
   onRetry?: () => void;
@@ -24,6 +24,7 @@ export function CoveragePage({
   const years = response?.years ?? [];
   const concepts = response?.concepts ?? [];
   const placeholder = response?.placeholder ?? false;
+  const archive = response?.archive;
   const caveat = response?.caveat?.replace(/^Coverage is a lower bound(?:\s+from)?\.?\s*/i, '')
     || 'The archive is incomplete and historical; a paper with no linked code here may still have an implementation elsewhere.';
 
@@ -39,6 +40,24 @@ export function CoveragePage({
         <strong>Coverage is a lower bound.</strong>
         <span>{caveat.charAt(0).toUpperCase() + caveat.slice(1)}</span>
       </aside>
+
+      <section className="ws-coverage-provenance" aria-labelledby="ws-coverage-source-title">
+        <h3 id="ws-coverage-source-title">Archive source and licence</h3>
+        {archive?.source_url
+          ? <p>Source: <a href={archive.source_url} target="_blank" rel="noreferrer">Papers with Code paper-to-code archive <span className="ws-coverage-sr-only">(opens in a new tab)</span></a></p>
+          : <p>Archive source link not supplied.</p>}
+        <p>Dataset card-reported snapshot date: <strong>{archive?.snapshot_date ?? 'Not reported'}</strong>.</p>
+        {archive?.file_vintage_verified && archive.revision_sha
+          ? <p>File vintage verified at dataset revision <code>{archive.revision_sha}</code>.</p>
+          : <p className="ws-coverage-vintage-warning">Exact file vintage and dataset revision are unverified; the date above is the dataset card’s reported date.</p>}
+        <p>
+          Licence: {archive?.license_id
+            ? archive.license_url
+              ? <a href={archive.license_url} target="_blank" rel="noreferrer">{archive.license_id} <span className="ws-coverage-sr-only">(opens in a new tab)</span></a>
+              : <strong>{archive.license_id} (licence link not supplied)</strong>
+            : 'Licence information not supplied.'}
+        </p>
+      </section>
 
       {placeholder && (
         <p className="ws-coverage-placeholder" role="status">

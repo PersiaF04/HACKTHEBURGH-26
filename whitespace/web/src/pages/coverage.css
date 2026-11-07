@@ -16,6 +16,12 @@
 .ws-coverage-eyebrow { margin: 0 0 .3rem; color: #1759a8; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .ws-coverage-caveat { display: grid; gap: .25rem; max-width: 68rem; margin: 1rem 0 1.4rem; padding: 1rem 1.1rem; border: 1px solid #9fb5ce; border-left: .35rem solid #1759a8; border-radius: .45rem; background: #edf5ff; }
 .ws-coverage-caveat strong { font-size: 1.05rem; }
+.ws-coverage-provenance { max-width: 68rem; margin: 1rem 0 1.4rem; padding: .9rem 1rem; border: 1px solid #d6dde7; border-radius: .45rem; background: #fff; overflow-wrap: anywhere; }
+.ws-coverage-provenance h3 { margin: 0 0 .5rem; font-size: 1rem; }
+.ws-coverage-provenance p { margin: .35rem 0; }
+.ws-coverage-provenance a { color: #064b9b; text-underline-offset: .15em; }
+.ws-coverage-vintage-warning { font-weight: 600; }
+.ws-coverage-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .ws-coverage-placeholder { margin: 1rem 0; padding: .85rem 1rem; border: 1px dashed #68798d; border-radius: .4rem; background: #f6f8fa; }
 .ws-coverage-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; margin: 1.25rem 0; }
 .ws-coverage-controls label { font-weight: 700; }
@@ -36,7 +42,8 @@
 .ws-coverage-table tbody th { position: sticky; left: 0; z-index: 1; min-width: 10rem; background: #fff; text-align: left; }
 .ws-coverage-table tbody tr:nth-child(even) th { background: #f8fafc; }
 .ws-coverage-current-year { outline: 2px solid #47637f; outline-offset: -2px; }
-.ws-coverage-cell { display: grid; place-items: center; width: 100%; min-width: 4.25rem; min-height: 44px; padding: .3rem; border: 1px solid #536273; border-radius: .35rem; color: #14202b; font-variant-numeric: tabular-nums; cursor: pointer; }
+.ws-coverage-cell { display: grid; place-items: center; gap: .1rem; width: 100%; min-width: 6.5rem; min-height: 44px; padding: .35rem; border: 1px solid #536273; border-radius: .35rem; color: #14202b; font-variant-numeric: tabular-nums; cursor: pointer; }
+.ws-coverage-counts, .ws-coverage-cell-state { color: #334155; font-size: .7rem; line-height: 1.25; }
 .ws-coverage-cell:hover:not(:disabled) { box-shadow: inset 0 0 0 2px #253c51; }
 .ws-coverage-cell--missing { border-style: dashed; background: repeating-linear-gradient(135deg, #fff, #fff 5px, #e8edf2 5px, #e8edf2 10px); color: #435263; cursor: not-allowed; }
 .ws-coverage-cell:disabled { opacity: .85; }

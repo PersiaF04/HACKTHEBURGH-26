@@ -1,10 +1,12 @@
 import type { CoverageCell, CoverageConcept } from '../api';
 
+export type SelectedCoverageCell = CoverageCell & { concept_id: string; concept_label: string };
+
 export interface CoverageHeatmapProps {
   years: number[];
   selectedYear: number;
   concepts: CoverageConcept[];
-  onSelectCell: (conceptId: string, year: number) => void;
+  onSelectCell: (cell: SelectedCoverageCell) => void;
 }
 
 function cellFor(concept: CoverageConcept, year: number): CoverageCell | undefined {
@@ -15,6 +17,35 @@ function formatRate(rate: number | null | undefined): string {
   return rate === null || rate === undefined ? 'Not available' : `${(rate * 100).toFixed(1)}%`;
 }
 
+function cellStateLabel(cell: CoverageCell | undefined): string {
+  if (!cell) return 'No coverage cell was supplied';
+  switch (cell.state) {
+    case 'available': return 'Available';
+    case 'thin': return 'Thin archive coverage';
+    case 'outside_archive_vintage': return 'Outside archive vintage';
+    case 'unavailable': return 'Unavailable';
+    default: return 'Coverage state not supplied';
+  }
+}
+
+function cellValue(cell: CoverageCell | undefined): string {
+  if (cell?.state === 'outside_archive_vintage') return 'Outside archive vintage';
+  if (cell?.state === 'unavailable') return 'Unavailable';
+  return formatRate(cell?.code_rate);
+}
+
+function cellCounts(cell: CoverageCell | undefined): string {
+  if (cell?.paper_count === undefined || cell.linked_paper_count === undefined) return 'Counts not supplied';
+  return `${cell.linked_paper_count} / ${cell.paper_count} papers linked`;
+}
+
+function cellUnavailable(cell: CoverageCell | undefined): boolean {
+  return !cell
+    || cell.code_rate === null
+    || cell.state === 'outside_archive_vintage'
+    || cell.state === 'unavailable';
+}
+
 function rateColor(rate: number | null | undefined): string | undefined {
   if (rate === null || rate === undefined) return undefined;
   const normalized = Math.max(0, Math.min(1, rate));
@@ -22,13 +53,12 @@ function rateColor(rate: number | null | undefined): string | undefined {
 }
 
 function selectLabel(concept: CoverageConcept, year: number, cell: CoverageCell | undefined): string {
-  if (cell?.code_rate === null || cell === undefined) {
-    return `${concept.label}, ${year}: coverage not available.`;
-  }
-  const count = cell.paper_count === undefined
-    ? ''
-    : ` ${cell.linked_paper_count ?? 'Unknown'} of ${cell.paper_count} papers have a linked-code record.`;
-  return `${concept.label}, ${year}: ${formatRate(cell.code_rate)} linked-code coverage.${count} Open papers without a linked-code record.`;
+  const status = cellStateLabel(cell);
+  const counts = cellCounts(cell);
+  const value = cellValue(cell);
+  return cellUnavailable(cell)
+    ? `${concept.label}, ${year}: ${value}. ${status}. ${counts}.`
+    : `${concept.label}, ${year}: ${value} linked-code coverage. ${status}. ${counts}. Open papers without a linked-code record.`;
 }
 
 function CoverageCellButton({
@@ -43,17 +73,19 @@ function CoverageCellButton({
   onSelectCell: CoverageHeatmapProps['onSelectCell'];
 }) {
   const rate = cell?.code_rate;
-  const unavailable = rate === null || rate === undefined;
+  const unavailable = cellUnavailable(cell);
   return (
     <button
       type="button"
       className={`ws-coverage-cell${unavailable ? ' ws-coverage-cell--missing' : ''}`}
-      style={{ backgroundColor: rateColor(rate) }}
+      style={{ backgroundColor: rateColor(unavailable ? null : rate) }}
       aria-label={selectLabel(concept, year, cell)}
       disabled={unavailable}
-      onClick={() => onSelectCell(concept.id, year)}
+      onClick={() => cell && onSelectCell({ ...cell, concept_id: concept.id, concept_label: concept.label })}
     >
-      {formatRate(rate)}
+      <span>{cellValue(cell)}</span>
+      <span className="ws-coverage-counts">{cellCounts(cell)}</span>
+      <span className="ws-coverage-cell-state">{cellStateLabel(cell)}</span>
     </button>
   );
 }
@@ -111,7 +143,7 @@ export function CoverageHeatmap({ years, selectedYear, concepts, onSelectCell }:
           <details className="ws-coverage-concept" key={concept.id}>
             <summary>
               <span>{concept.label}</span>
-              <span>{formatRate(cellFor(concept, selectedYear)?.code_rate)} for {selectedYear}</span>
+              <span>{cellValue(cellFor(concept, selectedYear))} for {selectedYear}</span>
             </summary>
             <ul>
               {orderedYears.map((year) => {
