@@ -59,7 +59,7 @@ export function Dashboard() {
   const summary = useJson<DashboardSummary>("dashboard.json"); // optional (lane B, #74): Tomorrow headline, Copilot call per day, P(request)
   const sandbox = useJson<Sandbox>("sandbox.json"); // optional (lane B, #76); without it the load uses a rough estimate
   const gridFile = useJson<GridFile>("grid.json"); // optional (lane A); without it the map draws the simple cables-south pipe
-  const grid = Array.isArray(gridFile.data?.lines) ? gridFile.data.lines.filter((l) => l && Array.isArray(l.path) && l.path.length > 1) : [];
+  const grid = useMemo(() => (Array.isArray(gridFile.data?.lines) ? gridFile.data.lines.filter((l) => l && Array.isArray(l.coords) && l.coords.length > 1) : []), [gridFile.data]);
   const [pin, setPin] = useState<MapPin>(() => project(56.0, -3.8)); // decorative: the score depends on the zone, not the pin
   const [showLines, setShowLines] = useState(true);
   const [extraGw, setExtraGw] = useState(0);
@@ -151,20 +151,20 @@ export function Dashboard() {
   const windowLine = useMemo(() => {
     const ds = (daily.data?.days ?? []).filter((d) => d.curtailed_mwh != null);
     if (!ds.length) return null;
-    return `${fmtEnergy(ds.reduce((s, d) => s + (d.curtailed_mwh ?? 0), 0))} of Scottish wind was switched off across the ${ds.length} days with data, ${fmtDay(ds[0].date).replace(/ \d{4}$/, "")} to ${fmtDay(ds[ds.length - 1].date)}.`;
+    return `${fmtEnergy(ds.reduce((s, d) => s + (d.curtailed_mwh ?? 0), 0))} switched off across ${ds.length} days with data, ${fmtDay(ds[0].date).replace(/ \d{4}$/, "")} to ${fmtDay(ds[ds.length - 1].date)}.`;
   }, [daily.data]);
   const dayLine = useMemo(() => {
     if (!series.off.length || !replay.data || isLive) return null;
     const peak = series.off.reduce((b, v, k) => (v > series.off[b] ? k : b), 0);
     const paid = series.cumGbp[series.cumGbp.length - 1];
-    return `On ${shortDay(replay.data.date)}, up to ${series.off[peak]} farms were off at once (${fmtTime(series.points[peak].start_utc)}): ${fmtEnergy(dayTotal)} lost${paid ? ` and ${fmtGbp(paid)} paid` : ""} in one day.`;
+    return `${shortDay(replay.data.date)}: up to ${series.off[peak]} farms off at once, ${fmtEnergy(dayTotal)} lost${paid ? `, ${fmtGbp(paid)} paid` : ""}.`;
   }, [series, replay.data, isLive, dayTotal]);
   const cableLine = useMemo(() => {
     const bs = (replay.data?.periods ?? []).map(boundaryOf).filter((b): b is NonNullable<typeof b> => b != null);
     if (!bs.length) return null;
     const lo = Math.min(...bs.map((b) => b.limit)), hi = Math.max(...bs.map((b) => b.limit));
     const flows = bs.map((b) => b.flow);
-    return `NESO's day-ahead limit on the cables south was ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW, against ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW forecast to want to flow. Not outturn.`;
+    return `Cables south: NESO published a limit of ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW; its day-ahead forecast had ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW wanting to flow. A forecast above the limit signals potential constraint pressure; not outturn.`;
   }, [replay.data]);
 
   const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null), [farms.data]);
@@ -207,9 +207,9 @@ export function Dashboard() {
         </div>
         <section className="dash-explain">
           <h2>What's going on</h2>
-          <p>Scotland has far more wind farms than it uses power. The surplus has to travel south to England over a handful of high-voltage cables. On windy days those cables are full.</p>
+          <p>Scotland has far more wind than it uses. The surplus travels to England over a handful of high-voltage cables, and on windy days they are full.</p>
           <h2>Why it's a problem</h2>
-          <p>When they're full, the grid operator, NESO, pays Scottish wind farms to switch off, then pays gas plants in England to switch on and replace that power. Bill payers fund both. Clean electricity is thrown away and gas is burned instead.</p>
+          <p>Then NESO, the grid operator, pays wind farms to switch off and pays gas plants in England to switch on. Bill payers fund both: clean power is thrown away and gas is burned.</p>
           <h2>What the data shows</h2>
           <ul>
             {windowLine && <li>{windowLine}</li>}
@@ -221,7 +221,7 @@ export function Dashboard() {
         <AskingCard data={dfs.data} date={date} />
         <p className="dash-sources">
           {anySample && <span className="badge badge-warn">Sample data</span>}
-          Retrospective replay. Sources: Elexon, NESO. Coastline: Natural Earth.{grid.length > 0 && " Lines: © OpenStreetMap contributors."}
+          Retrospective replay. Sources: Elexon, NESO. Coastline: Natural Earth.
         </p>
       </aside>
 
@@ -239,6 +239,9 @@ export function Dashboard() {
                 label={`Wind farm states at ${fmtTime(period.start_utc)} on ${fmtDay(date)}: ${series.off[at]} of ${total} paid to switch off`}
                 pin={pin} pinOn={onNow} onMovePin={setPin} />
               <MapLegend unplaced={farms.data.farms.length - placed.length} />
+              {showLines && grid.length > 0 && (
+                <p className="dash-credit">{gridFile.data?.meta?.attribution ?? "Power line geometry (c) OpenStreetMap contributors, ODbL"}. Western Link route is schematic. No per-line flow is published.</p>
+              )}
             </>
           ) : <p className="dash-loading">{error ? `Couldn't load data: ${error}` : "Loading the map…"}</p>}
           {coach.target === "map" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
@@ -247,8 +250,8 @@ export function Dashboard() {
         {/* The map's own cable label is too small to read on a phone, so its honesty text moves here. */}
         {boundary && showLines && (
           <p className="dash-pipe-note">
-            <strong>Cables south: {boundary.flow > boundary.limit ? `${(boundary.flow / boundary.limit).toFixed(1)}× over the limit` : `${Math.round((boundary.flow / boundary.limit) * 100)}% full`}.</strong>{" "}
-            {fmtNum(boundary.flow)} MW wants to flow, limit {fmtNum(boundary.limit)} MW. Day-ahead forecast flow vs limit (NESO), not outturn.
+            <strong>Cables south: {boundary.flow > boundary.limit ? `${(boundary.flow / boundary.limit).toFixed(1)}× over the limit` : `${Math.round((boundary.flow / boundary.limit) * 100)}% full`} (estimate).</strong>{" "}
+            NESO day-ahead forecast: {fmtNum(boundary.flow)} MW wanting to flow; published limit {fmtNum(boundary.limit)} MW. Forecast demand on the cables vs their limit, not outturn. Above the limit signals potential constraint pressure.
           </p>
         )}
 
@@ -256,12 +259,12 @@ export function Dashboard() {
           <div className="dash-time-head">
             <h2 className="dash-time-title">Wind switched off, per half-hour</h2>
             <ul className="dash-time-key">
-              <li><i className="tk tk-area" aria-hidden="true" />MWh switched off</li>
-              <li title="NESO's Demand Flexibility Service (DFS) requests"><i className="tk tk-ask" aria-hidden="true" />NESO asked for extra demand</li>
+              <li><i className="tk tk-area" aria-hidden="true" />MWh off</li>
+              <li title="NESO's Demand Flexibility Service (DFS) requests"><i className="tk tk-ask" aria-hidden="true" />NESO asked</li>
               <li><i className="tk tk-ready" aria-hidden="true" />Copilot ready</li>
-              {hasProb && <li title="Walk-forward: the model saw only earlier days"><i className="tk tk-prob" aria-hidden="true" />Forecast chance NESO asks</li>}
-              {loadResult && loadResult.on.size > 0 && <li><i className="tk tk-mine" aria-hidden="true" />Your load on</li>}
-              {extraGw > 0 && <li><i className="tk tk-avoided" aria-hidden="true" />Avoided with +{extraGw.toFixed(1)} GW</li>}
+              {hasProb && <li title="Walk-forward: the model saw only earlier days"><i className="tk tk-prob" aria-hidden="true" />Forecast chance</li>}
+              {loadResult && loadResult.on.size > 0 && <li><i className="tk tk-mine" aria-hidden="true" />Your load</li>}
+              {extraGw > 0 && <li><i className="tk tk-avoided" aria-hidden="true" />+{extraGw.toFixed(1)} GW estimate</li>}
             </ul>
           </div>
           {n > 0 ? <Timeline points={series.points} at={at} onSeek={seek} /> : <div className="tl-plot" />}
@@ -302,14 +305,14 @@ export function Dashboard() {
           <label className="dash-toggle">
             <input type="checkbox" checked={showLines} onChange={(e) => setShowLines(e.target.checked)} />
             <span>Power lines</span>
-            <small>cables south: forecast demand vs limit</small>
+            <small>forecast demand on the cables vs their limit</small>
           </label>
           <label htmlFor="whatif-gw" className="dash-whatif-label">What if: <b>+{extraGw.toFixed(1)} GW</b> cables south</label>
           <input id="whatif-gw" type="range" min={0} max={6} step={0.5} value={extraGw} disabled={!hasBoundary}
             aria-describedby="whatif-out" onChange={(e) => setExtraGw(Number(e.target.value))} />
           <output id="whatif-out" htmlFor="whatif-gw">
             {!hasBoundary ? "Needs boundary data."
-              : <>{extraGw > 0 && <><b>{fmtEnergy(avoidedTotal)}</b> of {fmtEnergy(dayTotal)} avoided ({Math.round((avoidedTotal / Math.max(dayTotal, 1)) * 100)}%). </>}Simple counterfactual, not a power-flow model.</>}
+              : <>{extraGw > 0 && <><b>{fmtEnergy(avoidedTotal)}</b> of {fmtEnergy(dayTotal)} might be avoided ({Math.round((avoidedTotal / Math.max(dayTotal, 1)) * 100)}%). </>}Estimate: simple counterfactual, not a power-flow model.</>}
           </output>
         </section>
       </aside>

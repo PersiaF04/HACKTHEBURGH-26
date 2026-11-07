@@ -26,13 +26,13 @@ const money = (v: number) => (v >= 1e9 ? `£${(v / 1e9).toFixed(2)}bn` : `£${Ma
 export function BillCard({ data }: { data: Iceberg | null }) {
   if (!data) return null;
   const rows = [
-    { k: "wind", label: "Paid to wind to switch off", v: data.wind_bids_gbp },
-    { k: "gas", label: "Gas plants' turn-up offers", v: data.ccgt_offers_gbp },
-    { k: "neso", label: "NESO's own constraint cost", v: data.neso_thermal_gbp },
+    { k: "wind", label: "Paid to wind to stop", v: data.wind_bids_gbp },
+    { k: "gas", label: "Gas turn-up offers", v: data.ccgt_offers_gbp },
+    { k: "neso", label: "NESO constraint cost", v: data.neso_thermal_gbp },
   ];
   const max = Math.max(...rows.map((r) => r.v));
   return (
-    <RailCard eyebrow="The hidden bill" title={`${money(data.wind_bids_gbp)} to wind is the small part of the bill`} href="#iceberg" link="Hidden bill">
+    <RailCard eyebrow="The hidden bill" title={`${money(data.wind_bids_gbp)} to wind is the small part`} href="#iceberg" link="Hidden bill">
       <ul className="rc-bars">
         {rows.map((r) => (
           <li key={r.k} className={`rc-bar rc-bar-${r.k}`}>
@@ -98,7 +98,7 @@ export function TomorrowCard({ data, summary }: { data: Forecast | null; summary
   const peakIdx = ps.map((p, i) => ((p.p_turnup_request ?? 0) === pMax && pMax > 0 ? i : -1)).filter((i) => i >= 0);
   const label = data.mode === "same_day_replay" ? `Forecast replay · ${shortDay(ps[0].start_utc)}` : `Tomorrow · ${shortDay(ps[0].start_utc)}`;
   return (
-    <RailCard eyebrow={`${label} · model forecast`} href="#tomorrow" link="Tomorrow" className={headline && !calm ? "rc-long" : ""}
+    <RailCard eyebrow={`${label} · model forecast`} href="#tomorrow" link="Predictions" className={headline && !calm ? "rc-long" : ""}
       title={calm ? "Tomorrow looks calm — no waste expected"
         : headline ?? (hasP && pMax > 0 ? `${Math.round(pMax * 100)}% chance NESO asks for turn-up` : "No turn-up request expected")}>
       <svg className="rc-spark" viewBox={`0 0 ${W} ${H + 14}`} role="img"
@@ -157,7 +157,7 @@ export function CopilotCard({ data, summary, date }: { data: Copilot | null; sum
   const load = `${fmtNum(data.load.capacity_mw)} MW ${data.load.type.replace("_", " ")}, zone ${data.load.zone}`;
   return (
     <RailCard id="dash-copilot" eyebrow="Flex Copilot says" title={call ? callText(call) : `No Copilot call for ${shortDay(`${date}T12:00:00Z`)}`}
-      href="#copilot" link="Flex Copilot" className="rc-copilot">
+      href="#copilot" link="Optimised Model" className="rc-copilot">
       {call ? (
         <p className="rc-line">
           {load}, this day{call.windows.length > 1 && <>, plus {call.windows.length - 1} more window{call.windows.length > 2 ? "s" : ""}</>}.
@@ -170,8 +170,8 @@ export function CopilotCard({ data, summary, date }: { data: Copilot | null; sum
         </p>
       )}
       <p className="rc-caveat">
-        <strong>Fragile:</strong> {paying === 1 ? "one day" : `${paying} days`} of {data.days.length} carried the result
-        ({Math.round(data.summary.pct_of_oracle * 100)}% of perfect hindsight overall). Assumes full delivery. Not a revenue promise.
+        <strong>Fragile:</strong> {paying === 1 ? "one day" : `${paying} days`} of {data.days.length} carried the result.
+        {" "}Assumes full delivery. Not a revenue promise.
       </p>
     </RailCard>
   );

@@ -6,7 +6,7 @@ import { project, STATE_LABEL, type PlacedFarm } from "../screens/WasteMap";
 
 // The map is tilted by a small perspective projection rather than CSS 3D, so turbines stay upright and clicks map exactly.
 // Input is the 520x640 space of WasteMap's project(); north recedes from the viewer.
-const CX = 260, CY = 320, DEPTH = 1100, SIN = Math.sin(Math.PI / 6), COS = Math.cos(Math.PI / 6);
+const CX = 260, CY = 320, DEPTH = 1100, SIN = Math.sin((38 * Math.PI) / 180), COS = Math.cos((38 * Math.PI) / 180);
 const tilt = (x: number, y: number) => {
   const dy = y - CY, s = DEPTH / (DEPTH - dy * SIN);
   return { x: CX + (x - CX) * s, y: CY + dy * COS * s, s };
@@ -15,7 +15,7 @@ const untilt = (X: number, Y: number) => {
   const t = Y - CY, dy = (t * DEPTH) / (COS * DEPTH + t * SIN), s = DEPTH / (DEPTH - dy * SIN);
   return { x: CX + (X - CX) / s, y: CY + dy };
 };
-const VB = { x: -70, y: 58, w: 680, h: 640 };
+const VB = { x: -70, y: 88, w: 680, h: 584 };
 
 const COAST = SCOTLAND_PATH.replace(/([ML])\s*(-?[\d.]+)[ ,](-?[\d.]+)/g, (_, c: string, x: string, y: string) => {
   const p = tilt(Number(x), Number(y));
@@ -94,7 +94,17 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
     const b = project(f.lat, f.lon), p = tilt(b.x, b.y);
     return { f, x: p.x, y: p.y, size: (3 + Math.sqrt(f.capacity_mw ?? 30) / 2.1) * p.s };
   }).sort((a, b) => a.y - b.y), [farms]);
-  const gridPaths = useMemo(() => lines.map((l) => ({ id: l.id, d: pathOf(l.path) })), [lines]);
+  // About 1,700 lines: batched into one path per class, so the layer costs a few elements. Only border crossings animate.
+  const grid = useMemo(() => {
+    const d = (ls: GridLine[]) => ls.map((l) => pathOf(l.coords.map(([lon, lat]) => [lat, lon]))).join("");
+    const schematic = lines.filter((l) => l.schematic);
+    const start = schematic[0]?.coords[0];
+    const b = start ? project(start[1], start[0]) : null;
+    return {
+      kv400: d(lines.filter((l) => !l.schematic && l.kv === 400)), kv275: d(lines.filter((l) => !l.schematic && l.kv !== 400)),
+      border: d(lines.filter((l) => l.crosses_border && !l.schematic)), schematic: d(schematic), schematicAt: b ? tilt(b.x, b.y) : null,
+    };
+  }, [lines]);
   const keyId = cursor >= 0 ? order[cursor]?.id ?? null : null;
   const activeId = hover ?? keyId ?? pinned;
   const active = farms.find((f) => f.id === activeId);
@@ -148,22 +158,28 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
 
         {showLines && (
           <g className={`dm-cables${over ? " is-over" : ""}`} aria-hidden="true">
-            {gridPaths.map((l) => <path key={l.id} className="dm-line" d={l.d} />)}
-            {!reduced && gridPaths.map((l) => (
-              <path key={l.id} className="dm-line-flow" d={l.d} style={{ animationDuration: `${Math.max(0.5, 2.4 - Math.min(ratio, 4) * 0.45)}s` }} />
-            ))}
+            {grid.kv275 && <path className="dm-line dm-line-275" d={grid.kv275} />}
+            {grid.kv400 && <path className="dm-line dm-line-400" d={grid.kv400} />}
+            {grid.schematic && <path className="dm-line-schematic" d={grid.schematic} />}
+            {grid.schematicAt && <text className="dm-line-label" x={grid.schematicAt.x - 8} y={grid.schematicAt.y + 14} textAnchor="end">Western Link (schematic route)</text>}
+            {grid.border && <path className="dm-line-border" d={grid.border} />}
+            {grid.border && !reduced && (
+              // No per-line flow is published: this speed only reflects forecast demand on the cables vs their limit.
+              <path className="dm-line-flow" d={grid.border} style={{ animationDuration: `${Math.max(0.4, 2.4 - Math.min(ratio, 4) * 0.5)}s` }} />
+            )}
             {over && <path className="dm-pipe-spill" d={PIPE} style={{ strokeWidth: 14 + Math.min(4, ratio - 1) * 9 }} />}
             <path className="dm-pipe-case" d={PIPE} />
             <path className="dm-pipe-core" d={PIPE} />
             {boundary && <path className="dm-pipe-fill" d={PIPE} pathLength={100} strokeDasharray={`${Math.min(1, ratio) * 100} 100`} />}
             {!reduced && (!boundary || over) && <path className="dm-pipe-flow" d={PIPE} />}
-            <text className="dm-pipe-label" x={345} y={640}>
-              Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit` : `  ${Math.round(ratio * 100)}% full`}</tspan>}
+            <text className="dm-pipe-label" x={262} y={622}>
+              Cables south{boundary && <tspan className={over ? "dm-pipe-over" : "dm-pipe-ok"}>{over ? `  ${ratio.toFixed(1)}× over the limit (estimate)` : `  ${Math.round(ratio * 100)}% full (estimate)`}</tspan>}
             </text>
-            <text className="dm-pipe-sub" x={345} y={656}>
-              {boundary ? `SCOTEX: ${fmtNum(boundary.flow)} MW wants to flow, limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
+            <text className="dm-pipe-sub" x={262} y={637}>
+              {boundary ? `NESO day-ahead forecast: ${fmtNum(boundary.flow)} MW wanting to flow; published limit ${fmtNum(boundary.limit)} MW` : "SCOTEX boundary · to England"}
             </text>
-            {boundary && <text className="dm-pipe-sub" x={345} y={670}>Day-ahead forecast flow vs limit (NESO), not outturn</text>}
+            {boundary && <text className="dm-pipe-sub" x={262} y={651}>Forecast demand on the cables vs their limit, not outturn.{over && " Above the limit"}</text>}
+            {boundary && over && <text className="dm-pipe-sub" x={262} y={665}>signals potential constraint pressure.</text>}
           </g>
         )}
 
