@@ -247,6 +247,15 @@ def cashflow_daily(day: str, scot_ids: set[str], fuel: dict[str, str]) -> tuple[
     return wind, ccgt
 
 
+def daily_coverage(days: list[dict]) -> dict:
+    """How many days carry a curtailment figure, and their total. Days with no NESO volume row are null, not 0."""
+    have = [d["curtailed_mwh"] for d in days if d["curtailed_mwh"] is not None]
+    return {"days_in_window": len(days), "days_with_figure": len(have), "days_without_figure": len(days) - len(have),
+            "total_curtailed_mwh": round(sum(have)),
+            "note": ("Days without a figure have no row in NESO's Wind BOA volumes (null, not zero), so the total is a "
+                     "floor: say 'at least', and quote the number of days it covers.")}
+
+
 def build_daily_and_iceberg(start: str = WINDOW_START, end: str = WINDOW_END) -> tuple[dict, dict]:
     ref = wind_bmu_reference()
     ng2e = ng_to_elexon()
@@ -275,6 +284,7 @@ def build_daily_and_iceberg(start: str = WINDOW_START, end: str = WINDOW_END) ->
                       "Elexon indicative cashflows (bids, Scottish wind BMUs, net)",
                       "NESO Constraint Breakdown 2026-2027 (thermal)"]),
         "days": days,
+        "coverage": daily_coverage(days),
         "validation": {"window": window, "n_days": len(both),
                        "volume_ratio": round(ratio, 3) if ratio is not None else None,
                        "volume_corr_daily": round(corr, 3) if corr is not None else None},
