@@ -28,6 +28,7 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
     now = now or dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
     forecast = json.loads((PUBLIC / "forecast.json").read_text(encoding="utf-8"))
     copilot = json.loads((PUBLIC / "copilot.json").read_text(encoding="utf-8"))
+    sandbox = json.loads((PUBLIC / "sandbox.json").read_text(encoding="utf-8"))
     index = json.loads((PUBLIC / "replay" / "index.json").read_text(encoding="utf-8"))
     replay_dates = sorted(index["days"])
 
@@ -41,7 +42,7 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
 
     return {
         "meta": {
-            "source": ["derived: forecast.json", "derived: copilot.json", "NESO demand-flexibility (DFS)"],
+            "source": ["derived: forecast.json", "derived: copilot.json", "derived: sandbox.json", "NESO demand-flexibility (DFS)"],
             "generated_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "retrospective": True,
             "request_model_feature": "national wind forecast" if forecast["meta"].get("model") == "wind_forecast"
@@ -51,6 +52,7 @@ def build(refresh: bool = False, now: dt.datetime | None = None) -> dict:
                      "when there is not enough history. Nothing here is a revenue claim."),
         },
         "tomorrow": D.tomorrow_block(forecast),
+        "optimised": D.optimised_block(copilot, sandbox, forecast),
         "replay_days": D.build_replay_days(replay_dates, copilot, obs, feature, events, event_days,
                                            inputs.DFS_ERA_START),
     }

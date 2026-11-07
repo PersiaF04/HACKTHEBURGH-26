@@ -181,3 +181,32 @@ Summaries for the map dashboard (#73), derived from `forecast.json`, `copilot.js
 - `tomorrow.request_probability` has one entry per half-hour of the target day and lines up with `forecast.json` `periods`.
 - `replay_days` has one entry per day in `replay/index.json`. `request_probability` has 48 entries aligned to the replay timeline (`start_utc`, the same instants as the replay periods). `p_turnup_request` is a **walk-forward** value (the model saw only earlier days) and `null` when there is not enough history; `actual_request` is whether NESO really published a turn-up request that half-hour.
 - `copilot.status` is `scored` or `not_scored`. A `not_scored` day carries a `reason` (before requests began, a warm-up day, or not in the scored set) and no numbers. On a `scored` day with nothing tradable, `pct_of_oracle` is `null` and a `note` says there was nothing to answer. The Copilot only has a scored call on days after its warm-up; today that is 27 Oct among the replay days.
+
+#### `dashboard.json` `optimised` block (optional, issue #100)
+
+Content for the Optimised Model section, templated only from `copilot.json`, `sandbox.json` and `forecast.json`. Lane C renders it as given; the web app must still work when the block is absent. Adding it needs approval from all three lanes, because it extends the shared `dashboard.json` shape.
+
+```json
+{ "optimised": {
+    "headline": "Replaying 13 days, the Copilot's net was £11,909 against £12,594 for perfect hindsight ...",
+    "load": { "type": "electrolyser", "capacity_mw": 50.0, "zone": "Z1", "assumed_site_value_gbp_per_mwh": 100.0, "max_half_hours_per_day": 12 },
+    "how_it_works": { "steps": ["..."], "policies": [ { "id": "ours", "label": "Ours (the Copilot)", "rule": "..." } ], "net_formula": "...", "mwh_note": "..." },
+    "sensitivity": [ { "value_gbp_per_mwh": 100.0, "net_gbp": { "naive": 1976, "ours": 11909, "oracle": 12594 }, "pct_of_oracle": 0.946, "ours_beats_naive": true } ],
+    "break_even_site_value_gbp_per_mwh": 134.4, "break_even_note": "...",
+    "at_assumed_value": { "value_gbp_per_mwh": 100.0, "...": "same shape as a sensitivity row" },
+    "without_site_value": { "gross_settlement_gbp": 10500, "energy_cost_gbp": 16091, "net_gbp": -5591, "note": "..." },
+    "where_it_is_thin": [ { "id": "one_day", "text": "..." } ],
+    "days": [ { "date": "2026-10-27", "status": "traded", "text": "...", "ready_windows_utc": [["2026-10-27T11:00:00Z", "2026-10-27T14:30:00Z"]],
+      "ready_half_hours": 7, "bid_gbp_per_mwh": 60.0, "net_gbp": { "naive": 8533, "ours": 11909, "oracle": 12594 },
+      "mwh": { "naive": 225.0, "ours": 175.0, "oracle": 200.0 }, "accepted_half_hours": { "naive": 9, "ours": 7, "oracle": 8 }, "pct_of_oracle": 0.946 } ],
+    "no_call_days": ["2026-10-13", "2026-10-14"],
+    "outlook": { "target_date": "2026-11-08", "mode": "next_day", "peak_p_request": 0.233, "note": "..." },
+    "caveat": "..." } }
+```
+
+- Every sentence (`headline`, `where_it_is_thin[].text`, `days[].text`) is **templated from the numbers beside it**. Show it as given, or build your own from the numbers.
+- **Net £ = gross settlement + assumed site value x MWh - electricity.** `mwh` is the electricity the load itself uses in accepted half-hours; it is not proof that the same MWh of switched-off wind was absorbed. Without the assumed site value the Copilot's settlement does not cover its electricity (`without_site_value.net_gbp` is negative).
+- `sensitivity` has one row per site value. `pct_of_oracle` is `null` when the oracle earned nothing. `break_even_site_value_gbp_per_mwh` is where the naive rule overtakes ours, interpolated between grid points (`null` if it never does). The share of perfect hindsight is high only at the assumed value; at higher site values it falls and the naive rule wins.
+- `days[].status` is `traded`, `bid_not_accepted` (the Copilot readied half-hours but none was tradable), `stayed_out_naive_lost` or `nothing_tradable`. There is one card per scored day; `no_call_days` are early request days that only train the acceptance model, with no call.
+- One day carries all the value and only a few half-hours are tradable (see `where_it_is_thin`); show that strip next to any headline percentage.
+- Zones `Z1` to `Z3` are IDs, not confirmed as Scotland. The numbers are a retrospective replay, not revenue.

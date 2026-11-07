@@ -131,3 +131,74 @@ def test_replay_probability_uses_only_earlier_days():
     flipped = [T.Obs(o.date, o.sp, o.util, not o.event) if o.date >= "2026-10-16" else o for o in obs]
     again = D.replay_request_probability("2026-10-16", flipped, feature, events, "2026-10-07")
     assert [p["p_turnup_request"] for p in base] == [p["p_turnup_request"] for p in again]
+
+
+# ---- Optimised Model block (issue #100) ----
+
+def _sens(v, naive, ours, oracle):
+    return {"value_gbp_per_mwh": v, "net_gbp": {"naive": naive, "ours": ours, "oracle": oracle}}
+
+
+def test_break_even_is_interpolated_between_the_sign_change_points():
+    s = [_sens(0, -100, 0, 0), _sens(100, 0, 100, 120), _sens(150, 100, 50, 200)]
+    assert D.break_even_vs_naive(s) == 133.3          # diff +100 at 100, -50 at 150
+    assert D.break_even_vs_naive(s[:2]) is None
+
+
+def _opt_inputs():
+    cp = _copilot([_day("2026-10-27", 90, 100, ["2026-10-27T11:00:00Z", "2026-10-27T11:30:00Z"]),
+                   _day("2026-10-28", 0, 0, [])])
+    cp["days"][0]["policies"]["naive"]["gbp"] = 40
+    cp["days"][1]["policies"]["naive"]["gbp"] = -50
+    for d in cp["days"]:
+        for p in d["policies"].values():
+            p.update({"mwh": 25.0, "accepted_periods": 1})
+    cp["load"].update({"type": "electrolyser", "capacity_mw": 50.0, "max_periods_per_day": 12})
+    cp["summary"].update({"gross_settlement_gbp": 1000, "energy_cost_gbp": 1600,
+                          "net_gbp": {"naive": -10, "ours": 90, "oracle": 100}, "caveat": "c"})
+    cp["assumptions"] = {"window_local": "11:00 to 23:00", "naive_rule": "n", "ours_rule": "o", "oracle_rule": "h"}
+    cp["validation"] = {"settled_to_accepted_cost_ratio_all_dfs": 0.394}
+    cp["sensitivity"] = [_sens(100, 0, 90, 100), _sens(150, 200, 120, 300)]
+    sb = {"days": {"2026-10-13": {"half_hours": [{"request": True}]}, "2026-10-27": {"half_hours": [{"request": True}]},
+                   "2026-10-30": {"half_hours": [{"request": False}]}}}
+    return cp, sb, _forecast(req=0.233)
+
+
+def test_optimised_block_numbers_and_honesty_text():
+    cp, sb, fc = _opt_inputs()
+    o = D.optimised_block(cp, sb, fc)
+    assert o["break_even_site_value_gbp_per_mwh"] == 126.5
+    assert o["without_site_value"]["net_gbp"] == -600
+    assert o["no_call_days"] == ["2026-10-13"]                      # requests but not scored; no-request days ignored
+    assert [r["pct_of_oracle"] for r in o["sensitivity"]] == [0.9, 0.4]
+    assert [r["ours_beats_naive"] for r in o["sensitivity"]] == [True, False]
+    thin = {t["id"]: t["text"] for t in o["where_it_is_thin"]}
+    assert "1 of 2 scored days carries all the value" in thin["one_day"] and "100%" in thin["one_day"]
+    assert "28 half-hours" in thin["few_half_hours"]
+    assert "-£600" in thin["needs_site_value"] and "£100/MWh" in thin["needs_site_value"]
+    assert "At £150 it is 40% and the naive rule beats ours" in thin["site_value_sensitive"]
+    assert "39.4%" in thin["settled_cost"]
+    assert "not a revenue claim" in thin["unconfirmed"] and "13 Oct" in thin["unconfirmed"]
+    assert "retrospective replay, not revenue" in o["headline"] and "£126.5/MWh" in o["headline"]
+    assert o["outlook"]["peak_p_request"] == 0.233
+
+
+def test_optimised_day_cards():
+    cp, sb, fc = _opt_inputs()
+    cards = {c["date"]: c for c in D.optimised_block(cp, sb, fc)["days"]}
+    t = cards["2026-10-27"]
+    assert t["status"] == "traded" and t["pct_of_oracle"] == 0.9 and t["ready_half_hours"] == 2
+    assert t["ready_windows_utc"] == [["2026-10-27T11:00:00Z", "2026-10-27T12:00:00Z"]]
+    assert cards["2026-10-28"]["status"] == "stayed_out_naive_lost" and "lost £50" in cards["2026-10-28"]["text"]
+    assert cards["2026-10-28"]["pct_of_oracle"] is None
+
+
+def test_committed_dashboard_optimised_block_matches_the_source_files():
+    import json
+    from pathlib import Path
+    pub = Path(__file__).resolve().parents[2] / "data" / "public"
+    load = lambda f: json.loads((pub / f).read_text(encoding="utf-8"))
+    o = D.optimised_block(load("copilot.json"), load("sandbox.json"), load("forecast.json"))
+    assert o == load("dashboard.json")["optimised"]
+    assert 134 <= o["break_even_site_value_gbp_per_mwh"] < 135
+    assert o["without_site_value"]["net_gbp"] == -5591

@@ -222,6 +222,239 @@
   ],
   "caveat": "Retrospective: the backtest uses archived data and is probably optimistic. The request probability is provisional (about one month of NESO events)."
  },
+ "optimised": {
+  "headline": "Replaying 13 days, the Copilot's net was \u00a311,909 against \u00a312,594 for perfect hindsight and \u00a31,976 for the naive rule, at an assumed site value of \u00a3100/MWh. The naive rule overtakes it at about \u00a3134.4/MWh. This is a retrospective replay, not revenue.",
+  "load": {
+   "type": "electrolyser",
+   "capacity_mw": 50.0,
+   "zone": "Z1",
+   "assumed_site_value_gbp_per_mwh": 100.0,
+   "max_half_hours_per_day": 12
+  },
+  "how_it_works": {
+   "steps": [
+    "NESO publishes a request for extra demand in some half-hours, with a price ceiling per zone. A bid is accepted only if a request is live, the zone has room for the load, and the bid is at or below the ceiling.",
+    "Each day the Copilot only looks at 11:00 to 23:00 local time and readies at most 12 half-hours.",
+    "It scores every candidate half-hour by expected margin: the chance the bid is accepted, times (the price plus what the energy is worth to the site, minus the electricity price), times the MWh.",
+    "The chance of acceptance is learned only from earlier days, split by electricity price and by how full the cable south is forecast to be.",
+    "It tries each bid price seen in the history and keeps the single price whose best half-hours add up to the most expected margin. Half-hours with no expected margin are left out.",
+    "Accepted half-hours are paid the bid price per MWh (pay-as-bid). The site buys the electricity at the market index price and counts the energy as worth the site value per MWh."
+   ],
+   "policies": [
+    {
+     "id": "naive",
+     "label": "Naive",
+     "rule": "bid a fixed price in the cheapest-electricity half-hours; the price is the median accepted-price ceiling in the load's zone on earlier days only (GBP 60 with no history)"
+    },
+    {
+     "id": "ours",
+     "label": "Ours (the Copilot)",
+     "rule": "rank half-hours by expected margin = P(accepted at price) x (price + value - electricity price) x MWh; P(accepted) is learned from earlier days by electricity-price and boundary-utilisation tercile"
+    },
+    {
+     "id": "oracle",
+     "label": "Perfect hindsight",
+     "rule": "hindsight best tradable half-hours, each bid at its accepted price ceiling"
+    }
+   ],
+   "net_formula": "net \u00a3 = gross settlement + assumed site value x MWh - electricity",
+   "mwh_note": "MWh is what the load itself uses in accepted half-hours. It is not proof that the same MWh of switched-off wind was absorbed."
+  },
+  "sensitivity": [
+   {
+    "value_gbp_per_mwh": 0.0,
+    "net_gbp": {
+     "naive": -35524,
+     "ours": 30,
+     "oracle": 30
+    },
+    "pct_of_oracle": 1.0,
+    "ours_beats_naive": true
+   },
+   {
+    "value_gbp_per_mwh": 50.0,
+    "net_gbp": {
+     "naive": -16774,
+     "ours": 3899,
+     "oracle": 3899
+    },
+    "pct_of_oracle": 1.0,
+    "ours_beats_naive": true
+   },
+   {
+    "value_gbp_per_mwh": 100.0,
+    "net_gbp": {
+     "naive": 1976,
+     "ours": 11909,
+     "oracle": 12594
+    },
+    "pct_of_oracle": 0.946,
+    "ours_beats_naive": true
+   },
+   {
+    "value_gbp_per_mwh": 150.0,
+    "net_gbp": {
+     "naive": 20726,
+     "ours": 16240,
+     "oracle": 26398
+    },
+    "pct_of_oracle": 0.615,
+    "ours_beats_naive": false
+   },
+   {
+    "value_gbp_per_mwh": 200.0,
+    "net_gbp": {
+     "naive": 39476,
+     "ours": 26240,
+     "oracle": 52090
+    },
+    "pct_of_oracle": 0.504,
+    "ours_beats_naive": false
+   }
+  ],
+  "break_even_site_value_gbp_per_mwh": 134.4,
+  "break_even_note": "Site value at which the naive rule overtakes ours, interpolated between the grid points either side of the crossing. Below it ours is ahead; above it naive is.",
+  "at_assumed_value": {
+   "value_gbp_per_mwh": 100.0,
+   "net_gbp": {
+    "naive": 1976,
+    "ours": 11909,
+    "oracle": 12594
+   },
+   "pct_of_oracle": 0.946,
+   "ours_beats_naive": true
+  },
+  "without_site_value": {
+   "gross_settlement_gbp": 10500,
+   "energy_cost_gbp": 16091,
+   "net_gbp": -5591,
+   "note": "Settlement minus electricity for the Copilot's schedule at the assumed value. Not a profit."
+  },
+  "where_it_is_thin": [
+   {
+    "id": "one_day",
+    "text": "1 of 13 scored days carries all the value (Tuesday 27 Oct is 100% of the Copilot's net). The rest had nothing tradable."
+   },
+   {
+    "id": "few_half_hours",
+    "text": "Only 28 half-hours were tradable for zone Z1, so the share of perfect hindsight rests on a handful of events, not a trend."
+   },
+   {
+    "id": "needs_site_value",
+    "text": "Net \u00a3 = settlement + assumed site value x MWh - electricity. Without the \u00a3100/MWh site value the settlement (\u00a310,500) does not cover the electricity (\u00a316,091): -\u00a35,591."
+   },
+   {
+    "id": "site_value_sensitive",
+    "text": "The 94.6% of perfect hindsight holds only at \u00a3100/MWh. At \u00a3150 it is 61.5% and the naive rule beats ours. At \u00a3200 it is 50.4% and the naive rule beats ours."
+   },
+   {
+    "id": "settled_cost",
+    "text": "Full delivery is assumed. NESO's published settled cost is only 39.4% of accepted cost across demand-flexibility so far, so real payments could be lower."
+   },
+   {
+    "id": "unconfirmed",
+    "text": "Replay of past NESO requests, not a revenue claim. Zones Z1 to Z3 are IDs; they are not confirmed as Scotland. 5 early request days (8 Oct, 9 Oct, 12 Oct, 13 Oct, 14 Oct) are warm-up: the Copilot makes no call on them."
+   }
+  ],
+  "days": [
+   {
+    "date": "2026-10-22",
+    "status": "bid_not_accepted",
+    "text": "Thursday 22 Oct: nothing was tradable for zone Z1 (no bid could have been accepted). The Copilot readied 11 half-hours anyway and earned nothing; the naive rule netted \u00a30.",
+    "ready_windows_utc": [
+     [
+      "2026-10-22T10:00:00Z",
+      "2026-10-22T15:30:00Z"
+     ]
+    ],
+    "ready_half_hours": 11,
+    "bid_gbp_per_mwh": 60.0,
+    "net_gbp": {
+     "naive": 0,
+     "ours": 0,
+     "oracle": 0
+    },
+    "mwh": {
+     "naive": 0.0,
+     "ours": 0.0,
+     "oracle": 0.0
+    },
+    "accepted_half_hours": {
+     "naive": 0,
+     "ours": 0,
+     "oracle": 0
+    },
+    "pct_of_oracle": null
+   },
+   {
+    "date": "2026-10-27",
+    "status": "traded",
+    "text": "Tuesday 27 Oct: the Copilot readied 7 half-hours at \u00a360/MWh and netted \u00a311,909 (94.6% of perfect hindsight, \u00a312,594); the naive rule netted \u00a38,533.",
+    "ready_windows_utc": [
+     [
+      "2026-10-27T11:00:00Z",
+      "2026-10-27T14:30:00Z"
+     ]
+    ],
+    "ready_half_hours": 7,
+    "bid_gbp_per_mwh": 60.0,
+    "net_gbp": {
+     "naive": 8533,
+     "ours": 11909,
+     "oracle": 12594
+    },
+    "mwh": {
+     "naive": 225.0,
+     "ours": 175.0,
+     "oracle": 200.0
+    },
+    "accepted_half_hours": {
+     "naive": 9,
+     "ours": 7,
+     "oracle": 8
+    },
+    "pct_of_oracle": 0.946
+   },
+   {
+    "date": "2026-10-29",
+    "status": "stayed_out_naive_lost",
+    "text": "Thursday 29 Oct: nothing was tradable for zone Z1, so the Copilot bid nothing. The naive rule bid anyway and lost \u00a36,011.",
+    "ready_windows_utc": [],
+    "ready_half_hours": 0,
+    "bid_gbp_per_mwh": null,
+    "net_gbp": {
+     "naive": -6011,
+     "ours": 0,
+     "oracle": 0
+    },
+    "mwh": {
+     "naive": 125.0,
+     "ours": 0.0,
+     "oracle": 0.0
+    },
+    "accepted_half_hours": {
+     "naive": 5,
+     "ours": 0,
+     "oracle": 0
+    },
+    "pct_of_oracle": null
+   }
+  ],
+  "no_call_days": [
+   "2026-10-08",
+   "2026-10-09",
+   "2026-10-12",
+   "2026-10-13",
+   "2026-10-14"
+  ],
+  "outlook": {
+   "target_date": "2026-11-08",
+   "mode": "next_day",
+   "peak_p_request": 0.233,
+   "note": "The Copilot replays past days. It does not schedule the forecast day; see Tomorrow's Predictions for request odds."
+  },
+  "caveat": "Replay of DFS Upwards/System requests from 7 Oct 2026, 13 scored days. Gross settlement is what NESO would pay at the bid price if the bid were accepted and delivered (pay-as-bid assumed; a bid is assumed accepted whenever it is at or below a price NESO actually accepted that half-hour). Electricity cost uses a market index price, not any site's tariff, and excludes levies. At the assumed site value the settlement (GBP 10,500) does not cover the electricity (GBP 16,091) on its own; the site's value for the energy makes up the difference. See `sensitivity` for other values. Full delivery is assumed, which is optimistic: NESO's published settled cost is only 39% of accepted cost across DFS so far. Only 28 half-hours were tradable for zone Z1 across these days (a bid had actually been accepted there), so percentages of the oracle rest on a handful of events and 'ours matches the oracle' at low site values is a small-sample effect. Not a revenue claim. DFS zone IDs are not confirmed as Scotland."
+ },
  "replay_days": [
   {
    "date": "2026-10-14",
