@@ -10,7 +10,9 @@
  "load": {
   "type": "electrolyser",
   "capacity_mw": 50,
-  "zone": "Z1"
+  "zone": "Z1",
+  "value_gbp_per_mwh": 100,
+  "max_periods_per_day": 12
  },
  "days": [
   {
@@ -18,15 +20,24 @@
    "policies": {
     "naive": {
      "gbp": 1500,
-     "mwh": 50
+     "mwh": 50,
+     "gross_settlement_gbp": 2000,
+     "energy_cost_gbp": 5500,
+     "value_gbp": 5000
     },
     "ours": {
      "gbp": 10800,
-     "mwh": 225
+     "mwh": 225,
+     "gross_settlement_gbp": 12000,
+     "energy_cost_gbp": 23700,
+     "value_gbp": 22500
     },
     "oracle": {
      "gbp": 15000,
-     "mwh": 300
+     "mwh": 300,
+     "gross_settlement_gbp": 18000,
+     "energy_cost_gbp": 33000,
+     "value_gbp": 30000
     }
    },
    "schedule": [
@@ -95,7 +106,13 @@
  ],
  "summary": {
   "pct_of_oracle": 0.72,
-  "gross_settlement_gbp": 486000,
-  "caveat": "Gross settlement before energy cost and levies"
+  "gross_settlement_gbp": 12000,
+  "energy_cost_gbp": 23700,
+  "net_gbp": {
+   "naive": 1500,
+   "ours": 10800,
+   "oracle": 15000
+  },
+  "caveat": "Fixture figures, not real data. Net = gross settlement + site value - electricity. Gross settlement is before levies."
  }
 }
