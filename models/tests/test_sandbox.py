@@ -114,3 +114,28 @@ def test_export_has_the_documented_shape_and_survives_json_round_trip():
     assert set(d["policies"]) == set(S.ZONES) and set(d["policies"]["Z1"]) == {"0", "50", "100", "150", "200"}
     blob = copy.deepcopy(d)
     assert json.loads(json.dumps(blob)) == blob
+
+
+def test_wind_matched_is_bounded_by_both_the_load_and_the_curtailed_wind():
+    _, days = _setup()
+    day = copy.deepcopy(days[sorted(days)[3]])
+    sp = next(h["sp"] for h in day["half_hours"] if h["request"] and h["ceiling_gbp_per_mwh"]["Z1"] is not None
+              and h["mid_gbp_per_mwh"] is not None)
+    for curtailed, expected in ((0.0, 0.0), (10.0, 10.0), (500.0, 25.0)):       # 50 MW x 0.5 h = 25 MWh per half-hour
+        day["half_hours"][sp - 1]["curtailed_mwh"] = curtailed
+        r = S.score_schedule(day, _load(), [[sp, 0.0]])
+        assert r["accepted_half_hours"] == 1 and r["mwh"] == 25.0           # consumption is independent of the wind
+        assert r["wind_matched_mwh"] == expected
+        assert r["wind_matched_mwh"] <= r["mwh"]
+
+
+def test_wind_matched_counts_only_accepted_half_hours():
+    _, days = _setup()
+    day = days[sorted(days)[3]]
+    r = S.score_schedule(day, _load(), [[sp, 1e9] for sp in range(1, 49)])      # absurd bid: nothing is accepted
+    assert r["accepted_half_hours"] == 0 and r["wind_matched_mwh"] == 0.0 and r["mwh"] == 0.0
+
+
+def test_the_rule_text_separates_load_consumption_from_wind_absorbed():
+    text = " ".join(S.SCORING_RULE)
+    assert "NOT proof" in text and "APPROXIMATE upper bound" in text and "unconfirmed" in text
