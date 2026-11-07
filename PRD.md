@@ -38,14 +38,14 @@
 
 ## 1. Product summary
 
-**Summary:** Scotland pays wind farms to switch off when the cables south are full. It threw away about 7.3 TWh in seven months, and most of the real bill goes to gas plants in England. NESO now asks for flexible demand to absorb that power, and almost none arrives. Turn Up Scotland shows the hidden waste and its true cost. It forecasts when NESO will ask for help, and tells a flexible load operator when to be ready and what to bid.
+**Summary:** Scotland pays wind farms to switch off when the cables south are full. It threw away about 7.3 TWh in seven months. Wind turn-down payments were about £193m, while CCGT turn-up offers and NESO's thermal constraint-cost measure were each about £1.78bn over the same window. These are parallel measures of system cost, not an additive breakdown or proof of who ultimately paid. NESO now asks for flexible demand to absorb that power, and almost none arrives. Turn Up Scotland shows the hidden waste and its true cost. It forecasts when NESO will ask for help, and tells a flexible load operator when to be ready and what to bid.
 
 ## 2. Problem, users, and evidence
 
 | User / stakeholder | Context and need | Current alternative and gap | Evidence / source |
 | --- | --- | --- | --- |
 | **Primary user:** operations lead of a flexible load behind Scotland's grid constraints (electrolyser, data centre, heat network with storage) or an aggregator | Decides each day which half-hours to be ready for, and what to bid into NESO's Demand Flexibility Service (DFS) | NESO's raw datasets are scattered and there is no forecast of requests. Requests go unanswered: **0.2% of 500 MW turn-up requests were filled in Oct 2026** | NESO `demand-flexibility` dataset; #25 deep dive |
-| Secondary: energy-policy audience (journalists, analysts, the public) | Understand the waste and who pays for it | Headlines quote payments to wind (about £193m) and miss most of the cost (gas turn-up of about £1.78bn) | Elexon cashflows vs NESO Constraint Breakdown, 201 days, daily corr 0.94 (#25) |
+| Secondary: energy-policy audience (journalists, analysts, the public) | Understand the waste and who pays for it | Headlines quote payments to wind (about £193m). Parallel system-cost measures (CCGT turn-up offers and NESO thermal constraint cost, each about £1.78bn) are rarely shown. These are not an additive breakdown | Elexon cashflows vs NESO Constraint Breakdown, 201 days, daily corr 0.94 (#25) |
 
 **Out of scope for the first version:** households and small loads (the DFS threshold and baselines differ), trading desks, and regions outside GB.
 
