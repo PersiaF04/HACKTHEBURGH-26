@@ -223,7 +223,7 @@ export function Dashboard() {
         </section>
         <p className="dash-sources">
           {anySample && <span className="badge badge-warn">Sample data</span>}
-          Retrospective replay. Sources: Elexon, NESO. Coastline: Natural Earth.
+          {isLive ? "Live estimate; payments settle the next morning." : "Retrospective replay."} Sources: Elexon, NESO. Coastline: Natural Earth.
         </p>
       </aside>
 
@@ -236,6 +236,7 @@ export function Dashboard() {
                 <span className="dash-clock-day">
                   {isLive ? <><b className="dash-live-tag">Live</b> estimate · {shortDay(date)}</> : <>{shortDay(date)} · replay, retrospective</>}
                 </span>
+                {isLive && series.off[at] === 0 && <span className="dash-clock-day">No farms are paid to switch off right now. Try a replay day.</span>}
               </div>
               <DashMap farms={placed} period={period} showLines={showLines} lines={grid}
                 label={`Wind farm states at ${fmtTime(period.start_utc)} on ${fmtDay(date)}: ${series.off[at]} of ${total} paid to switch off`}
