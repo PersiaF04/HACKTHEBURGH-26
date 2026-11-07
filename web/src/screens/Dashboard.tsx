@@ -4,7 +4,7 @@ import { LiveStale } from "../components";
 import { SidePanel, type PanelId, PANELS } from "../dashboard/SidePanel";
 import { DashMap, MapLegend, type MapPin } from "../dashboard/DashMap";
 import { LoadOptions, TryCard, type LoadSettings } from "../dashboard/PlaceLoad";
-import { avoidedMwh, boundaryOf, estimateLoad, scoreUserLoad, tradablePot, type LoadResult, type Sandbox } from "../sandbox";
+import { avoidedMwh, bidCeiling, boundaryOf, estimateLoad, scoreUserLoad, tradablePot, type LoadResult, type Sandbox } from "../sandbox";
 import { AskingCard, BillCard, CopilotCard, TomorrowCard } from "../dashboard/RailCards";
 import { Timeline, type TimelinePoint } from "../dashboard/Timeline";
 import {
@@ -15,7 +15,8 @@ import { SectionNav } from "../dashboard/SectionNav";
 import { DEEP_DIVES } from "../routes";
 import { LIVE, fmtDay, parseReplay, project, useLiveReplay, useReplayIndex, type PlacedFarm } from "./WasteMap";
 
-const STEP_MS = 220;
+const STEP_MS = 380;
+const localClock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London", timeZoneName: "short" });
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const shortDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -66,7 +67,7 @@ export function Dashboard() {
   const [showLines, setShowLines] = useState(false);
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [extraGw, setExtraGw] = useState(0);
-  const [load, setLoad] = useState<LoadSettings>({ type: "electrolyser", mw: 50, bid: 60, zone: "Z1", value: 100 });
+  const [load, setLoad] = useState<LoadSettings>({ mw: 50, bid: 60, zone: "Z1", value: 100 });
 
   // Default: the replay day with the most curtailment, so the first impression is the stormiest day on file.
   const defaultDay = useMemo(() => {
@@ -153,12 +154,6 @@ export function Dashboard() {
     const paid = series.cumGbp[series.cumGbp.length - 1];
     return `${shortDay(replay.data.date)}: up to ${series.off[peak]} farms with accepted bids at once, ${fmtEnergy(dayTotal)} accepted turn-down${paid ? `, ${fmtGbp(paid)} paid` : ""}.`;
   }, [series, replay.data, isLive, dayTotal]);
-  // Two published series measure this day differently, so the figures on screen say which is which.
-  const sourceNote = useMemo(() => {
-    const other = daily.data?.days.find((d) => d.date === replay.data?.date)?.curtailed_mwh;
-    if (isLive || other == null || !dayTotal) return null;
-    return `Whole day: ${fmtEnergy(dayTotal)} from Elexon accepted bid volumes (shown here). NESO's wind volumes series says ${fmtEnergy(other)}.`;
-  }, [daily.data, replay.data, isLive, dayTotal]);
   const cableLine = useMemo(() => {
     const bs = (replay.data?.periods ?? []).map(boundaryOf).filter((b): b is NonNullable<typeof b> => b != null);
     if (!bs.length) return null;
@@ -167,7 +162,9 @@ export function Dashboard() {
     return `Cables south: published limit ${lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`} MW; NESO day-ahead forecast flow ${fmtNum(Math.min(...flows))}–${fmtNum(Math.max(...flows))} MW. Above the limit signals potential constraint pressure, not proof. Not outturn.`;
   }, [replay.data]);
 
-  const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null), [farms.data]);
+  // farms.json covers all of GB; the replay covers the Scottish farms, so that is what the map draws.
+  const covered = replay.data?.periods[0]?.farms;
+  const placed = useMemo(() => (farms.data?.farms ?? []).filter((f): f is PlacedFarm => f.lat != null && f.lon != null && (!covered || f.id in covered)), [farms.data, covered]);
   const period = replay.data?.periods[at];
   const total = period ? Object.keys(period.farms).length : 0;
   const date = replay.data?.date ?? (day && day !== LIVE ? day : "");
@@ -188,7 +185,8 @@ export function Dashboard() {
   const anySample = allMeta.some((m) => m?.fixture);
   const liveGenerated = isLive && replay.data?.meta.generated_utc && !Number.isNaN(Date.parse(replay.data.meta.generated_utc)) ? replay.data.meta.generated_utc : null;
   const calm = isLive && series.off[at] === 0;
-  const unplaced = farms.data ? farms.data.farms.length - placed.length : 0;
+  const unplaced = covered ? Object.keys(covered).length - placed.length : 0;
+  const boundary = period ? boundaryOf(period) : null;
   const togglePanel = (id: PanelId) => setPanel((p) => (p === id ? null : id));
 
   return (
@@ -227,6 +225,12 @@ export function Dashboard() {
           {coach.target === "map" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
         </section>
 
+        {boundary && (
+          <p className="dash-pipe-note">
+            <strong>Cables south: {boundary.flow > boundary.limit ? `${(boundary.flow / boundary.limit).toFixed(1)}× over the limit` : `${Math.round((boundary.flow / boundary.limit) * 100)}% full`} (estimate).</strong> Forecast, not outturn.
+          </p>
+        )}
+
         <nav className="dash-edge" aria-label="More about this">
           {PANELS.map((p) => (
             <button key={p.id} type="button" className={panel === p.id ? "on" : ""} aria-expanded={panel === p.id} aria-controls="dash-panel" onClick={() => togglePanel(p.id)}>{p.label}</button>
@@ -243,7 +247,9 @@ export function Dashboard() {
               {defaultDay && <button type="button" className="try-go" onClick={() => choose(defaultDay)}>Show {shortDay(defaultDay).replace(/^\w+ /, "")}</button>}
             </>
           ) : (
-            <TryCard settings={load} result={loadResult} title="Run a 50 MW load on this storm" onExplain={() => setPanel("proof")}
+            <TryCard settings={load} result={loadResult} title={`Run a ${load.mw} MW load on this storm`} onExplain={() => setPanel("proof")}
+              ceiling={sandbox.data?.days && date ? bidCeiling(sandbox.data, date, load.zone) : null}
+              message={replay.error ? "Couldn't load this day. Try another." : !replay.data ? "Loading this day…" : undefined}
               onBid={(bid) => { setLoad({ ...load, bid }); if (coach.target === "try") coach.close(); }} />
           )}
           {coach.target === "try" && <CoachMark step={coach.step} onNext={coach.next} onClose={coach.close} />}
@@ -270,11 +276,11 @@ export function Dashboard() {
                 <section className={`dash-whatif${hasBoundary ? "" : " is-off"}`} aria-label="What if there were more cables">
                   <h3 className="pl-title">More cables south</h3>
                   <label htmlFor="whatif-gw" className="dash-whatif-label">What if: <b>+{extraGw.toFixed(1)} GW</b></label>
-                  <input id="whatif-gw" type="range" min={0} max={6} step={0.5} value={extraGw} disabled={!hasBoundary}
+                  <input id="whatif-gw" type="range" min={0} max={6} step={0.5} value={extraGw} disabled={!hasBoundary || !dayTotal}
                     aria-describedby="whatif-out" onChange={(e) => setExtraGw(Number(e.target.value))} />
                   <output id="whatif-out" htmlFor="whatif-gw">
                     {!hasBoundary ? "Needs boundary data."
-                      : <>{extraGw > 0 && <><b>{fmtEnergy(avoidedTotal)}</b> of {fmtEnergy(dayTotal)} might be avoided ({Math.round((avoidedTotal / Math.max(dayTotal, 1)) * 100)}%). </>}Estimate: simple counterfactual, not a power-flow model.</>}
+                      : <>{extraGw > 0 && <><b>{fmtEnergy(avoidedTotal)}</b> of {fmtEnergy(dayTotal)} might be avoided ({Math.round((avoidedTotal / Math.max(dayTotal, 1)) * 100)}%). </>}Estimate: simple counterfactual, not a power-flow model. It treats each added MW as avoided switch-off, so it reads high.</>}
                   </output>
                   <label className="dash-toggle">
                     <input type="checkbox" checked={showLines} onChange={(e) => setShowLines(e.target.checked)} />
@@ -292,14 +298,14 @@ export function Dashboard() {
                     {windowLine && <li>{windowLine}</li>}
                     {dayLine && <li>{dayLine}</li>}
                     {cableLine && <li>{cableLine}</li>}
-                    {sourceNote && <li>{sourceNote}</li>}
                   </ul>
                   <h3>How to read it</h3>
                   <ul>
                     <li>Orange means NESO accepted a bid to turn down. Delivery is not verified.</li>
                     <li>"Your bid" is scored against NESO's accepted prices, pay-as-bid, assuming full delivery. Change the assumptions under What if.</li>
                     <li>On the scrubber, shaded bands are half-hours when NESO asked for extra demand. With a panel open, it also shows your load, the Copilot's plan and the forecast chance NESO asks.</li>
-                    {unplaced > 0 && <li>{unplaced} farms have no location yet, so they aren't on the map.</li>}
+                    <li>The map shows the {placed.length} Scottish wind farms in this replay.{unplaced > 0 && ` ${unplaced} have no location yet.`}</li>
+                    <li>Forecast flow above the limit signals potential constraint pressure, not proof, and farms can be told to stop below it too.</li>
                   </ul>
                   <h3>Sources</h3>
                   <p className="dash-sources">
@@ -338,7 +344,7 @@ export function Dashboard() {
         {n > 0 ? <Timeline points={series.points} at={at} onSeek={seek} detail={panel != null} /> : <div className="tl-plot" />}
         {period && (
           <p className="dash-clock">
-            <b>{fmtTime(period.start_utc)}</b>
+            <b>{localClock(period.start_utc)}</b>
             <span>{isLive ? "live estimate" : `${shortDay(date)} · retrospective`}</span>
           </p>
         )}

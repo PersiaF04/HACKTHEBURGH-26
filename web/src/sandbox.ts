@@ -5,12 +5,6 @@ import type { Copilot, DfsRequest, Meta, Replay } from "./data";
 
 export type Zone = "Z1" | "Z2" | "Z3";
 export const ZONES: Zone[] = ["Z1", "Z2", "Z3"];
-export type LoadType = "electrolyser" | "data_centre" | "heat_network";
-export const LOAD_TYPES: { id: LoadType; label: string }[] = [
-  { id: "electrolyser", label: "Electrolyser" },
-  { id: "data_centre", label: "Data centre" },
-  { id: "heat_network", label: "Heat network" },
-];
 
 // ---- sandbox.json (contract: contracts/README.md, `sandbox.json`) ----
 export interface SandboxHalfHour {
@@ -49,6 +43,12 @@ export function scoreSchedule(day: SandboxDay, load: SandboxLoad, schedule: Sche
   const mwh = accepted * mwhPeriod;
   const valueGbp = value * mwh;
   return { mwh, wind_matched_mwh: windMatched, gross_gbp: gross, energy_cost_gbp: energy, value_gbp: valueGbp, net_gbp: gross + valueGbp - energy, accepted_half_hours: accepted, accepted_sps: acceptedSps };
+}
+
+/** The highest price NESO accepted in a zone on a day, or null if it accepted none. */
+export function bidCeiling(sb: Sandbox, date: string, zone: string): number | null {
+  const prices = (sb.days[date]?.half_hours ?? []).filter((h) => h.request).map((h) => h.ceiling_gbp_per_mwh[zone]).filter((c): c is number => c != null);
+  return prices.length ? Math.max(...prices) : null;
 }
 
 /** Half-hours in a zone where a bid could have been accepted (request, a ceiling and a price), over the Copilot's scored days. */

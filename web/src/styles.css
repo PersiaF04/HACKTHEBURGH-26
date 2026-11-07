@@ -910,3 +910,12 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
   .coach-try { bottom: calc(100% + 10px); }
   .coach-try::after { bottom: -6px; }
 }
+
+/* QA pass */
+.dash-pipe-note strong { color: var(--stopped-text); }
+.tl-svg { touch-action: pan-y; }
+@media (max-width: 720px) {
+  .dash-pipe-note { display: block; order: 2; margin: 4px 16px 0; font-size: var(--fs-footnote); line-height: 1.35; color: var(--muted); }
+  .dm-pipe-label, .dm-pin-sub { display: none; }
+  .dm-pin .dm-pin-hit { r: 28px; }
+}

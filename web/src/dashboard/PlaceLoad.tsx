@@ -1,7 +1,7 @@
 import { fmtEnergy, fmtGbp } from "../data";
-import { LOAD_TYPES, ZONES, type LoadResult, type LoadType, type Zone } from "../sandbox";
+import { ZONES, type LoadResult, type Zone } from "../sandbox";
 
-export interface LoadSettings { type: LoadType; mw: number; bid: number; zone: Zone; value: number }
+export interface LoadSettings { mw: number; bid: number; zone: Zone; value: number }
 export const VALUE_STEPS = [0, 50, 100, 150, 200];
 
 const signed = (v: number | null) => (v == null ? "—" : v < -0.5 ? `−${fmtGbp(-v)}` : fmtGbp(v));
@@ -19,8 +19,9 @@ function Seg<T extends string | number>({ label, items, value, onPick }: { label
 }
 
 // The one thing to do on the page. The bid is the only control; everything else lives under "What if".
-export function TryCard({ settings, onBid, result, title, onExplain }: {
+export function TryCard({ settings, onBid, result, title, onExplain, ceiling, message }: {
   settings: LoadSettings; onBid: (bid: number) => void; result: LoadResult | null; title: string; onExplain: () => void;
+  ceiling: number | null; message?: string;
 }) {
   const nothingTradable = result != null && !result.oracle_gbp;
   const tooHigh = result != null && result.mwh === 0 && !nothingTradable;
@@ -31,17 +32,17 @@ export function TryCard({ settings, onBid, result, title, onExplain }: {
       <label className="try-bid">
         <span className="try-bid-row"><span>Your bid</span><b>£{settings.bid}/MWh</b></span>
         <input type="range" min={0} max={150} step={1} value={settings.bid} onChange={(e) => onBid(Number(e.target.value))} />
-        <span className="try-hint">The price you ask NESO.</span>
+        <span className="try-hint">The price you ask NESO.{ceiling != null && ` Highest it accepted this day: £${Math.round(ceiling)}.`}</span>
       </label>
-      {result == null || nothingTradable || tooHigh ? (
-        <p className="try-result" aria-live="polite">{tooHigh ? `At £${settings.bid}, NESO accepts nothing. Try lower.` : "No bid would have been accepted on this day."}</p>
+      {message || result == null || nothingTradable || tooHigh ? (
+        <p className="try-result" aria-live="polite">{message ?? (tooHigh ? `At £${settings.bid}, NESO accepts nothing. Try lower.` : "No bid would have been accepted on this day.")}</p>
       ) : (
         <dl className="try-scores" aria-live="polite">
           <div className="you"><dt>You</dt><dd>{signed(result.net_gbp)}</dd></div>
           {result.ours_gbp != null
-            ? <div><dt>Copilot</dt><dd>{signed(result.ours_gbp)}</dd></div>
-            : <div><dt>Simple rule</dt><dd>{signed(result.naive_gbp)}</dd></div>}
-          <div><dt>Best possible</dt><dd>{signed(result.oracle_gbp)}</dd></div>
+            ? <div title="Our model's plan for this day, scored the same way"><dt>Copilot</dt><dd>{signed(result.ours_gbp)}</dd></div>
+            : <div title="A baseline to compare against: one fixed price"><dt>Simple rule</dt><dd>{signed(result.naive_gbp)}</dd></div>}
+          <div title="With perfect hindsight, the most this load could have netted"><dt>Best possible</dt><dd>{signed(result.oracle_gbp)}</dd></div>
         </dl>
       )}
       <p className="try-note">
@@ -59,15 +60,14 @@ export function LoadOptions({ settings, onChange, result, pot, onNow }: {
   const set = (p: Partial<LoadSettings>) => onChange({ ...settings, ...p });
   const rows = result ? [
     { k: "you", label: "Your bid", v: result.net_gbp },
-    { k: "naive", label: "Simple rule", v: result.naive_gbp },
-    { k: "ours", label: "Copilot", v: result.ours_gbp },
-    { k: "oracle", label: "Best possible", v: result.oracle_gbp },
+    { k: "naive", label: "Simple rule (a baseline)", v: result.naive_gbp },
+    { k: "ours", label: "Copilot (our model's plan)", v: result.ours_gbp },
+    { k: "oracle", label: "Best possible (perfect hindsight)", v: result.oracle_gbp },
   ].filter((r) => r.k === "you" || r.v != null) : [];
   const max = Math.max(1, ...rows.map((r) => Math.abs(r.v ?? 0)));
   return (
     <section className="pl" aria-label="Change the load">
       <h3 className="pl-title"><i className={`pl-status${onNow ? " on" : ""}`} aria-hidden="true" />{onNow ? "Your load: on this half-hour" : "Your load: off this half-hour"}</h3>
-      <Seg label="Load type" items={LOAD_TYPES} value={settings.type} onPick={(type) => set({ type })} />
       <label className="pl-field">
         <span>Size <b>{settings.mw} MW</b></span>
         <input type="range" min={1} max={100} step={1} value={settings.mw} onChange={(e) => set({ mw: Number(e.target.value) })} />

@@ -3,7 +3,7 @@ import { fmtNum } from "../data";
 
 export interface TimelinePoint { start_utc: string; mwh: number; asked: boolean; ready: number | null; mine?: boolean; avoided?: number; p?: number | null }
 
-const hhmm = (iso: string) => iso.slice(11, 16);
+const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 const L = 6, R = 6, T = 6, B = 15;
 
 function useSize<T extends HTMLElement>() {
@@ -57,7 +57,7 @@ export function Timeline({ points, at, onSeek, detail = false }: { points: Timel
     onSeek(Math.max(0, Math.min(n - 1, to)));
   };
   const cur = points[at];
-  const valueText = cur ? `${hhmm(cur.start_utc)} UTC, ${fmtNum(cur.mwh)} MWh of accepted turn-down${cur.asked ? ", NESO turn-up request open" : ""}${cur.ready != null ? ", copilot ready" : ""}` : "";
+  const valueText = cur ? `${hhmm(cur.start_utc)}, ${fmtNum(cur.mwh)} MWh of accepted turn-down${cur.asked ? ", NESO turn-up request open" : ""}${cur.ready != null ? ", copilot ready" : ""}` : "";
 
   return (
     <div className="tl-plot" ref={ref}>
@@ -77,7 +77,7 @@ export function Timeline({ points, at, onSeek, detail = false }: { points: Timel
           </defs>
           {asked.map(([a, b]) => (
             <g key={`a${a}`} className="tl-ask">
-              <rect x={x(a) - slot / 2} y={T - 4} width={(b - a + 1) * slot} height={baseY - T + 4} rx={3}><title>NESO asked for extra demand, {hhmm(points[a].start_utc)}–{hhmm(new Date(Date.parse(points[b].start_utc) + 18e5).toISOString())} UTC</title></rect>
+              <rect x={x(a) - slot / 2} y={T - 4} width={(b - a + 1) * slot} height={baseY - T + 4} rx={3}><title>NESO asked for extra demand, {hhmm(points[a].start_utc)}–{hhmm(new Date(Date.parse(points[b].start_utc) + 18e5).toISOString())}</title></rect>
             </g>
           ))}
           <line className="tl-base" x1={L} x2={w - R} y1={baseY} y2={baseY} />

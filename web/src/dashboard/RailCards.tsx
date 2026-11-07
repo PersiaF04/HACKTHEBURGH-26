@@ -42,7 +42,7 @@ export function BillCard({ data }: { data: Iceberg | null }) {
           </li>
         ))}
       </ul>
-      <p className="rc-note">{data.days} days · parallel measures, not a sum · retrospective</p>
+      <p className="rc-note">{data.days} days to {fmtDay(data.window[1]).replace(/ \d{4}$/, "")} · parallel measures, not a sum · retrospective</p>
     </RailCard>
   );
 }
@@ -156,7 +156,7 @@ export function CopilotCard({ data, summary, date }: { data: Copilot | null; sum
   const paying = data.days.filter((d) => (d.policies.oracle.accepted_periods ?? 0) > 0 || d.policies.oracle.gbp > 0).length;
   const load = `${fmtNum(data.load.capacity_mw)} MW ${data.load.type.replace("_", " ")}, zone ${data.load.zone}`;
   return (
-    <RailCard id="dash-copilot" eyebrow="Flex Copilot says" title={call ? callText(call) : `No Copilot call for ${shortDay(`${date}T12:00:00Z`)}`}
+    <RailCard id="dash-copilot" eyebrow="Copilot, our model's plan · retrospective, net" title={call ? callText(call) : `No Copilot call for ${shortDay(`${date}T12:00:00Z`)}`}
       href="#copilot" link="Optimised Model" className="rc-copilot">
       {call ? (
         <p className="rc-line">
@@ -166,7 +166,7 @@ export function CopilotCard({ data, summary, date }: { data: Copilot | null; sum
       ) : (
         <p className="rc-line">
           {reason}{" "}
-          {bestCall && best.date !== date && <>Its scored call on {shortDay(`${best.date}T12:00:00Z`)}: {callText(bestCall).toLowerCase()}{bestCall.pct != null && <>, <strong>{Math.round(bestCall.pct * 100)}%</strong> of best possible</>}.</>}
+          {bestCall && best.date !== date && <>Its scored call on {shortDay(`${best.date}T12:00:00Z`)}: {callText(bestCall).replace(/^Be/, "be")}{bestCall.pct != null && <>, <strong>{Math.round(bestCall.pct * 100)}%</strong> of best possible</>}.</>}
         </p>
       )}
       <p className="rc-caveat">

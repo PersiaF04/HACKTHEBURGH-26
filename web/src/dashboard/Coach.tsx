@@ -4,7 +4,7 @@ const KEY = "tus.dashboard.coach.v1";
 export const COACH_STEPS = [
   { target: "map", title: "Orange means told to stop", body: "Each turbine is a wind farm. NESO accepted a bid for the orange ones to turn down at this moment." },
   { target: "timeline", title: "This is the day", body: "Drag along it to move through the half-hours. The map follows." },
-  { target: "try", title: "Your turn: move this slider", body: "It sets your bid. Can you beat the Copilot?" },
+  { target: "try", title: "Your turn: move this slider", body: "It sets your bid. Can you beat the Copilot, our model's plan?" },
 ] as const;
 export type CoachTarget = (typeof COACH_STEPS)[number]["target"];
 
