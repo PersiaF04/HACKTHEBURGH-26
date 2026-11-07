@@ -57,6 +57,14 @@ export type GapSummary = {
   novelty: number | null;
   gap_rate: number | null;
   gap_score: number | null;
+  starting_weight?: 0 | 1 | 2 | null;
+  growth_a?: number | null;
+  growth_b?: number | null;
+  cosine?: number | null;
+  neighbour_overlap?: number | null;
+  gap_rate_a?: number | null;
+  gap_rate_b?: number | null;
+  interval_validation?: { validated: boolean; interpretation: string | null; coverage: number | null } | null;
 };
 export type OpenProblem = {
   sentence: string;
@@ -76,7 +84,9 @@ export type OpenProblemResponse = {
   placeholder: boolean;
   concept_options: ConceptSummary[];
   items: OpenProblem[];
+  rates_by_year?: OpenProblemRatePoint[];
 };
+export type OpenProblemRatePoint = { year: number; concept_rate: number | null; ai_ml_rate: number | null };
 export type CoverageConcept = {
   id: string;
   label: string;
@@ -88,6 +98,15 @@ export type CoverageCell = {
   paper_count?: number;
   linked_paper_count?: number;
   papers_without_linked_code?: PaperSummary[];
+  state?: "available" | "thin" | "outside_archive_vintage" | "unavailable";
+};
+export type CoverageArchive = {
+  source_url: string;
+  snapshot_date: string | null;
+  revision_sha: string | null;
+  file_vintage_verified: boolean;
+  license_id: string;
+  license_url: string;
 };
 export type CoverageResponse = {
   placeholder: boolean;
@@ -95,6 +114,7 @@ export type CoverageResponse = {
   years: number[];
   concepts: CoverageConcept[];
   caveat: string;
+  archive: CoverageArchive;
 };
 export type GapListResponse = { placeholder: boolean; items: GapSummary[] };
 export type ConceptResponse = {
@@ -109,12 +129,24 @@ export type GapQuery = { concepts?: string[]; min_p?: number; sort?: string; lim
 export type GapDetailResponse = GapDetail | null;
 export type BacktestMetric = number | string | null;
 export type BacktestHit = { a: string; b: string; score: number | null; year: number | null; paper?: PaperSummary };
+export type RankingMetrics = {
+  base_rate: BacktestMetric;
+  roc_auc: BacktestMetric;
+  pr_auc: BacktestMetric;
+  average_precision: BacktestMetric;
+  precision_at_100: BacktestMetric;
+  baselines: Partial<Record<"current_weight" | "degree_product" | "preferential_attachment" | "adamic_adar" | "cosine", BacktestMetric>>;
+};
+export type StartingWeightMetrics = Partial<Record<"all" | "0" | "1" | "2", RankingMetrics>>;
 export type CalibrationBin = { predicted: number; observed: number; count: number };
 export type CodeLinkEvaluation = {
   precision: number | null;
   lower: number | null;
   upper: number | null;
+  interval_method: "binomial" | null;
   sample_size: number | null;
+  correct_matches: number | null;
+  sample_composition: Record<string, number> | null;
   protocol: string | null;
 };
 export type BacktestResponse = {
@@ -125,6 +157,7 @@ export type BacktestResponse = {
   average_precision: BacktestMetric;
   precision_at_100: BacktestMetric;
   baselines: Record<string, BacktestMetric>;
+  by_starting_weight?: StartingWeightMetrics;
   calibration: { bins: CalibrationBin[]; note?: string | null };
   hits: BacktestHit[];
   misses: BacktestHit[];

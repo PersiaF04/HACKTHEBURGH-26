@@ -9,5 +9,6 @@
   "calibration": { "bins": [], "note": null },
   "hits": [],
   "misses": [],
-  "code_link_evaluation": { "precision": null, "lower": null, "upper": null, "sample_size": null, "protocol": null }
+  "by_starting_weight": {},
+  "code_link_evaluation": { "precision": null, "lower": null, "upper": null, "interval_method": null, "sample_size": null, "correct_matches": null, "sample_composition": null, "protocol": null }
 }
