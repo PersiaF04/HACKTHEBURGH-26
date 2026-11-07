@@ -290,3 +290,29 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
 .op-score-oracle .op-bar { background: var(--muted); }
 .op-scores p { margin: 4px 0 0; }
 @media (prefers-reduced-motion: reduce) { .op-bar, .op-progress div, .op-block { transition: none; } }
+
+/* Copilot v2 */
+.cp-net-label { color: var(--text); font-weight: 600; margin-bottom: 2px; }
+.cp-sens { padding: 24px 28px; margin-bottom: 20px; }
+.cp-sens-lede { margin: 4px 0 12px; }
+.cp-sens-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.cp-sens-svg text { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.cp-sens-grid line { stroke: var(--hairline); }
+.cp-sens-grid.zero line { stroke: var(--muted); stroke-width: 1.5; }
+.cp-sens-line path { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.cp-sens-line text { font-weight: 600; }
+.cp-s-ours path { stroke: var(--accent); stroke-width: 3; }
+.cp-s-ours circle { fill: var(--accent); }
+.cp-s-ours text { fill: var(--accent); }
+.cp-s-naive path { stroke: var(--stopped); }
+.cp-s-naive circle { fill: var(--stopped); }
+.cp-s-naive text { fill: var(--stopped); }
+.cp-s-oracle path { stroke: var(--muted); stroke-dasharray: 5 4; }
+.cp-s-oracle circle { fill: var(--muted); }
+.cp-sens-cross rect { fill: color-mix(in srgb, var(--stopped) 10%, transparent); }
+.cp-sens-cross line { stroke: var(--stopped); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.cp-sens-svg .cp-sens-cross text { fill: var(--text); font-weight: 600; }
+.cp-sens-current { stroke: var(--text); stroke-width: 1; opacity: 0.35; }
+.cp-sens-summary { margin: 12px 0 0; font-size: 15px; }
+.cp-honest { margin-bottom: 12px; }
+.cp-footnote { margin: 0 0 8px; }
