@@ -1,0 +1,740 @@
+{
+ "meta": {
+  "source": [
+   "fixture"
+  ],
+  "generated_utc": "2026-11-07T19:00:00Z",
+  "retrospective": true,
+  "fixture": true,
+  "note": "Hand-made sample with realistic shape. Not real data."
+ },
+ "tomorrow": {
+  "target_date": "2026-11-08",
+  "mode": "next_day",
+  "model": "flow_utilisation",
+  "headline": "Tomorrow, Sunday 8 Nov: expect about 11.2 GWh of wasted wind, peaking near 600 MWh at 12:30 UTC, with up to a 62% chance of a heavy half-hour. NESO has up to a 41% chance of asking for flexible demand between 11:00 and 22:30 UTC.",
+  "facts": {
+   "total_p50_mwh": 11250,
+   "peak_p50_mwh": 600,
+   "peak_p50_start_utc": "2026-11-08T12:30:00Z",
+   "peak_p90_mwh": 1400,
+   "peak_p_heavy": 0.62,
+   "heavy_half_hours": 9,
+   "peak_p_request": 0.41,
+   "request_window_utc": [
+    "11:00",
+    "22:30"
+   ]
+  },
+  "request_probability": [
+   {
+    "start_utc": "2026-11-08T00:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T00:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T01:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T01:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T02:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T02:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T03:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T03:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T04:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T04:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T05:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T05:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T06:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T06:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T07:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T07:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T08:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T08:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T09:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T09:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T10:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T10:30:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T11:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T11:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T12:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T12:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T13:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T13:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T14:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T14:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T15:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T15:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T16:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T16:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T17:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T17:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T18:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T18:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T19:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T19:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T20:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T20:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T21:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T21:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T22:00:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T22:30:00Z",
+    "p_turnup_request": 0.41
+   },
+   {
+    "start_utc": "2026-11-08T23:00:00Z",
+    "p_turnup_request": 0.0
+   },
+   {
+    "start_utc": "2026-11-08T23:30:00Z",
+    "p_turnup_request": 0.0
+   }
+  ],
+  "caveat": "Retrospective: the backtest uses archived data and is probably optimistic. The request probability is provisional (about one month of NESO events)."
+ },
+ "replay_days": [
+  {
+   "date": "2026-10-14",
+   "request_probability": [
+    {
+     "start_utc": "2026-10-13T23:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-13T23:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T00:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T00:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T01:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T01:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T02:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T02:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T03:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T03:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T04:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T04:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T05:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T05:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T06:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T06:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T07:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T07:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T08:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T08:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T09:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T09:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T10:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T10:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T11:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T11:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T12:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T12:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T13:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T13:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T14:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T14:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T15:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T15:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T16:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T16:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T17:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T17:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T18:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T18:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-14T19:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T19:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T20:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T20:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T21:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T21:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T22:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-14T22:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    }
+   ],
+   "copilot": {
+    "status": "not_scored",
+    "reason": "Warm-up day: the first 5 request days only train the Copilot's acceptance model, so it makes no scored call."
+   }
+  },
+  {
+   "date": "2026-10-27",
+   "request_probability": [
+    {
+     "start_utc": "2026-10-27T00:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T00:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T01:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T01:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T02:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T02:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T03:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T03:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T04:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T04:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T05:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T05:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T06:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T06:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T07:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T07:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T08:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T08:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T09:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T09:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T10:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T10:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T11:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T11:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T12:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T12:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T13:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T13:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T14:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T14:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T15:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T15:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T16:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T16:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T17:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T17:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T18:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T18:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T19:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T19:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": true
+    },
+    {
+     "start_utc": "2026-10-27T20:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T20:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T21:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T21:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T22:00:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T22:30:00Z",
+     "p_turnup_request": 0.55,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T23:00:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    },
+    {
+     "start_utc": "2026-10-27T23:30:00Z",
+     "p_turnup_request": 0.0,
+     "actual_request": false
+    }
+   ],
+   "copilot": {
+    "status": "scored",
+    "ready_windows_utc": [
+     [
+      "2026-10-27T11:00:00Z",
+      "2026-10-27T14:30:00Z"
+     ]
+    ],
+    "ready_half_hours": 7,
+    "bid_gbp_per_mwh": 60.0,
+    "bid_range_gbp_per_mwh": null,
+    "net_gbp": {
+     "naive": 8500,
+     "ours": 11900,
+     "oracle": 12600
+    },
+    "pct_of_oracle": 0.944,
+    "caveat": "Fixture figures, not real data. Replay, net of electricity at an assumed site value; full delivery is assumed; zone IDs are not confirmed as Scotland."
+   }
+  }
+ ]
+}
