@@ -9,7 +9,7 @@ import backtestFixture from "../mock/backtest.json";
 import coverageFixture from "../mock/coverage.json";
 
 /** Frontend-facing shapes for the proposed Whitespace API in PRD.md §14. */
-export type YearRange = { min: number | null; max: number | null };
+export type YearRange = { min: number; max: number };
 export type PaperSummary = {
   id: string;
   title: string;
@@ -41,7 +41,7 @@ export type SearchResponse = {
 };
 export type MetaResponse = {
   placeholder: boolean;
-  year_range: YearRange;
+  year_range: YearRange | null;
   counts: Record<string, number | null>;
   headline_metrics: Record<string, number | string | null>;
 };
