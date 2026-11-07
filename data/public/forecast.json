@@ -1,0 +1,557 @@
+{
+ "meta": {
+  "source": [
+   "NESO Wind BOA Volumes",
+   "NESO Day Ahead Wind BMU Forecast (region)",
+   "NESO day-ahead constraint flows and limits",
+   "NESO demand-flexibility (DFS)"
+  ],
+  "generated_utc": "2026-11-07T16:36:27Z",
+  "retrospective": true,
+  "leakage_note": "Features: day-ahead SSE_SP2 flow/limit for the target day (NESO publishes no per-row issue time, so its vintage is unknown and every score is retrospective) and Scottish curtailment from 2 or more days earlier. Each backtest fold trains only on dates before the fold. No settlement, metered or DFS-procurement data is used as a feature.",
+  "target_note": "Target day is the latest day with a near-complete day-ahead flows snapshot. Persistence features are blank (the model falls back to utilisation only) when curtailment data for the lag day has not yet been published.",
+  "region_definition": "Scottish = NESO Day Ahead Wind BMU Forecast Region of NORTH or SOUTH SCOTLAND",
+  "last_actual_date": "2026-11-05"
+ },
+ "issued_utc": "2026-11-07T16:36:27Z",
+ "target_date": "2026-11-07",
+ "periods": [
+  {
+   "start_utc": "2026-11-07T00:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T00:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T01:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T01:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T02:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T02:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T03:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T03:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T04:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T04:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T05:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 372,
+   "p_heavy": 0.045,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T05:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 372,
+   "p_heavy": 0.045,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T06:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 372,
+   "p_heavy": 0.045,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T06:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T07:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T07:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T08:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T08:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T09:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T09:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T10:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T10:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T11:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T11:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T12:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T12:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T13:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T13:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T14:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T14:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T15:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T15:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T16:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.333
+  },
+  {
+   "start_utc": "2026-11-07T16:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.333
+  },
+  {
+   "start_utc": "2026-11-07T17:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.333
+  },
+  {
+   "start_utc": "2026-11-07T17:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.333
+  },
+  {
+   "start_utc": "2026-11-07T18:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.333
+  },
+  {
+   "start_utc": "2026-11-07T18:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.333
+  },
+  {
+   "start_utc": "2026-11-07T19:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T19:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T20:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T20:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T21:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T21:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 1238,
+   "p_heavy": 0.119,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T22:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T22:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.112
+  },
+  {
+   "start_utc": "2026-11-07T23:00:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  },
+  {
+   "start_utc": "2026-11-07T23:30:00Z",
+   "curtailed_mwh_p10": 0,
+   "curtailed_mwh_p50": 0,
+   "curtailed_mwh_p90": 233,
+   "p_heavy": 0.041,
+   "p_turnup_request": 0.0
+  }
+ ],
+ "backtest": {
+  "test_window": [
+   "2026-09-01",
+   "2026-11-05"
+  ],
+  "n_periods": 3168,
+  "heavy_threshold_mwh": 1000.0,
+  "heavy_share_in_test": 0.485,
+  "mae_mwh": {
+   "model": 619.8,
+   "persistence": 1223.9,
+   "training_mean": 998.1,
+   "headroom_rule": 811.0
+  },
+  "brier_heavy": {
+   "model": 0.146,
+   "persistence": 0.471,
+   "prior": 0.298,
+   "headroom_rule": 0.225
+  },
+  "auc_heavy": {
+   "model": 0.865,
+   "persistence": 0.529,
+   "headroom_rule": 0.709
+  },
+  "interval_coverage_p10_p90": 0.752,
+  "reliability": [
+   {
+    "bin": 0.05,
+    "predicted": 0.051,
+    "observed": 0.083,
+    "n": 555
+   },
+   {
+    "bin": 0.15,
+    "predicted": 0.146,
+    "observed": 0.251,
+    "n": 654
+   },
+   {
+    "bin": 0.25,
+    "predicted": 0.248,
+    "observed": 0.303,
+    "n": 541
+   },
+   {
+    "bin": 0.55,
+    "predicted": 0.543,
+    "observed": 0.593,
+    "n": 300
+   },
+   {
+    "bin": 0.65,
+    "predicted": 0.612,
+    "observed": 0.3,
+    "n": 110
+   },
+   {
+    "bin": 0.75,
+    "predicted": 0.776,
+    "observed": 0.918,
+    "n": 461
+   },
+   {
+    "bin": 0.85,
+    "predicted": 0.867,
+    "observed": 0.988,
+    "n": 337
+   },
+   {
+    "bin": 0.95,
+    "predicted": 0.911,
+    "observed": 0.924,
+    "n": 210
+   }
+  ],
+  "by_month": [
+   {
+    "month": "2026-09",
+    "n_periods": 1440,
+    "mae_model": 635.0,
+    "mae_persistence": 1197.3,
+    "heavy_share": 0.517
+   },
+   {
+    "month": "2026-10",
+    "n_periods": 1488,
+    "mae_model": 699.8,
+    "mae_persistence": 1411.2,
+    "heavy_share": 0.532
+   },
+   {
+    "month": "2026-11",
+    "n_periods": 240,
+    "mae_model": 32.8,
+    "mae_persistence": 221.6,
+    "heavy_share": 0.0
+   }
+  ],
+  "method": "Rolling-origin, expanding window, weekly folds; each fold trains only on earlier dates. The point forecast for MAE is the median (p50). Persistence is the same half-hour 2 days earlier.",
+  "turnup": {
+   "available": true,
+   "era_start": "2026-10-07",
+   "scored_days": 27,
+   "n_periods_in_window": 648,
+   "event_share_in_window": 0.451,
+   "brier": {
+    "model": 0.185,
+    "base_rate": 0.268
+   },
+   "auc": {
+    "model": 0.774
+   },
+   "reliability": [
+    {
+     "bin": 0.1,
+     "predicted": 0.125,
+     "observed": 0.23,
+     "n": 161
+    },
+    {
+     "bin": 0.3,
+     "predicted": 0.297,
+     "observed": 0.238,
+     "n": 143
+    },
+    {
+     "bin": 0.5,
+     "predicted": 0.508,
+     "observed": 0.353,
+     "n": 139
+    },
+    {
+     "bin": 0.7,
+     "predicted": 0.69,
+     "observed": 1.0,
+     "n": 14
+    },
+    {
+     "bin": 0.9,
+     "predicted": 0.887,
+     "observed": 0.827,
+     "n": 191
+    }
+   ],
+   "caveat": "Provisional: about one month and 30 events since DFS began procuring constraint turn-up on 7 Oct 2026. Periods are clustered by event, not independent. Zones Z1 to Z3 are zone IDs; their mapping to regions is unconfirmed.",
+   "zone_cap_share_given_event": {
+    "Z1": 1.0,
+    "Z2": 1.0,
+    "Z3": 0.747
+   }
+  }
+ }
+}
