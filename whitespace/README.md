@@ -33,6 +33,10 @@ Not implemented here: the PRD's embedding-based near-duplicate merge (cosine abo
 
 `select_vocabulary(docs, origin, max_concepts=5000)` (or `select_concepts(doc_freq, n_docs, ...)` on counts from `document_frequencies`) shrinks the vocabulary to at most 5,000 concepts, using only papers dated on or before 31 December `origin`. Rules, in order: keep phrases with at least `min_papers` papers and at most 2% of all papers at T; drop phrases that begin or end with a stop word, contain a digit-only token or repeat a word; single words need 3 times `min_papers`; drop a shorter phrase when a longer one containing it has at least 90% of its document frequency ("graph neural" goes, "graph neural network" stays); rank by document frequency (times 1.2 for 2 to 3 word phrases), ties alphabetical, and keep the top `max_concepts`. All thresholds are parameters. They are untuned defaults; concept quality on real papers has not been judged.
 
+### Streaming exact counts (issue #157)
+
+`streaming_document_frequencies(source, origin, min_papers=30)` counts document frequency in up to three passes over `source`, a callable returning a fresh iterator of `(date, text)` (so abstracts are never all held in memory). Apriori pruning: pass 1 counts single words, pass 2 only two-word phrases whose words reached `min_papers`, pass 3 only three-word phrases whose edge words (and, when the middle word is not a stop word, both two-word parts) reached it. The result is exact for every phrase with at least `min_papers` papers; rarer phrases are absent. `select_vocabulary` uses it and accepts either such a callable (streamed) or a plain iterable (materialised first). The unpruned `document_frequencies` stays as the in-memory reference for the equivalence tests. `python -m whitespace.tests.test_streaming_counts` prints the memory and time comparison on 100,000 synthetic abstracts.
+
 ## Shared rules
 
 - **Origin.** `T` is a calendar year. The snapshot holds works dated on or before 31 December `T`. The outcome window is `T+1` to `T+3`, inclusive.
