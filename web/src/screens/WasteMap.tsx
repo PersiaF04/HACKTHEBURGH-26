@@ -20,22 +20,67 @@ const STATE_LABEL: Record<FarmState, string> = {
 };
 type PlacedFarm = Farm & { lat: number; lon: number };
 
-// Optional replay/index.json: either ["2026-10-14", ...] or { "days": [...] }. Missing or malformed → defaults.
-function useReplayDays(): string[] {
-  const [days, setDays] = useState(DEFAULT_DAYS);
+// Checks every replay field this screen reads, so a malformed day or live payload never reaches the render code.
+// Returns null when anything is off; meta.source defaults to [] and meta.generated_utc may be missing.
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const isNumOrNull = (v: unknown) => v === null || (typeof v === "number" && Number.isFinite(v));
+const isOptNum = (v: unknown) => v === undefined || isNumOrNull(v);
+const isFarmPeriod = (f: unknown) =>
+  isObj(f) && typeof f.state === "string" && Object.prototype.hasOwnProperty.call(STATE_LABEL, f.state) && isNumOrNull(f.pn_mw) && isOptNum(f.curtailed_mwh) && isOptNum(f.paid_gbp);
+const isPeriod = (p: unknown) =>
+  isObj(p) && typeof p.start_utc === "string" && !Number.isNaN(Date.parse(p.start_utc)) && typeof p.sp === "number"
+  && isObj(p.farms) && Object.values(p.farms).every(isFarmPeriod);
+function parseReplay(j: unknown): Replay | null {
+  if (!isObj(j) || !isObj(j.meta) || !Array.isArray(j.periods) || !j.periods.length || !j.periods.every(isPeriod)) return null;
+  const { meta } = j;
+  if (meta.generated_utc !== undefined && typeof meta.generated_utc !== "string") return null;
+  const source = Array.isArray(meta.source) ? meta.source.filter((s): s is string => typeof s === "string") : [];
+  return { ...j, date: typeof j.date === "string" ? j.date : "", meta: { ...meta, source } } as unknown as Replay;
+}
+
+// Optional replay/index.json: either ["2026-10-14", ...] or { "days": [...], "live": "live.json" }. Missing or malformed → defaults.
+// `live` is a file name under replay/ or an absolute http(s) URL (for example a raw Gist with CORS enabled).
+function useReplayIndex(): { days: string[]; liveUrl: string | null } {
+  const [index, setIndex] = useState<{ days: string[]; liveUrl: string | null }>({ days: DEFAULT_DAYS, liveUrl: null });
   useEffect(() => {
-    let live = true;
+    let alive = true;
     fetch("./data/replay/index.json")
       .then((r) => (r.ok ? r.json() : null))
       .then((j: unknown) => {
         const list = Array.isArray(j) ? j : (j as { days?: unknown } | null)?.days;
         const valid = Array.isArray(list) ? list.filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) : [];
-        if (live && valid.length) setDays([...new Set(valid)].sort());
+        const lf = (j as { live?: unknown } | null)?.live;
+        const liveUrl = typeof lf !== "string" ? null
+          : /^https?:\/\//i.test(lf) ? lf
+          : /^[\w.-]+\.json$/.test(lf) ? `./data/replay/${lf}` : null;
+        if (alive) setIndex({ days: valid.length ? [...new Set(valid)].sort() : DEFAULT_DAYS, liveUrl });
       })
       .catch(() => { /* optional file; keep defaults */ });
-    return () => { live = false; };
+    return () => { alive = false; };
   }, []);
-  return days;
+  return index;
+}
+
+// R-8: the pipeline poller writes replay/live.json locally and it is gitignored, so the hosted site has none unless
+// index.json points `live` at an absolute URL. Probe it once; while `polling`, re-fetch every 60 s with cache-busting.
+// Failures are silent: before the first good load the Live option stays hidden; afterwards the last good copy is kept.
+const LIVE = "live";
+const LIVE_REFRESH_MS = 60_000;
+function useLiveReplay(url: string | null, polling: boolean): Replay | null {
+  const [data, setData] = useState<Replay | null>(null);
+  useEffect(() => {
+    if (!url) return;
+    let alive = true;
+    const load = () =>
+      fetch(`${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: unknown) => { const r = parseReplay(j); if (alive && r) setData(r); })
+        .catch(() => { /* optional source; hide or keep last good */ });
+    load();
+    const t = polling ? setInterval(load, LIVE_REFRESH_MS) : undefined;
+    return () => { alive = false; clearInterval(t); };
+  }, [url, polling]);
+  return data;
 }
 
 const fmtDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -60,17 +105,27 @@ function FarmCard({ farm, p, pinned, onClose }: { farm: PlacedFarm; p: FarmPerio
 }
 
 export function WasteMap({ day: initialDay = "2026-10-14" }: { day?: string }) {
-  const days = useReplayDays();
+  const { days, liveUrl } = useReplayIndex();
   const [day, setDay] = useState(initialDay);
+  const isLive = day === LIVE;
+  const [lastDay, setLastDay] = useState(initialDay);
   const farms = useJson<Farms>("farms.json");
-  const replay = useJson<Replay>(`replay/${day}.json`);
+  const dayRaw = useJson<unknown>(`replay/${isLive ? lastDay : day}.json`);
+  const dayReplay = useMemo(() => {
+    const data = dayRaw.data == null ? null : parseReplay(dayRaw.data);
+    return { data, error: dayRaw.error ?? (dayRaw.data != null && !data ? "Replay data is malformed" : null) };
+  }, [dayRaw]);
+  const liveData = useLiveReplay(liveUrl, isLive);
+  const replay = isLive ? { data: liveData, error: null } : dayReplay;
   const [i, setI] = useState(0);
+  const [follow, setFollow] = useState(false); // live mode: stick to the latest period as new ones arrive
   const [playing, setPlaying] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
   const n = replay.data?.periods.length ?? 0;
-  const at = Math.min(i, Math.max(n - 1, 0));
-  const dayOptions = days.includes(day) ? days : [...days, day].sort();
+  const at = isLive && follow ? Math.max(n - 1, 0) : Math.min(i, Math.max(n - 1, 0));
+  const dayOptions = isLive || days.includes(day) ? days : [...days, day].sort();
+  const latestDay = days[days.length - 1];
 
   useEffect(() => {
     if (!playing || !n) return;
@@ -86,14 +141,22 @@ export function WasteMap({ day: initialDay = "2026-10-14" }: { day?: string }) {
   }, [pinned]);
 
   const totals = useMemo(() => {
-    if (!replay.data) return { mwh: 0, gbp: 0 };
-    let mwh = 0, gbp = 0;
+    if (!replay.data) return { mwh: 0, gbp: null as number | null };
+    let mwh = 0, gbp: number | null = null;
     for (const p of replay.data.periods.slice(0, at + 1))
-      for (const f of Object.values(p.farms)) { mwh += f.curtailed_mwh ?? 0; gbp += f.paid_gbp ?? 0; }
-    return { mwh, gbp };
-  }, [replay.data, at]);
+      for (const f of Object.values(p.farms)) {
+        mwh += f.curtailed_mwh ?? 0;
+        if (f.paid_gbp != null) gbp = (gbp ?? 0) + f.paid_gbp;
+      }
+    // Replay days have settled payments; live payments are null until Elexon settles them the next morning.
+    return { mwh, gbp: gbp ?? (isLive ? null : 0) };
+  }, [replay.data, at, isLive]);
 
-  const chooseDay = (d: string) => { setPlaying(false); setI(0); setDay(d); };
+  const chooseDay = (d: string) => {
+    setPlaying(false); setI(0); setFollow(d === LIVE); setDay(d);
+    if (d !== LIVE) setLastDay(d);
+  };
+  const hasLive = liveData != null;
   const dayPicker = (
     <div className="day-picker" role="radiogroup" aria-label="Replay day">
       {dayOptions.map((d) => (
@@ -101,17 +164,24 @@ export function WasteMap({ day: initialDay = "2026-10-14" }: { day?: string }) {
           {fmtDay(d)}
         </button>
       ))}
+      {hasLive && (
+        <button role="radio" aria-checked={isLive} className={`day-live${isLive ? " active" : ""}`} onClick={() => chooseDay(LIVE)}>
+          Live
+        </button>
+      )}
     </div>
   );
 
   const head = { eyebrow: "1 · The waste", title: "Where did the wind go?" };
   if (!farms.data || !replay.data)
-    return <Screen {...head} lede="">{dayOptions.length > 1 && dayPicker}<Loading error={farms.error ?? replay.error} /></Screen>;
+    return <Screen {...head} lede="">{(dayOptions.length > 1 || hasLive) && dayPicker}<Loading error={farms.error ?? replay.error} /></Screen>;
 
   const period = replay.data.periods[at];
   const placed = farms.data.farms.filter((f): f is PlacedFarm => f.lat != null && f.lon != null);
   const unplaced = farms.data.farms.length - placed.length;
   const stopped = Object.values(period.farms).filter((f) => f.state === "instructed").length;
+  const latest = replay.data.periods[n - 1];
+  const calm = isLive && !Object.values(latest.farms).some((f) => f.state === "instructed");
   const activeId = hover ?? pinned;
   const active = placed.find((f) => f.id === activeId);
   const togglePin = (id: string) => setPinned((p) => (p === id ? null : id));
@@ -151,21 +221,36 @@ export function WasteMap({ day: initialDay = "2026-10-14" }: { day?: string }) {
           </figcaption>
         </figure>
         <div className="side">
-          {dayOptions.length > 1 ? dayPicker : <p className="muted small day-single">Replay day: {fmtDay(day)}</p>}
+          {dayOptions.length > 1 || hasLive ? dayPicker : <p className="muted small day-single">Replay day: {fmtDay(day)}</p>}
+          {isLive && (
+            <p className="live-badge">
+              <span className="live-dot" aria-hidden="true" />
+              <strong>LIVE</strong>
+              {(replay.data.meta.generated_utc as string | undefined) && <span className="muted">updated {fmtTime(replay.data.meta.generated_utc)}</span>}
+            </p>
+          )}
+          {calm && (
+            <div className="live-calm card" role="status">
+              <p>Live: no curtailment right now. Try a replay day.</p>
+              {latestDay && <button className="btn" onClick={() => chooseDay(latestDay)}>Show {fmtDay(latestDay)}</button>}
+            </div>
+          )}
           <div className="stats">
             <Stat label="wasted so far today" value={fmtEnergy(totals.mwh)} />
-            <Stat label="paid to wind so far" value={fmtGbp(totals.gbp)} />
+            <Stat label="paid to wind so far" value={fmtGbp(totals.gbp)} hint={isLive && totals.gbp == null ? "settled next morning" : undefined} />
             <Stat label="farms switched off now" value={`${stopped}`} hint={fmtTime(period.start_utc)} />
           </div>
           <div className="scrubber card">
-            <button className="btn" onClick={() => { if (at >= n - 1) setI(0); setPlaying((p) => !p); }} aria-pressed={playing}>
+            <button className="btn" onClick={() => { setFollow(false); setI(at >= n - 1 ? 0 : at); setPlaying((p) => !p); }} aria-pressed={playing}>
               {playing ? "Pause" : "Play"}
             </button>
             <input type="range" min={0} max={n - 1} value={at} aria-label="Half-hour of the day"
-              onChange={(e) => { setPlaying(false); setI(Number(e.target.value)); }} />
+              onChange={(e) => { const v = Number(e.target.value); setPlaying(false); setFollow(isLive && v === n - 1); setI(v); }} />
             <span className="time">{fmtTime(period.start_utc)}</span>
           </div>
-          <p className="muted small">Replay of {replay.data.date}. "Paid to switch off" means NESO accepted a bid on a farm that was available. Outages (availability below plan, with no bid) are shown separately. Hover, tab to or click a farm for details.</p>
+          <p className="muted small">{isLive
+            ? `Live estimate for ${replay.data.date}, refreshed every minute. Curtailment is estimated from accepted bids; payments settle the next morning.`
+            : `Replay of ${replay.data.date}.`} "Paid to switch off" means NESO accepted a bid on a farm that was available. Outages (availability below plan, with no bid) are shown separately. Hover, tab to or click a farm for details.</p>
           <Source meta={replay.data.meta} />
           <p className="source">Coastline: Natural Earth (public domain).</p>
         </div>
