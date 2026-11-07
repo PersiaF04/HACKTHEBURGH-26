@@ -172,3 +172,21 @@ def market_index(days: list[str], refresh: bool = False) -> dict[tuple[str, int]
         d, sp = key.split("|")
         prices[(d, int(sp))] = sum(p * v for p, v in lst) / sum(v for _, v in lst)
     return prices
+
+
+def dfs_summary(refresh: bool = False) -> list[dict]:
+    """NESO DFS utilisation summary: accepted cost per half-hour and, once available, settled cost."""
+    def build():
+        rid = fetch.resource_id("demand-flexibility", r"DFS Utilisation Report Summary")
+        keep = ["Event ID", "Event Type", "Event Tag", "Delivery Date", "From_Local", "DFS Procured MW",
+                "DFS Provider Bids Accepted Total Cost GBP", "Settled Volume MW", "Settled Cost GBP"]
+        return fetch.datastore_all(rid, fields=keep)
+    out = []
+    for r in fetch.cached("dfs_summary", refresh, build):
+        out.append({
+            "event_id": r["Event ID"], "type": r["Event Type"], "tag": r["Event Tag"],
+            "date": str(r["Delivery Date"])[:10], "sp": sp_from_clock(r["From_Local"]),
+            "procured_mw": r["DFS Procured MW"], "accepted_cost": r["DFS Provider Bids Accepted Total Cost GBP"],
+            "settled_mw": r["Settled Volume MW"], "settled_cost": r["Settled Cost GBP"],
+        })
+    return out

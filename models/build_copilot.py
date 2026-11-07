@@ -35,6 +35,7 @@ def load_market(refresh: bool = False):
 def build(load: C.Load, refresh: bool = False, now: dt.datetime | None = None) -> dict:
     now = now or dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
     market = load_market(refresh)
+    check = C.settlement_check(inputs.dfs_summary(refresh), inputs.dfs_utilisation(refresh))
     result = C.run(market, load)
     t = result["totals"]
     sens = C.sensitivity(market, load)
@@ -67,10 +68,12 @@ def build(load: C.Load, refresh: bool = False, now: dt.datetime | None = None) -
                 "excludes levies. At the assumed site value the settlement "
                 f"(GBP {ours['gross']:,.0f}) does not cover the electricity (GBP {ours['energy']:,.0f}) on its own; "
                 "the site's value for the energy makes up the difference. See `sensitivity` for other values. "
+                "Full delivery is assumed, which is optimistic: NESO's published settled cost is only "
+                f"{(check['settled_to_accepted_cost_ratio_all_dfs'] or 0):.0%} of accepted cost across DFS so far. "
                 "Not a revenue claim. DFS zone IDs are not confirmed as Scotland."),
         },
         "assumptions": {
-            "settlement": "pay-as-bid, perfect delivery",
+            "settlement": "pay-as-bid (arithmetic checked against NESO accepted cost), perfect delivery assumed",
             "acceptance": "bid price at or below the highest price NESO accepted in that half-hour; none accepted = not tradable",
             "energy_price": "volume-weighted market index price per half-hour",
             "naive_rule": f"bid a fixed GBP {result['fixed_price']:.0f}/MWh (median accepted price) in the cheapest-electricity half-hours",
@@ -79,6 +82,7 @@ def build(load: C.Load, refresh: bool = False, now: dt.datetime | None = None) -
             "window_local": "11:00 to 23:00",
         },
         "sensitivity": sens,
+        "validation": check,
     }
 
 
@@ -98,6 +102,9 @@ def main() -> None:
     print(f"wrote {OUT.relative_to(ROOT)}: {len(doc['days'])} scored days")
     print("net GBP:", s["net_gbp"], "| pct_of_oracle:", s["pct_of_oracle"])
     print("break-even value GBP/MWh:", s["break_even_value_gbp_per_mwh"])
+    v = doc["validation"]
+    print("accepted-cost check:", v["accepted_cost_exact_within_2p"], "of", v["accepted_cost_halfhours_matched"],
+          "exact | settled/accepted:", v["settled_to_accepted_cost_ratio_all_dfs"])
     for r in doc["sensitivity"]:
         print("  value", r["value_gbp_per_mwh"], r["net_gbp"], r["pct_of_oracle"])
 

@@ -30,6 +30,8 @@ A replay of one decision: on a day when NESO may publish DFS `Upwards`/`System` 
 
 Money is kept plain: pay-as-bid settlement, perfect delivery, electricity at the market index price, and a user-set `value` for what the extra energy is worth to the site. Gross settlement and electricity cost are reported separately, with a break-even value per MWh and a sensitivity over site values. A bid is assumed accepted only if it is at or below a price NESO actually accepted that half-hour, and half-hours with no accepted bid are treated as not tradable. About 13 scored days, so treat it as a feasibility replay.
 
+**Settlement check (PRD K-5).** `copilot.json` carries a `validation` block. The pay-as-bid arithmetic reproduces NESO's published accepted cost exactly (1,130 of 1,130 half-hours, including all 86 Upwards/System ones). But NESO's published *settled* cost is only about 39% of accepted cost across DFS so far (and settlement is published for only 2 of the 86 Upwards/System half-hours), so the Copilot's full-delivery assumption is optimistic and its absolute pound figures are an upper bound.
+
 **How "ours" was built:** a first version used only the request probability from the forecast and trailed the naive rule; the version here learns acceptance by electricity price and utilisation instead. It was adjusted once after seeing the first replay, on the same 13 days, so its edge is not an out-of-sample claim.
 
 ## How the forecast is validated

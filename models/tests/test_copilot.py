@@ -109,3 +109,22 @@ def test_break_even_value_is_energy_minus_settlement_per_mwh():
     totals = {"ours": {"gross": 600.0, "energy": 1100.0, "mwh": 10.0}}
     assert C.break_even_value(totals, "ours") == 50.0
     assert C.break_even_value({"ours": {"gross": 0, "energy": 0, "mwh": 0}}, "ours") is None
+
+
+def test_settlement_check_matches_published_cost_and_reports_delivery():
+    bids = [
+        {"event_id": 1, "date": "2026-10-20", "sp": 30, "status": "Accepted", "price": 60.0, "mw": 10.0},
+        {"event_id": 1, "date": "2026-10-20", "sp": 30, "status": "Accepted", "price": 70.0, "mw": 4.0},
+        {"event_id": 1, "date": "2026-10-20", "sp": 30, "status": "Rejected", "price": 90.0, "mw": 50.0},
+    ]
+    summary = [
+        {"event_id": 1, "date": "2026-10-20", "sp": 30, "type": "Upwards", "tag": "System",
+         "accepted_cost": 440.0, "procured_mw": 14.0, "settled_cost": 220.0, "settled_mw": 7.0},
+        {"event_id": 2, "date": "2026-10-20", "sp": 31, "type": "Downwards", "tag": "Energy",
+         "accepted_cost": 100.0, "procured_mw": 2.0, "settled_cost": None, "settled_mw": None},
+    ]
+    out = C.settlement_check(summary, bids)
+    assert out["accepted_cost_halfhours_matched"] == 1 and out["accepted_cost_exact_within_2p"] == 1
+    assert out["upwards_system_exact_within_2p"] == 1
+    assert out["settled_to_accepted_cost_ratio_all_dfs"] == 0.5
+    assert out["settled_halfhours_upwards_system"] == 1

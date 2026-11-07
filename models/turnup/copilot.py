@@ -245,3 +245,52 @@ def break_even_value(totals: dict, who: str) -> float | None:
     """Value per MWh the site would need for this policy to break even: (energy - settlement) / MWh."""
     t = totals[who]
     return None if t["mwh"] <= 0 else round((t["energy"] - t["gross"]) / t["mwh"], 1)
+
+
+def settlement_check(summary: list[dict], bids: list[dict]) -> dict:
+    """Check the pay-as-bid arithmetic against NESO's published numbers.
+
+    1. Accepted cost: sum(accepted MW x price x 0.5 h) per half-hour should equal NESO's published
+       "accepted total cost". A match supports the settlement model for accepted bids.
+    2. Delivery: NESO's published settled cost divided by accepted cost shows how much of accepted
+       volume was actually settled so far. The Copilot assumes full delivery, which is optimistic.
+    """
+    mine: dict = {}
+    for b in bids:
+        if b["status"] == "Accepted" and b["price"] is not None and b["mw"] is not None:
+            k = (b["event_id"], b["date"], b["sp"])
+            mine[k] = mine.get(k, 0.0) + b["mw"] * b["price"] * 0.5
+    matched = exact = 0
+    sys_matched = sys_exact = 0
+    acc_cost = {"all": 0.0, "sys": 0.0}
+    set_cost = {"all": 0.0, "sys": 0.0}
+    n_set = {"all": 0, "sys": 0}
+    for r in summary:
+        is_sys = r["type"] == "Upwards" and r["tag"] == "System"
+        k = (r["event_id"], r["date"], r["sp"])
+        if r["accepted_cost"] is not None and k in mine:
+            matched += 1
+            ok = abs(float(r["accepted_cost"]) - mine[k]) < 0.02
+            exact += ok
+            if is_sys and float(r["accepted_cost"]) > 0:
+                sys_matched += 1
+                sys_exact += ok
+        if (r["settled_cost"] is not None and r["accepted_cost"] and float(r["accepted_cost"]) > 0
+                and r["procured_mw"] and float(r["procured_mw"]) > 0):
+            for key in ("all",) + (("sys",) if is_sys else ()):
+                acc_cost[key] += float(r["accepted_cost"])
+                set_cost[key] += float(r["settled_cost"])
+                n_set[key] += 1
+
+    def ratio(key):
+        return round(set_cost[key] / acc_cost[key], 3) if acc_cost[key] > 0 else None
+    return {
+        "accepted_cost_halfhours_matched": matched, "accepted_cost_exact_within_2p": exact,
+        "upwards_system_matched": sys_matched, "upwards_system_exact_within_2p": sys_exact,
+        "settled_to_accepted_cost_ratio_all_dfs": ratio("all"), "settled_halfhours_all_dfs": n_set["all"],
+        "settled_to_accepted_cost_ratio_upwards_system": ratio("sys"),
+        "settled_halfhours_upwards_system": n_set["sys"],
+        "reading": ("Pay-as-bid arithmetic for accepted bids reproduces NESO's published accepted cost. Settlement "
+                    "so far is well below accepted cost across DFS and is published for few Upwards/System "
+                    "half-hours, so the Copilot's full-delivery assumption is optimistic."),
+    }
