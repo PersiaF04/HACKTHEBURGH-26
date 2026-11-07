@@ -84,7 +84,8 @@ export function scotex_gap(read: Reader, a: { date: string }): ToolResult {
   for (const p of rep.periods) {
     if (p.scotex_limit_mw === null || p.scotex_flow_mw === null) continue;
     const gap = p.scotex_flow_mw - p.scotex_limit_mw;
-    if (gap > 0) over += 1;
+    if (gap <= 0) continue; // only forecast flow above the limit counts as an overshoot
+    over += 1;
     if (worst === null || gap > worst[0]) worst = [gap, p.sp];
   }
   return {

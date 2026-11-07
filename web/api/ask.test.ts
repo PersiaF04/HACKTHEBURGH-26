@@ -84,3 +84,17 @@ test("handler runs the tool loop against a stubbed Anthropic API", async () => {
   assert.equal((out.body!.tool_calls as unknown[]).length, 1);
   assert.deepEqual(out.body!.ungrounded_numbers, ["150,000"]);
 });
+
+test("scotex_gap reports no overshoot on a day that never exceeds the limit", () => {
+  const calm = { periods: Array.from({ length: 48 }, (_, i) => ({ sp: i + 1, scotex_limit_mw: 5000, scotex_flow_mw: 4001 + i })) };
+  const mixed = { periods: [{ sp: 1, scotex_limit_mw: 5000, scotex_flow_mw: 4000 }, { sp: 2, scotex_limit_mw: 5000, scotex_flow_mw: 5200.5 }] };
+  const readerFor = (rep: unknown) => ((path: string) => (path.startsWith("replay/") ? rep : null)) as never;
+  const a = TOOLS.scotex_gap(readerFor(calm), { date: "2026-10-13" }) as Record<string, unknown>;
+  assert.equal(a.periods_over_limit, 0);
+  assert.equal(a.max_overshoot_mw, null);
+  assert.equal(a.max_overshoot_sp, null);
+  const b = TOOLS.scotex_gap(readerFor(mixed), { date: "2026-10-13" }) as Record<string, unknown>;
+  assert.equal(b.periods_over_limit, 1);
+  assert.equal(b.max_overshoot_mw, 200.5);
+  assert.equal(b.max_overshoot_sp, 2);
+});

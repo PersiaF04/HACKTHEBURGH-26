@@ -1,7 +1,8 @@
 // System prompt and tool definitions for Ask the Grid. Tool definitions mirror
 // contracts/ask-the-grid-tools.json (issue #91); api/ask.test.ts checks they stay in step.
 
-export const MODEL = "claude-sonnet-5-5";
+// Default model; set ANTHROPIC_MODEL in the Vercel environment to change it without a code change.
+export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
 export const SYSTEM_PROMPT = `You are "Ask the Grid", a read-only assistant inside Turn Up Scotland, a retrospective analysis of curtailed Scottish wind. The data covers 2026. Answer only through the tools provided.
 

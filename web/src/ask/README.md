@@ -27,3 +27,5 @@ function is missing, unconfigured or slow, it shows a short message and nothing 
 
 `npm --prefix web run test:ask` type-checks `web/api` and runs every golden question's tool calls
 (`contracts/fixtures/ask-golden.json`, issue #91) against the tools with no LLM. The golden tests skip until that file is on the branch.
+
+Optional: set `ANTHROPIC_MODEL` in the Vercel environment to use a different model ID. The default is `claude-sonnet-5-5`; check it against the current Anthropic model list with one live request before the demo, because no live call has been run from this repo.
