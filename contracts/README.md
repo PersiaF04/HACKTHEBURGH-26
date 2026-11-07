@@ -80,12 +80,28 @@ The zone-to-region mapping is unconfirmed (PRD risk K-2). The UI shows zone IDs,
     "reliability": [ { "bin": 0.1, "predicted": 0.17, "observed": 0.35, "n": 510 } ] } }
 ```
 
+Optional fields (lane B writes them; the web app may ignore them):
+
+- Top level: `target_date` (the day the periods cover) and `mode`: `next_day` when the target is after `issued_utc`'s date, or `same_day_replay` when no future day-ahead snapshot had been published (a retrospective replay, not a forecast of tomorrow).
+- `meta`: `leakage_note`, `mode`, `target_note`, `persistence_note`, `region_definition`, `last_actual_date`.
+- `backtest`: `heavy_threshold_mwh`, `heavy_share_in_test`, `interval_coverage_p10_p90`, `by_month`, `method`, `turnup` (provisional request-probability scores) and `morning_update` (a same-morning wind-forecast sensitivity, not the tomorrow model). `mae_mwh`, `brier_heavy` and `auc_heavy` may also carry a `headroom_rule` baseline.
+
 ### `copilot.json`
 
 ```json
 { "meta": {}, "load": { "type": "electrolyser", "capacity_mw": 50, "zone": "Z1" },
   "days": [ { "date": "2026-10-14",
-    "policies": { "naive": { "gbp": 1000, "mwh": 25 }, "ours": { "gbp": 9000, "mwh": 180 }, "oracle": { "gbp": 12000, "mwh": 240 } },
+    "policies": { "naive": { "gbp": 1500, "mwh": 50 }, "ours": { "gbp": 10800, "mwh": 225 }, "oracle": { "gbp": 15000, "mwh": 300 } },
     "schedule": [ { "start_utc": "2026-10-14T16:00:00Z", "action": "ready", "bid_gbp_per_mwh": 55 } ] } ],
-  "summary": { "pct_of_oracle": 0.71, "gross_settlement_gbp": 486000, "caveat": "Gross settlement before energy cost and levies" } }
+  "summary": { "pct_of_oracle": 0.72, "gross_settlement_gbp": 12000, "caveat": "Fixture figures, not real data. Gross settlement before levies" } }
 ```
+
+**Meaning of `policies.*.gbp` (shared definition): it is NET.** `gbp = gross_settlement_gbp + value_gbp - energy_cost_gbp`, where `value_gbp = load.value_gbp_per_mwh x mwh` is what the extra energy is worth to the site (an assumption the user sets) and `energy_cost_gbp` is the electricity bought. `pct_of_oracle` is `ours.gbp / oracle.gbp` summed over the scored days (`null` when the oracle is not positive).
+
+Optional fields (lane B writes them; the web app may ignore them):
+
+- `load`: `value_gbp_per_mwh`, `max_periods_per_day`.
+- `days[].policies.*`: `gross_settlement_gbp`, `energy_cost_gbp`, `value_gbp`, `accepted_periods`, `bid_periods`.
+- `summary`: `energy_cost_gbp`, `net_gbp` (`naive`, `ours`, `oracle`), `break_even_value_gbp_per_mwh`, `tradable_half_hours`, `ours_beats_naive_at_values_gbp_per_mwh`.
+- Top level: `sensitivity` (the same replay at several site values: `value_gbp_per_mwh`, `net_gbp`, `pct_of_oracle`), `assumptions` and `validation` (a check of the pay-as-bid arithmetic against NESO's published costs).
+- `meta`: `scored_days`, `warmup_days`.
