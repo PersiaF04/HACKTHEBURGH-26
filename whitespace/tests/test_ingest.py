@@ -417,3 +417,13 @@ def test_sampled_urls_carry_no_key(monkeypatch):
     url = ingest.sample_page_url(W1, 300, 20261107, 2)
     assert "sample=300" in url and "seed=20261107" in url and "page=2" in url
     assert KEY not in url and "api_key" not in url and "cursor" not in url
+
+def test_planning_end_caps_at_the_end_of_the_chosen_year():
+    import datetime as dt
+
+    from whitespace.pipeline import ingest as ing
+
+    today = dt.date(2026, 11, 7)
+    assert ing.planning_end(today, None) == today
+    assert ing.planning_end(today, 2023) == dt.date(2023, 12, 31)
+    assert ing.planning_end(today, 2030) == today  # a future year never extends the plan

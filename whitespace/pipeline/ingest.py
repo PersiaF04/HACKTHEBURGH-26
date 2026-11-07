@@ -703,6 +703,13 @@ def build_corpus(out_dir: Path, retrieved: str, plan: dict | None = None) -> dic
 # --------------------------------------------------------------------------- CLI
 
 
+def planning_end(today: dt.date, through_year: int | None) -> dt.date:
+    """The last day to plan for: ``today``, or 31 December of ``through_year`` if that is earlier."""
+    if through_year is None:
+        return today
+    return min(today, dt.date(through_year, 12, 31))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="OpenAlex ingest for Whitespace")
     ap.add_argument("command", choices=["plan", "download", "build"])
@@ -711,6 +718,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-calls", type=int, default=10_000, help="download call budget")
     ap.add_argument("--sample-fraction", help="one fraction for every year, e.g. 0.1 (seeded uniform sample)")
     ap.add_argument("--seed", type=int, help="sampling seed (required with --sample-fraction)")
+    ap.add_argument("--through-year", type=int, default=None,
+                    help="plan and download only publication years up to this year (inclusive)")
     args = ap.parse_args(argv)
     fraction = None
     if args.command != "build" and (args.sample_fraction is not None or args.seed is not None):
@@ -725,11 +734,12 @@ def main(argv: list[str] | None = None) -> int:
     today = dt.datetime.now(dt.timezone.utc).date()
 
     if args.command == "plan":
+        end = planning_end(today, args.through_year)
         if fraction is not None:
-            plan = plan_sample(make_fetcher(None), today, fraction, args.seed, args.mailto)
+            plan = plan_sample(make_fetcher(None), end, fraction, args.seed, args.mailto)
             print(format_sample_plan(plan))
         else:
-            plan = plan_windows(make_fetcher(None), today, args.mailto)
+            plan = plan_windows(make_fetcher(None), end, args.mailto)
             print(format_plan(plan))
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
