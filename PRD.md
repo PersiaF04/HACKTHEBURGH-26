@@ -1,7 +1,7 @@
 # Product requirements document: Turn Up Scotland
 
 > The idea was chosen on 2026-11-07 after spikes #19–#25. The evidence and research are in [#25](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/25). `Open` marks a decision that still has an owner and a next check.
-> Current team status: [STATUS.md](docs/coordination/STATUS.md), added for [issue #37](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/37) (refreshed about every two hours and after PR merges).
+> **Shared brain:** this PRD holds what was agreed; [STATUS.md](docs/coordination/STATUS.md) holds where the work stands now ([issue #37](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/37); refreshed about every two hours and after PR merges). Read both.
 
 ## Status and ownership
 
@@ -34,25 +34,25 @@
 | Internal code freeze and timezone | 2026-11-08 07:00 UTC. Bug fixes only after this. Submit by 11:00 UTC. |
 | Demo duration and presentation format | Open. Plan a 3-minute live demo plus a recorded video (section 7). |
 | Submission method and required materials | Devpost project: description, video and repository link. Confirm the list on Devpost (owner: Persia). |
-| Demo smoke command and expected result | `npm --prefix web run build && npm --prefix web run preview`, then the map dashboard and existing deep-dive screens render from `data/public/` or fixtures with no network |
+| Demo smoke command and expected result | `npm --prefix web run build && npm --prefix web run preview`, then the three-section map dashboard (#71) and the seven deep-dive screens render from `data/public/` or fixtures with no network |
 | Fallback if a live service or network fails | Replay mode from committed JSON (R-7), plus a pre-recorded video |
 
 ## 1. Product summary
 
-**Summary:** Scotland pays wind farms to switch off when the cables south are full. From 1 April to 6 November 2026, the reconstruction counts 7.12 TWh curtailed over 220 days. Between 1 April and 29 October (210 days), wind turn-down bids totalled about £188m; CCGT turn-up offers and NESO's thermal constraint-cost measure were about £1.81bn and £1.79bn. These are parallel measures, not an additive breakdown or proof of who ultimately paid. Turn Up Scotland makes the constraint visible in a central map dashboard, forecasts when NESO will ask for help, and lets a flexible-load operator test a readiness and bid decision against replay data.
+**Summary:** Scotland pays wind farms to switch off when the cables south are full. The reconstruction counts 7.12 TWh curtailed in a 220-day window from 1 April to 6 November 2026; 192 of those days have data and the last is 5 November (#71). Between 1 April and 29 October (210 days), wind turn-down bids totalled about £188m; CCGT turn-up offers and NESO's thermal constraint-cost measure were about £1.81bn and £1.79bn. These are parallel measures, not an additive breakdown or proof of who ultimately paid. Turn Up Scotland makes the constraint visible in a central map dashboard, forecasts when NESO will ask for help, and lets a flexible-load operator test a readiness and bid decision against replay data.
 
 ## 2. Problem, users, and evidence
 
 | User / stakeholder | Context and need | Current alternative and gap | Evidence / source |
 | --- | --- | --- | --- |
-| **Primary user:** operations lead of a flexible load behind Scotland's grid constraints (electrolyser, data centre, heat network with storage) or an aggregator | Decides each day which half-hours to be ready for, and what to bid into NESO's Demand Flexibility Service (DFS) | NESO's raw datasets are scattered and there is no forecast of requests. Across 30 DFS events in October (8–31 Oct), 81,000 MWh was requested and 0.046% was procured | NESO `demand-flexibility` dataset; `data/public/dfs_requests.json`; #25 deep dive |
+| **Primary user:** operations lead of a flexible load behind Scotland's grid constraints (electrolyser, data centre, heat network with storage) or an aggregator | Decides each day which half-hours to be ready for, and what to bid into NESO's Demand Flexibility Service (DFS) | NESO's raw datasets are scattered and there is no forecast of requests. Across 30 DFS events, 81,000 MWh was requested and about 0.046% (37.65 MWh) was procured. The first turn-up request in the data is on 8 Oct and the last on 31 Oct; `forecast.json` and `copilot.json` date the procurement era from 7 Oct (#71) | NESO `demand-flexibility` dataset; `data/public/dfs_requests.json`; #25 deep dive |
 | Secondary: energy-policy audience (journalists, analysts, the public) | Understand the waste and who pays for it | Wind bids totalled about £188m; parallel system-cost measures were £1.81bn (CCGT offers) and £1.79bn (NESO thermal constraint cost). These overlap and are not additive | Elexon cashflows vs NESO Constraint Breakdown, 210 days (1 Apr–29 Oct), daily corr 0.945; `data/public/iceberg.json` |
 
 **Out of scope for the first version:** households and small loads (the DFS threshold and baselines differ), trading desks, and regions outside GB.
 
 ## 3. Proposed experience
 
-1. **Start with the grid.** The default view is one Scotland map with headline metrics, timeline, tomorrow's forecast, the Copilot call and NESO's requests around it. A one-line explainer and legend should make the problem clear to a first-time viewer in about 10 seconds. Existing screens remain deep dives.
+1. **Start with the grid.** The default view is the Power Dashboard: one Scotland map with headline metrics, timeline, tomorrow's forecast, the Copilot call and NESO's requests around it. A one-line explainer and legend should make the problem clear to a first-time viewer in about 10 seconds. The top level has three sections: **Power Dashboard, Tomorrow's Predictions and Optimised Model** (#71). The seven older screens remain as deep dives. The hero replay day is 27 October.
 2. **Replay the waste.** Scrub a stormy day. Farms change state and counters show curtailed energy and payments; outages remain distinct from instructed turn-downs.
 3. **Make a decision.** Place a flexible load on the map, choose its type, size, zone and bid, then replay the schedule client-side. Show load energy, net pounds and comparisons with the same-day Copilot and oracle. Pick the zone explicitly until its map geography is confirmed.
 4. **Try a grid change.** If boundary data is available, let the judge add export capacity and show an approximate avoided-curtailment counterfactual. Label it as a simple estimate, not a power-flow model.
@@ -65,8 +65,8 @@ Load electricity consumption does not prove the electricity physically came from
 
 | ID | Outcome | Measure / pass condition | Baseline | Target | Evidence source / owner |
 | --- | --- | --- | --- | --- | --- |
-| G-1 | Credible reconstruction of the hidden waste | Daily volume correlation vs NESO thermal constraints | n/a | ≥ 0.9 (0.91 already measured in #25) | `curtailment_daily.json` validation; lane A |
-| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,225 MWh, Brier 0.471 (3,170 half-hours, 1 Sep–5 Nov 2026; retrospective) | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
+| G-1 | Credible reconstruction of the hidden waste | Daily volume correlation vs NESO thermal constraints | n/a | ≥ 0.9 (0.915 over 186 days, 1 Apr to 29 Oct, in the current file) | `curtailment_daily.json` validation; lane A |
+| G-2 | The forecast beats simple baselines out of sample | MAE and Brier on a chronological hold-out | Persistence: MAE 1,225 MWh, Brier 0.471 (wind-forecast model, 3,170 half-hours, 1 Sep–5 Nov 2026; retrospective). The flow-utilisation model kept in `backtest.flow_model` has persistence MAE 1,224 over 3,168 half-hours (#77) | Beat both baselines on the same hold-out | `forecast.json` backtest; lane B |
 | G-3 | The decision adds value over naive | Copilot `pct_of_oracle` vs naive on the same replay days and costs | Naive policy | Higher than naive, reported honestly | `copilot.json`; lane B |
 | G-4 | The demo never breaks | The map dashboard and existing deep dives render offline from committed JSON | n/a | Smoke command passes at code freeze | Lane C |
 | G-5 | The map turns evidence into an understandable decision | Map dashboard is the default and the core load sandbox recomputes client-side from optional contract data; 27 Oct agrees with the reference scorer | Static deep dives | A newcomer can explain the map in about 10 seconds; sandbox result matches the reference to the cent | #71, #75, #76; lanes B and C |
@@ -75,16 +75,16 @@ Load electricity consumption does not prove the electricity physically came from
 
 ### P0: must work in the demo
 
-- One central map dashboard is the default; the existing screens remain accessible as deep dives.
-- A judge can place a load, choose MW, zone and bid, and see the client-side same-day result compared with the Copilot and oracle using the optional sandbox contract.
+- One central map dashboard is the default, with three top-level sections (R-13, #71); the seven existing screens remain accessible as deep dives.
+- A judge can place a load, choose MW, zone and bid, and see the client-side same-day result compared with the Copilot and oracle using the optional sandbox contract (R-10, #75).
 - The committed data path remains usable offline, with missing optional files handled clearly.
 - The backfilled pipeline, curtailment forecast and Copilot comparisons remain available as evidence behind the interaction.
 
 ### P1: include if time allows
 
-- Cable what-if slider using optional Scottish boundary limit/flow data. #75 leaves its priority at P0/P1 for the product owner to settle; label the result an approximate counterfactual.
-- Play-the-storm interaction at 60× replay speed.
-- Live mode and snapshot archiving for as-of forecasts.
+- Cable what-if slider using optional Scottish boundary limit/flow data (R-11). #75 leaves its priority at P0/P1 for the product owner to settle (K-12); label the result an approximate counterfactual.
+- Play-the-storm interaction at 60× replay speed (R-12, #75).
+- Live mode on the hosted site through the Gist (R-8, #68, #80) and snapshot archiving for as-of forecasts.
 - Dashboard summaries / request probabilities when their optional files are available.
 - Tiger Data (Timescale) for storage (sponsor fit).
 
@@ -92,6 +92,10 @@ Load electricity consumption does not prove the electricity physically came from
 
 - A desk-turbine mirror and an ESP32 relay load.
 - A QR load picker.
+
+### Open: not a requirement
+
+- **Ask the Grid** (a chat answering from the committed JSON) is undecided (K-9). The votes on #75 split: sanamorii backs it; Varshil's Codex and Persia's Codex recommend no add-on until the core path is stable. Issue #91 and PR #93 propose only a tool manifest and a golden question set, with no chat UI, API function or LLM call. Nothing here commits the team to building it.
 
 ### Non-goals
 
@@ -105,7 +109,9 @@ Load electricity consumption does not prove the electricity physically came from
 
 ## 6. Requirements and acceptance
 
-### R-1 [P0] Waste Map with replay
+R-1 to R-6 now describe deep dives behind the map dashboard (R-13, #71), not top-level screens.
+
+### R-1 [P0] Waste Map with replay (deep dive)
 
 - **User / reason:** see the hidden waste.
 - **Behavior:** a map of wind farms. A scrubber plays a replay day by half-hour and farms change state (`generating`, `instructed`, `unavailable`). Counters show MWh and GBP.
@@ -116,31 +122,31 @@ Load electricity consumption does not prove the electricity physically came from
 - **Dependencies / owner:** lane A data (#27); lane C UI (#31).
 - **Issues:** #27, #31
 
-### R-2 [P0] The Iceberg
+### R-2 [P0] The Iceberg (deep dive)
 
 - **Behavior:** shows wind payments vs NESO constraint cost vs CCGT turn-up over the stated window, captioned "magnitude, not additive".
 - **Acceptance checks:** given `iceberg.json`, all three figures appear with their window and sources.
 - **Issues:** #27, #31
 
-### R-3 [P0] Help Wanted
+### R-3 [P0] Help Wanted (deep dive)
 
 - **Behavior:** lists DFS `Upwards`/`System` requests with required vs procured MW, accepted price and auction-close-to-delivery time.
 - **Acceptance checks:** given `dfs_requests.json`, the fill rate is computed from the data and zones are labelled by ID.
 - **Issues:** #27, #31
 
-### R-4 [P0] Tomorrow forecast
+### R-4 [P0] Tomorrow forecast (deep dive)
 
 - **Behavior:** half-hourly p10, p50 and p90 curtailment plus P(heavy), and P(request) when available. A backtest strip shows the model and baselines.
 - **Acceptance checks:** given `forecast.json`, every metric shows its baseline; given `retrospective: true`, a "retrospective" label is visible.
 - **Issues:** #29, #32
 
-### R-5 [P0] Flex Copilot
+### R-5 [P0] Flex Copilot (deep dive)
 
 - **Behavior:** pick load type, MW and zone. It shows the schedule and naive, ours and oracle results, with `pct_of_oracle` and caveats.
 - **Acceptance checks:** given `copilot.json`, all three policies use the same days and costs, and gross settlement is shown apart from energy cost.
 - **Issues:** #30, #32
 
-### R-6 [P0] Under the Hood
+### R-6 [P0] Under the Hood (deep dive)
 
 - **Behavior:** shows reconstruction validation, the outage vs instruction method, and the data-quality days that don't reconcile.
 - **Acceptance checks:** given `curtailment_daily.json`, the correlation and ratio are shown with their window.
@@ -154,8 +160,13 @@ Load electricity consumption does not prove the electricity physically came from
 
 ### R-8 [P1] Live mode
 
-- **Behavior:** when `index.json` points to an available live replay, the Waste Map offers Live mode and refreshes it every 60 seconds while selected. A calm-weather banner appears when nothing is being curtailed; hide Live when the source is missing.
-- **Issues:** #28, #62
+- **Behavior:** `replay/index.json` `live` holds an absolute Gist URL (#80). Lane A's poller publishes `live.json` there every 5 minutes, and the site offers Live and re-fetches every 60 seconds while it is selected (#68). A calm-weather banner appears when nothing is being curtailed.
+- **Acceptance checks:**
+  - Given a reachable live source with at least one period, the Live option appears; given a missing, failing or malformed source, it is hidden with no errors.
+  - Given a failed refresh, the last good copy stays on screen.
+  - Live `paid_gbp` is `null`, so the paid figure shows as settled the next morning rather than £0.
+- **Dependencies / owner:** the poller on Varshil's PC (K-8; lane A); UI (lane C).
+- **Issues:** #28, #62, #68, #73, #80. Issue #90 tracks a warning for stale live data.
 
 ### R-9 [P2] Hardware and QR interaction
 
@@ -164,10 +175,11 @@ Load electricity consumption does not prove the electricity physically came from
 
 ### R-10 [P0] Place your load
 
-- **Behavior:** the map lets a judge place/select a load, choose size, zone and bid, and score its schedule client-side for the replay day.
+- **Behavior:** the map lets a judge place/select a load, choose type, size, zone (a zone picker) and bid, and score its schedule client-side for the replay day using the `sandbox.json` scoring rule.
 - **Acceptance checks:**
   - Given optional `sandbox.json`, the chosen schedule reports load energy, gross settlement, electricity cost, assumed site value, net pounds and accepted half-hours, and compares on the same day with naive, Copilot and oracle results.
-  - The default 27 Oct case reproduces the reference scorer and `copilot.json`; absent optional data does not break the map.
+  - The default 27 Oct case (50 MW, Z1, £100/MWh site value) reproduces the reference scorer and `copilot.json`: naive £8,533, ours £11,909, oracle £12,594. Absent optional data does not break the map.
+  - The Copilot has a scored call only on 27 Oct, so other days compare only with naive and the oracle, and the oracle is often zero; the UI says so (#75).
   - Load consumption is not described as physically sourced from curtailed Scottish wind. Any wind-matched / avoided-curtailment figure is separately labelled as an approximate counterfactual and uses the available curtailment input.
   - The zone is selected from NESO's IDs unless a verified zone-to-region mapping is available; no map-derived Scottish claim is made.
 - **Dependencies / owner:** optional sandbox inputs and reference scorer (lane B); map interaction (lane C).
@@ -175,16 +187,31 @@ Load electricity consumption does not prove the electricity physically came from
 
 ### R-11 [P0/P1 priority to confirm] Cable what-if
 
-- **Behavior:** a slider adds export capacity and estimates avoided curtailment from the relevant Scottish boundary limit/flow and replay data.
-- **Acceptance checks:** when optional boundary data exists, the dashboard shows the scenario and labels it an approximate counterfactual, not a power-flow model; without the data, the rest of the dashboard works.
+- **Behavior:** a slider adds X GW to the Scottish export limit. Per half-hour, avoided curtailment is estimated from the replay's curtailment and the SCOTEX `scotex_limit_mw` and `scotex_flow_mw` fields (#75, #80).
+- **Acceptance checks:**
+  - When the SCOTEX fields exist, moving the slider updates the estimate, which is labelled an approximate counterfactual, not a power-flow model.
+  - The flow is labelled as NESO's day-ahead forecast against the published limit, not measured flow. A forecast above the limit signals constraint pressure; it does not say the excess was switched off (#71).
+  - Without the data, the what-if is disabled and the rest of the dashboard works.
 - **Dependencies / owner:** optional boundary data (lane A); map UI (lane C).
-- **Issues:** #73, #75
+- **Issues:** #73, #75, #80
 
 ### R-12 [P1] Play the storm
 
-- **Behavior:** replay runs at 60×; the judge taps to switch the load on and sees its score against the Copilot.
+- **Behavior:** replay runs at 60×; the judge taps to switch the load on and sees its score against the Copilot. This replaces the old Operator game on the map (#75).
 - **Acceptance checks:** the game uses the same scoring assumptions as R-10 and does not claim consumption came from curtailed wind.
 - **Issues:** #75
+
+### R-13 [P0] Map dashboard
+
+- **User / reason:** the seven tabs gave no obvious place to start and no story to follow (#71).
+- **Behavior:** the default route is the Power Dashboard, one of three top-level sections with Tomorrow's Predictions and Optimised Model. Its centre is a tilted map of Scotland with turbine markers sized by capacity, with stats and an explainer on the left, controls on the right and the timeline under the map. A power-lines toggle shows the transmission network from `grid.json`. Terms and numbers are written in plain words. The seven older screens stay as deep dives.
+- **Acceptance checks:**
+  - The dashboard is the default route, and a newcomer can say what is happening in about 10 seconds.
+  - It works on a laptop at 1440 px and is usable on a phone.
+  - `npm run build` passes, and claims are unchanged.
+  - Given no optional file (`dashboard.json`, `sandbox.json`, `grid.json`, SCOTEX fields), the dashboard still renders.
+- **Dependencies / owner:** Tomorrow's Predictions and Optimised Model point at the existing Tomorrow and Flex Copilot screens until their descriptions arrive (K-11). Data from lanes A and B; UI from lane C.
+- **Issues:** #71, #73, #74, #88; PR #89 is the open implementation.
 
 ## 7. Demo and judging proof
 
@@ -192,7 +219,7 @@ The primary demo opens on the map dashboard, not the seven-tab navigation. Exact
 
 | Demo step | User-visible behavior | Requirement / judging criterion | Proof or measure |
 | --- | --- | --- | --- |
-| 1. Map dashboard | Scotland map, one-line explanation, timeline and evidence KPIs; a first-time viewer understands the situation in about 10 seconds | #71; G-Research: make the invisible visible | Committed replay and dashboard evidence |
+| 1. Map dashboard (27 Oct) | Scotland map, one-line explanation, timeline and evidence KPIs; a first-time viewer understands the situation in about 10 seconds | R-13, #71; G-Research: make the invisible visible | Committed replay and dashboard evidence; NESO's forecast flow of 10,234–12,713 MW against a limit of 2,800 MW from 05:00 UTC (4,850 MW before) |
 | 2. Place your load | Judge picks load size, zone and bid, then sees same-day results vs the Copilot and oracle | R-10; #75/#76; HRT: prediction to decision | Reference scorer / `sandbox.json`, consumption and approximate wind-matched amounts distinguished |
 | 3. Cable what-if (if ready) | Judge changes export capacity and sees approximate avoided curtailment | R-11; #73/#75 | Boundary limit/flow replay data; explicitly not a power-flow model |
 | 4. Deep dives and trust | Replay, hidden bill, DFS requests, forecast and reconciliation evidence | R-1–R-8; both tracks | Existing committed contract files and retrospective labels |
@@ -203,9 +230,9 @@ The primary demo opens on the map dashboard, not the seven-tab navigation. Exact
 | Area | Agreed constraint or target | Reason / source | How verified |
 | --- | --- | --- | --- |
 | Event rules / time / team skills | 24-hour build, 3 developers and 5 agents; freeze 07:00 UTC | Event | Milestones (section 14) |
-| Platform / device / connectivity | Desktop browser for the demo. Must work offline from committed JSON. | Venue Wi-Fi risk; calm weather | R-7 smoke check |
+| Platform / device / connectivity | Desktop browser for the demo, at 1440 px, and usable on a phone (#71). Must work offline from committed JSON. | Venue Wi-Fi risk; calm weather | R-7 smoke check |
 | Reliability / performance | Each screen interactive in under 2 s on a laptop. Replay scrubbing is smooth at 48 half-hours × about 200 farms. | Demo quality | Manual check |
-| Accessibility / usability | **Apple-style design:** clarity, deference (content first, restrained chrome), depth (purposeful motion). System font stack, generous whitespace, light and dark modes, WCAG AA contrast, keyboard-operable scrubber, no colour-only states. | Team design direction | Lane C review |
+| Accessibility / usability | **Apple-style design:** clarity, deference (content first, restrained chrome), depth (purposeful motion). System font stack, generous whitespace, light and dark modes, WCAG AA contrast, keyboard-operable scrubber, no colour-only states. Lane C UI work is checked with the Apple design (`apple-design`, HIG) and Taste (`design-taste-frontend`) skills. | Team design direction; #65, PR #72, PR #89 | Lane C review. PR #72 records a HIG audit. PR #89 applied Taste by hand; its gate script was not run because it targets marketing pages. |
 | Privacy / security / data retention | Public datasets only, no personal data, no credentials in Git | AGENTS.md | Review |
 | Cost / usage limits | Keyless public APIs, polite rate limits. Tiger Data trial only if a human signs up. | Data rights | Lane A |
 
@@ -218,9 +245,12 @@ Engineering follows AGENTS.md: KISS, small modules, no speculative abstractions,
 | NESO Wind BOA Volumes | Curtailed volume per wind unit (MW, so MWh = /2) | Keyless, NESO Open Data Licence | Committed JSON |
 | Elexon Insights (BOALF, PN, MELS, BOD, indicative cashflows) | Instructions, availability, £ | Keyless, Elexon open data | Committed JSON |
 | NESO Constraint Breakdown | Validation reference | Keyless, NESO ODL | Committed JSON |
-| NESO day-ahead constraint flows and limits | Forecast features (headroom) | Keyless; historical snapshot vintage unknown, so results are retrospective; PR #35 adds prospective archiving | Archived snapshots when available |
+| NESO day-ahead constraint flows and limits | Forecast features (headroom); SCOTEX limit and forecast flow per half-hour on replay days (#80) | Keyless; historical snapshot vintage unknown, so results are retrospective; PR #35 adds prospective archiving | Archived snapshots when available |
 | NESO Day Ahead Wind BMU Forecast | Farm region; wind feature | Keyless | Committed JSON |
 | NESO `demand-flexibility` (DFS) | Requests, procurement, prices | Keyless | Committed JSON |
+| Elexon market index price (MID) | Electricity cost in `sandbox.json` (#76); not any site's tariff | Keyless, Elexon open data | Committed JSON |
+| OpenStreetMap | Transmission line geometry in `grid.json` (PR #88) | ODbL, attribution required | Power-lines layer is absent; dashboard still renders |
+| GitHub Gist (unlisted) | Hosts `live.json` for R-8 (#80) | Published from Varshil's account with his approval; CORS `*` | Live is hidden or keeps the last good copy; replay remains |
 | Tiger Data (P1) | Time-series storage (sponsor) | 30-day trial, a human signs up | DuckDB or Parquet locally |
 
 No AI model produces numbers. If an LLM is used for narration (P2), it never produces figures.
@@ -232,7 +262,7 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 | Client / interface | React + Vite + TypeScript static app in `web/`, with the map dashboard as its default and existing screens as deep dives | Lane C | D-001 / #71 |
 | Server / data | Python pipeline (`pipeline/`) and models (`models/`), writing contract JSON to `data/public/`. No bespoke API server for P0. | Lanes A and B | D-001 |
 | External services | Keyless NESO and Elexon APIs; Tiger Data P1 | Lane A | Section 9 |
-| Deployment / demo setup | Local `vite preview` remains the fallback; Vercel is manually deployed and verified at [turn-up-scotland.vercel.app](https://turn-up-scotland.vercel.app/) on 7 Nov; Git-connected deploys remain pending | Lane C | D-002 / issue #50 |
+| Deployment / demo setup | Local `vite preview` remains the fallback; Vercel is manually deployed at [turn-up-scotland.vercel.app](https://turn-up-scotland.vercel.app/); deploys stay manual until Git is connected | Lane C | D-002 / issue #50 |
 | Interactive sandbox | Client-side port of the lane B reference scorer using optional `sandbox.json`; no bespoke server for the core replay interaction | Lanes B and C | #75, #76 |
 | Shared interface needed for parallel work | `contracts/README.md`, with fixtures in `contracts/fixtures/` | All three lane owners approve changes | [contracts](contracts/README.md) |
 
@@ -249,13 +279,18 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 | K-5: Reproduce one DFS settlement before showing £ | Wrong money claims | Keep full-delivery assumption visible; validate accepted and settled cost separately | Lane B | **Partly verified:** PR #48 reproduces accepted-cost arithmetic in the checked sample, but settled cost is about 39% of accepted cost. Do not present gross accepted cost as income. |
 | K-6: Hardware parts on hand | P2 cut | Ask at the venue | Persia | Open |
 | K-7: Tiger Data signup | Sponsor fit | A human signs up for the trial if wanted | Varshil | Open |
+| K-8: Hosted Live depends on the poller on Varshil's PC | If the PC sleeps or the poller stops, the Gist goes stale and Live can look current | Replay first (R-7). A failed fetch keeps the last good copy (#68). Issue #90 proposes a stale-data warning, and PR #92 proposes a lane A runbook | Varshil (lane A) | Open |
+| K-9: Whether to build Ask the Grid | Network, deployment and invented-figure risk if built; less "wow" if not | Product owner decides; see section 5 and #75 | Persia | Open |
+| K-10: 27 Oct has two volume totals | A judge could see 168.4 GWh (`curtailment_daily.json`) and 183.8 GWh (replay) | Pick one or caption the sources (#71). 14 Oct differs less: 148.0 and 149.3 GWh | Lane A | Open |
+| K-11: Descriptions of Tomorrow's Predictions and Optimised Model | Both sections only point at existing screens | Varshil sends the descriptions (#71) | Varshil | Open |
+| K-12: Cable what-if priority | P0 or P1 changes the cut order | Product owner confirms (#75) | Persia | Open |
 
 ## 12. CI, delivery, and recovery
 
 - **Local setup / run command:** `npm --prefix web ci && npm --prefix web run dev` (web). Python lanes document their own commands in `pipeline/README.md` and `models/README.md`.
 - **CI checks required for a PR:** Markdown lint, Web build, Pipeline tests (when `pipeline/` changes) and Model tests (when `models/` changes). See `docs/coordination/CI-CD.md`.
 - **Demo smoke check:** see the run sheet.
-- **Deployment target / trigger:** Vercel is the agreed static host. The app and committed replay data paths were manually deployed and returned HTTP 200 at [the deployed app](https://turn-up-scotland.vercel.app/) on 2026-11-07. The project is not yet Git-connected, so rebuild and deploy after relevant merges until automatic deployment is configured. Use root `web/`, build `npm run build`, output `dist`, and include files outside the root because `sync-data` reads repository-root fixtures and data. The hosted build includes committed replay data only; `data/public/replay/live.json` is gitignored, so hosted R-8 live mode needs a separately approved publishing path.
+- **Deployment target / trigger:** Vercel is the agreed static host. The app is deployed manually at [turn-up-scotland.vercel.app](https://turn-up-scotland.vercel.app/), and the app and committed replay data paths returned HTTP 200 on 2026-11-07. The project is not yet Git-connected, so rebuild and deploy after relevant merges until it is (D-002). The site serves whatever was last deployed: the map dashboard reaches it only after PR #89 merges and a redeploy. Use root `web/`, build `npm run build`, output `dist`, and include files outside the root because `sync-data` reads repository-root fixtures and data. `data/public/replay/live.json` stays gitignored; hosted R-8 live mode reads the Gist named in `replay/index.json` (#80), with the K-8 dependency.
 - **Secrets / environment setup:** no secrets are needed to build or serve the current app. Any future Tiger Data credentials go in local `.env`, never in Git; deployment credentials belong in the host's environment settings if required.
 - **Recovery / demo fallback:** committed JSON replay plus a recorded video.
 
@@ -263,11 +298,11 @@ No AI model produces numbers. If an LLM is used for narration (P2), it never pro
 
 | Contributor | Agent / tool | Workstream and boundaries | Issue IDs | Reviewer / integrator |
 | --- | --- | --- | --- | --- |
-| **Varshil** (`varshil247`) | Varshil's Claude (developer) | **Lane A: data and pipeline.** `pipeline/`; writes `farms`, `curtailment_daily`, `replay/*`, `iceberg`, `dfs_requests`, and optional Scottish boundary fields | #27, #28, #73 | Varshil's Codex (review) |
-| **sanamorii** (`sanamorii`) | sanamorii's Claude (developer) | **Lane B: models, validation and decision.** `models/`; writes `forecast`, `copilot`, optional `dashboard.json` and `sandbox.json` | #29, #30, #74, #76 | Persia's Codex (review) |
-| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files and builds the map dashboard / interactions | #26, #31–#33, #38, #39, #46, #71 | Persia's Codex (review) |
+| **Varshil** (`varshil247`) | Varshil's Claude (developer) | **Lane A: data and pipeline.** `pipeline/`; writes `farms`, `curtailment_daily`, `replay/*`, `iceberg`, `dfs_requests`, `grid`, and optional Scottish boundary fields | #27, #28, #73 (shared), #75 (shared) | Varshil's Codex (review) |
+| **sanamorii** (`sanamorii`) | sanamorii's Claude (developer) | **Lane B: models, validation and decision.** `models/`; writes `forecast`, `copilot`, optional `dashboard.json` and `sandbox.json` | #29, #30, #58, #74, #76, #91, #73 (shared), #75 (shared) | Persia's Codex (review) |
+| **Persia** (`PersiaF04`), product owner | Persia's Claude (developer, **integrator**) | **Lane C: front end, story and hardware.** `web/`, `hardware/`; reads all contract files and builds the map dashboard / interactions | #26, #31–#33, #38, #39, #46, #50, #51, #62, #63, #65, #71, #82, #84, #90, #73 (shared), #75 (shared) | Persia's Codex (review) |
 
-Codex agents review pull requests and don't change the developer's branch. Humans merge after CI passes and review is approved. If no reviewer is free, a human may merge on green CI plus one approving agent review.
+Codex agents review pull requests and don't change the developer's branch. Agents merge after CI passes and an agent on a different GitHub account approves, using auto-merge with a merge commit (D-003, decided by Persia). Update a branch before approving it, because later pushes dismiss stale approvals. Contract changes still need all three lanes.
 
 ## 14. Milestones
 

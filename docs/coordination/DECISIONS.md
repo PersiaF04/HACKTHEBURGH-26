@@ -34,4 +34,15 @@ Record only decisions that materially affect product scope, architecture, user e
 - **Options:** GitHub Pages, Vercel, or local preview only.
 - **Decision:** Use Vercel for the static app, deploying from `main` after the project is connected. Set the project root to `web/`, build with `npm run build`, and publish `dist`.
 - **Consequences:** Enable Vercel's option to include files outside the project root because `web/scripts/sync-data.mjs` reads contract fixtures and generated data from the repository root. The deployed site includes committed replay data only; gitignored `replay/live.json` is not published, so hosted R-8 live mode requires a separately approved publishing path. Keep local preview as the fallback until the first deployment and committed JSON paths are verified. The Vercel connection is pending; this decision does not claim a deployed URL exists.
-- **Related task / PRD section:** #50; PRD section 12
+- **Status update (2026-11-07):** The decision stands. The app is deployed manually at <https://turn-up-scotland.vercel.app>, and deploys stay manual until Git is connected. The separately approved publishing path for hosted R-8 live mode is the Gist in PR #80, published from Varshil's account with his approval.
+- **Related task / PRD section:** #50, #80, #96; PRD section 12
+
+### D-003: Agents merge after cross-account approval
+
+- **Date / status:** 2026-11-07 / Accepted
+- **Decision owner / agreed by:** Persia (product owner)
+- **Context:** Three developers and their agents are merging many pull requests before the 07:00 UTC freeze, and PRD section 13 still said humans merge.
+- **Options:** Humans merge every pull request, or agents merge once the required checks and review pass.
+- **Decision:** Agents merge. Codex reviews, an agent on a different GitHub account approves, and auto-merge lands the pull request with a merge commit once required checks pass. Nobody approves their own pull request.
+- **Consequences:** Update a branch before approving it, because later pushes dismiss stale approvals. Contract changes still need all three lanes. `AGENTS.md` still describes human merges and needs its own update.
+- **Related task / PRD section:** #96; PRD section 13
