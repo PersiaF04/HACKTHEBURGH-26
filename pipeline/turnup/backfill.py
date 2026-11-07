@@ -449,9 +449,16 @@ def classify(pn: float | None, mel: float | None, curtailed_mwh: float) -> str:
     return "generating"
 
 
+def tagged_volumes(rows: list[dict]) -> list[dict]:
+    """Elexon's indicative volume file has four rows per unit and period (Original, Original-Priced, Re-priced and
+    Tagged). Only Tagged is the settled accepted volume; adding all four overstates volume (by 9% on 27 Oct).
+    Rows with no dataType (older fixtures) are kept."""
+    return [r for r in rows if r.get("dataType") in (None, "Tagged")]
+
+
 def build_replay(day: str, farm_ids: set[str], scotex: dict | None = None) -> dict:
     vols = collections.defaultdict(float)
-    for r in fetch.elexon_volumes("bid", day):
+    for r in tagged_volumes(fetch.elexon_volumes("bid", day)):
         if r["bmUnit"] in farm_ids:
             vols[(r["bmUnit"], r["settlementPeriod"])] += r.get("totalVolumeAccepted") or 0
     cash = collections.defaultdict(float)
@@ -486,7 +493,7 @@ def build_replay(day: str, farm_ids: set[str], scotex: dict | None = None) -> di
                           "Elexon indicative cashflows (bids)",
                           "NESO day-ahead constraint flows and limits (SCOTEX)"],
                          scotex_note=SCOTEX_NOTE,
-                         method="curtailed_mwh = accepted bid volume; level_mw = pn_mw - 2 x curtailed_mwh; "
+                         method="curtailed_mwh = accepted bid volume (Elexon Tagged rows only); level_mw = pn_mw - 2 x curtailed_mwh; "
                                 "state: instructed if curtailed; unavailable if PN exceeds MEL by >max(1 MW, 5%) "
                                 "or PN and MEL are both ~0; unknown if PN ~0 while MEL > 0 (farm planned "
                                 "no output before gate closure, not a paid BM action) or PN missing"),
