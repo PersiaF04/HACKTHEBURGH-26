@@ -89,7 +89,7 @@ h1 { margin: 0 0 12px; font-size: clamp(34px, 5vw, 56px); line-height: 1.07; let
 .fill-label { margin-top: 12px; font-size: 19px; }
 .fill-label strong { font-size: 30px; }
 .table { width: 100%; border-collapse: collapse; overflow: hidden; font-size: 15px; font-variant-numeric: tabular-nums; }
-.table caption { text-align: left; padding: 0 0 10px; caption-side: top; font-size: 13px; }
+.table caption { text-align: left; padding: 0 20px 10px; caption-side: top; font-size: 13px; }
 .table th, .table td { padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--hairline); }
 .table th { font-size: 13px; color: var(--muted); font-weight: 600; }
 .table tr:last-child td { border-bottom: 0; }
