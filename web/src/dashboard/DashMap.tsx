@@ -97,12 +97,13 @@ export function DashMap({ farms, period, label, showLines, lines, pin, pinOn, on
   // About 1,700 lines: batched into one path per class, so the layer costs a few elements. Only border crossings animate.
   const grid = useMemo(() => {
     const d = (ls: GridLine[]) => ls.map((l) => pathOf(l.coords.map(([lon, lat]) => [lat, lon]))).join("");
-    const schematic = lines.filter((l) => l.schematic);
+    const isLink = (l: GridLine) => l.schematic || l.southbound_link; // the Western Link: drawn apart, never SCOTEX-scaled
+    const schematic = lines.filter(isLink);
     const start = schematic[0]?.coords[0];
     const b = start ? project(start[1], start[0]) : null;
     return {
-      kv400: d(lines.filter((l) => !l.schematic && l.kv === 400)), kv275: d(lines.filter((l) => !l.schematic && l.kv !== 400)),
-      border: d(lines.filter((l) => l.crosses_border && !l.schematic)), schematic: d(schematic), schematicAt: b ? tilt(b.x, b.y) : null,
+      kv400: d(lines.filter((l) => !isLink(l) && l.kv === 400)), kv275: d(lines.filter((l) => !isLink(l) && l.kv !== 400)),
+      border: d(lines.filter((l) => l.crosses_border && !isLink(l))), schematic: d(schematic), schematicAt: b ? tilt(b.x, b.y) : null,
     };
   }, [lines]);
   const keyId = cursor >= 0 ? order[cursor]?.id ?? null : null;
