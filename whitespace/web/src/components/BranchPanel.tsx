@@ -1,6 +1,7 @@
 import type { GapSummary } from "../api";
-import { fmtCompact, fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import { fmtCompact, fmtGrowth, fmtInt, fmtText } from "../lib/format";
 import type { BranchInfo } from "../lib/hierarchy";
+import { HypothesisPanel } from "./HypothesisPanel";
 
 type Props = {
   branch?: BranchInfo;
@@ -13,38 +14,10 @@ const sane = (g: number | null | undefined): g is number => typeof g === "number
 const trend = (g: number | null | undefined) =>
   !sane(g) ? "trend unavailable" : g >= 0.45 ? "growing fast" : g >= 0.15 ? "growing" : g >= -0.05 ? "steady" : "shrinking";
 
-const goToGaps = (event: React.MouseEvent) => {
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  window.history.pushState({}, "", "/gaps");
-  window.dispatchEvent(new PopStateEvent("popstate"));
-};
 
 /** Detail for a clicked branch hub or hypothesis node on the graph. Branches are derived in the app. */
 export function BranchPanel({ branch, hypothesis, onSelectConcept }: Props) {
-  if (hypothesis) {
-    return (
-      <aside className="whitespace-concept ex__right" aria-label="Hypothesis details" aria-live="polite">
-        <header>
-          <span className="whitespace-concept__area">Hypothesis</span>
-          <h2>{fmtText(hypothesis.a_label)} × {fmtText(hypothesis.b_label)}</h2>
-          <span className="whitespace-concept__first">One of the top ranked gaps</span>
-        </header>
-        <dl className="whitespace-concept__stats">
-          <div><dt>P(link)</dt><dd>{fmtP(hypothesis.p_link)}</dd></div>
-        </dl>
-        <section className="whitespace-concept__card">
-          <h3>Concepts joined</h3>
-          <ul className="whitespace-concept__list">
-            {[[hypothesis.a, hypothesis.a_label], [hypothesis.b, hypothesis.b_label]].map(([id, label]) => (
-              <li key={id}><button type="button" onClick={() => onSelectConcept(id)}>{fmtText(label)}</button></li>
-            ))}
-          </ul>
-          <p className="whitespace-help">A predicted link, not a finding. <a href="/gaps" onClick={goToGaps}>Open the Gap finder</a> for the score breakdown.</p>
-        </section>
-      </aside>
-    );
-  }
+  if (hypothesis) return <HypothesisPanel gap={hypothesis} onSelectConcept={onSelectConcept} />;
   if (!branch) return null;
   const top = [...branch.shown].sort((x, y) => (y.paper_count ?? 0) - (x.paper_count ?? 0));
   const names = top.slice(0, 3).map((c) => fmtText(c.label));
