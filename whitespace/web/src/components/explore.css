@@ -125,3 +125,43 @@
 .whitespace-filters__label label { font-size: 13px; font-weight: 650; color: var(--ws-ink); }
 .whitespace-filters__section { background: var(--ws-surface); gap: 10px; }
 .whitespace-filters__reset { align-self: stretch; }
+
+/* Growth selector: a clear three-way choice with a filled selected state. */
+.whitespace-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.whitespace-tabs button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; border: 1px solid var(--ws-border-strong); border-radius: 8px; background: var(--ws-surface); color: var(--ws-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.whitespace-tabs button:hover:not(:disabled):not(.is-on) { background: var(--ws-selected); }
+.whitespace-tabs button.is-on { background: var(--ws-ink); border-color: var(--ws-ink); color: var(--ws-on-ink); }
+.whitespace-tabs button:disabled { cursor: not-allowed; opacity: .55; }
+.whitespace-tabs button:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
+.whitespace-tabs__mark { font-size: 10px; }
+
+/* Anything that would bleed over a card edge is cut with an ellipsis; the full value is in the tooltip. */
+.ex-stats dd, .whitespace-concept__stats dd, .whitespace-concept__stats dt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* Sub-areas: full-width rows, no list indent; name over meta, truncated if long. */
+.whitespace-subareas { padding: 12px 8px 12px; }
+.whitespace-subareas > h3 { margin: 0 6px 6px; }
+.whitespace-subareas__list { list-style: none; margin: 0; padding: 0; }
+.whitespace-subareas__list li + li { border-top: 1px solid var(--ws-border); }
+.whitespace-subareas__list button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; min-width: 0; padding: 7px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--ws-ink); font: inherit; text-align: left; cursor: pointer; }
+.whitespace-subareas__list button:hover { background: var(--ws-selected); }
+.whitespace-subareas__list button:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: -2px; }
+.whitespace-subareas__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+.whitespace-subareas__meta { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ws-muted); font-variant-numeric: tabular-nums; }
+.whitespace-subareas > .whitespace-help { margin: 6px 6px 0; }
+
+/* Hypothesis panel */
+.whitespace-hyp__claim p { margin: 0; font-size: 14px; line-height: 1.5; }
+.whitespace-hyp__reasons { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: why; }
+.whitespace-hyp__reasons li { display: grid; gap: 2px; padding-left: 26px; position: relative; counter-increment: why; font-size: 13px; line-height: 1.45; }
+.whitespace-hyp__reasons li::before { content: counter(why); position: absolute; left: 0; top: 1px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--ws-border-strong); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.whitespace-hyp__reasons strong { font-size: 13px; }
+.whitespace-hyp__reasons span { color: var(--ws-muted); }
+.whitespace-hyp__side + .whitespace-hyp__side { margin-top: 10px; }
+.whitespace-hyp__side h4 { margin: 0 0 4px; font-size: 12px; color: var(--ws-muted); font-weight: 600; }
+.whitespace-hyp__side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.whitespace-hyp__side li { font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.whitespace-hyp__side li span { color: var(--ws-muted); font-variant-numeric: tabular-nums; }
+.whitespace-hyp__buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.whitespace-hyp__buttons button { min-height: 32px; max-width: 100%; padding: 0 10px; border: 1px solid var(--ws-border-strong); border-radius: 8px; background: var(--ws-surface); color: var(--ws-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.whitespace-hyp__buttons button:hover { background: var(--ws-selected); }

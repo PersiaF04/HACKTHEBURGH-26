@@ -12,7 +12,11 @@ Modification statement: the archive was joined to OpenAlex works by arXiv id and
 
 Paper metadata comes from OpenAlex (<https://openalex.org>), whose records are released under CC0. Attribution is given as a courtesy. Topic assignments are OpenAlex classifier output as in use when the corpus was downloaded (after the October 2026 classifier change; the exact classifier version and retrieval date are not recorded in the export), not as known at each origin year.
 
-No abstracts are included in these files. Paper titles and links only.
+No full abstracts are included in these files. Paper titles and links only, plus the short quoted sentences described below.
+
+## Quoted open-problem sentences
+
+Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included. Each quoted sentence is at most 400 characters, is a single sentence taken whole (never an entire abstract), and is attributed to and linked to its paper (id, title, year and URL) in `open-problems.json` and in the `open_problems` fields of `gap-details.json` and `concepts.json`. The sentences were picked by a regex prefilter whose precision is unmeasured unless a measurement is stated in `meta.json`; a quoted sentence is a lead to read the paper, not a verified research gap.
 
 ## Other files
 

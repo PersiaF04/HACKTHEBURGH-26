@@ -9,7 +9,7 @@ import MapCanvas3DLazy from "../components/MapCanvas3DLazy";
 import { MapLegend } from "../components/MapLegend";
 import { MapSkeleton } from "../components/MapSkeleton";
 import { SearchBar } from "../components/SearchBar";
-import { fmtInt } from "../lib/format";
+import { fmtCompact, fmtInt } from "../lib/format";
 import { buildHierarchy, DEFAULT_PER_BRANCH, isSynthetic } from "../lib/hierarchy";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
@@ -29,8 +29,7 @@ const SKELETON_CAPTION = "The map shows one dot per research concept. Size = pap
 
 const STAT_HELP = {
   shown: "Research concepts currently on the map, after filters.",
-  papers: "Papers tagged with the concepts shown. A paper with several concepts is counted for each.",
-  predicted: "Predicted new links that involve the selected concept.",
+  papers: "Distinct papers in the exported corpus. A paper with several concepts is counted once.",
 } as const;
 
 export function Explore({ map, selectedYear, loading, selectedConceptId, onSelectConcept, onSearch }: ExploreProps) {
@@ -43,6 +42,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [perBranch, setPerBranch] = useState(DEFAULT_PER_BRANCH);
   const [showGaps, setShowGaps] = useState(false);
   const [gapCount, setGapCount] = useState(8);
+  const [works, setWorks] = useState<number | null>(null);
   const [synth, setSynth] = useState<string | null>(null);
   const [ranked, setRanked] = useState<GapSummary[]>([]);
 
@@ -63,8 +63,9 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   }
   /** Picked from search or the side panel: select it and bring the map to it. */
   function pickAndFocus(id: string) {
+    const wasSelected = useWhitespaceStore.getState().selectedConcepts.includes(id);
     pick(id);
-    if (map.concepts.some((c) => c.id === id)) setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 }));
+    if (!wasSelected && map.concepts.some((c) => c.id === id)) setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 }));
   }
 
   useEffect(() => {
@@ -82,6 +83,11 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
     return () => { current = false; };
   }, [selectedYear]);
+  useEffect(() => {
+    let current = true;
+    api.meta().then((m) => { if (current) setWorks(typeof m.counts?.works === "number" ? m.counts.works : null); }).catch(() => undefined);
+    return () => { current = false; };
+  }, []);
   const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, showGaps ? ranked.slice(0, gapCount) : [], perBranch) : null), [live, map.concepts, ranked, perBranch, showGaps, gapCount]);
 
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
@@ -114,22 +120,10 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     return (hierarchy?.structure ?? []).filter((e) => ids.has(e.source) && ids.has(e.target));
   }, [hierarchy, shownNodes]);
 
-  const edges = useMemo(
-    () => map.edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
-    [map.edges, visibleIds],
-  );
   const linkedEdges = useMemo(
     () => (map.linked_edges ?? []).filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
     [map.linked_edges, visibleIds],
   );
-  // Supporting links: the strongest predicted links, plus every link of the selected concept.
-  const supportEdges = useMemo(() => {
-    const own = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId) : [];
-    return own;
-  }, [edges, selectedId]);
-  const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
-  const hasCounts = visible.some((c) => typeof c.paper_count === "number");
-  const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
   const hasLinked = (map.linked_edges?.length ?? 0) > 0;
 
   // Search result with only a map position: bring the nearest concept into view.
@@ -145,11 +139,10 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
   const nothing = skeleton || !live;
   const kindCount = (kind: string) => shownNodes.filter((n) => (n as { kind?: string }).kind === kind).length;
-  const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts, ${fmtInt(kindCount("branch"))} branches, ${fmtInt(kindCount("hypothesis"))} hypotheses` : "";
-  const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
-    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
-    { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
-    { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
+  const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts in ${fmtInt(kindCount("branch"))} branches${showGaps ? ` and ${fmtInt(kindCount("hypothesis"))} gaps` : ""}` : "";
+  const stats: { label: string; value: string; full?: number | null; help: string; caption: string; accent?: boolean }[] = [
+    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtCompact(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
+    { label: "Papers in the corpus", value: nothing || works === null ? fmtInt(null) : fmtCompact(works), full: works, help: STAT_HELP.papers, caption: "Distinct papers in the export" },
   ];
   return (
     <div className="ex">
@@ -176,8 +169,8 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
       <section className="ex__centre" aria-label="Research map" data-tour="map-canvas">
         <dl className="ex-stats" aria-label="Map summary">
-          {stats.map(({ label, value, help, caption, accent }) => (
-            <div key={label} title={help}>
+          {stats.map(({ label, value, full, help, caption, accent }) => (
+            <div key={label} title={typeof full === "number" ? `${fmtInt(full)}. ${help}` : help}>
               <dt>{label}</dt>
               <dd className={accent ? "ex-stats__accent" : undefined}>{value}</dd>
               <dd className="ex-stats__caption">{caption}</dd>
@@ -196,15 +189,14 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 concepts={shownNodes}
                 allConcepts={hierarchy?.nodes ?? map.concepts}
                 resetKey={selectedYear}
-                edges={hierarchy ? supportEdges : edges}
+                edges={[]}
                 showAreaLabels={false}
                 linkedEdges={linkedEdges}
                 structure={shownStructure}
                 selectedConceptId={synth ?? selectedId}
                 focus={map.focus}
                 focusRequest={focusReq}
-                showPredicted={filters.showPredicted}
-                onSelectConcept={pick}
+                onSelectConcept={pickAndFocus}
                 placeholder={false}
               />
             </div>
@@ -219,7 +211,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
             ) : <MapLegend view="3d" hasLinked={hasLinked} />}
             {hierarchy && (
               <p className="ws-note ex__structure-note">
-                Graph structure: the hot red dots are branches (clusters found in the map layout, named for the words their concepts share), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, the top ranked gaps are drawn as bridges between the two concepts they join (choose how many with “Gaps shown”); selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
+                Graph structure: the hot red dots are branches (clusters found in the map layout, named for the words their concepts share), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, the top ranked gaps are drawn as bridges between the two concepts they join (choose how many with “Gaps shown”). Branches are derived in the app, not exported by the pipeline.
               </p>
             )}
           </>
@@ -237,7 +229,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           branch={hierarchy.branchInfo.get(synth)}
           hypothesis={hierarchy.hypothesisInfo.get(synth)}
           onSelectConcept={pickAndFocus}
-          onClose={() => setSynth(null)}
         />
       ) : (
         <ConceptPanel
