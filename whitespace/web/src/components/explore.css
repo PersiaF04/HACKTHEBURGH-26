@@ -14,12 +14,14 @@
 .whitespace-seg button:disabled { cursor: not-allowed; opacity: .55; }
 
 /* search */
-.whitespace-search { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.whitespace-search__form { position: relative; display: flex; flex-direction: column; gap: 8px; }
-.whitespace-search__form label { font-size: 12px; font-weight: 600; color: var(--ws-ink-2); }
+.whitespace-search { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: linear-gradient(145deg, var(--ws-surface), var(--ws-hover)); box-shadow: 0 8px 20px color-mix(in srgb, var(--ws-shadow) 35%, transparent); }
+.whitespace-search__form { position: relative; display: flex; flex-direction: column; gap: 7px; }
+.whitespace-search__form label { font-size: 12px; font-weight: 650; color: var(--ws-ink); letter-spacing: .01em; }
 .whitespace-search__field { position: relative; }
 .whitespace-search__field svg { position: absolute; left: 11px; top: 12px; }
-.whitespace-search__field input { width: 100%; height: 40px; padding: 0 12px 0 34px; border: 1px solid var(--ws-border-strong); border-radius: 8px; font: inherit; font-size: 14px; background: var(--ws-surface); color: var(--ws-ink); }
+.whitespace-search__field input { width: 100%; height: 44px; padding: 0 14px 0 38px; border: 1px solid var(--ws-border-strong); border-radius: 10px; font: inherit; font-size: 14px; background: var(--ws-surface); color: var(--ws-ink); box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 65%, transparent); transition: border-color .15s ease, box-shadow .15s ease; }
+.whitespace-search__field input:hover { border-color: var(--ws-muted); }
+.whitespace-search__field input:focus { border-color: var(--ws-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ws-accent) 16%, transparent); outline: 0; }
 .whitespace-search__dropdown { position: absolute; z-index: 12; left: 0; right: 0; top: 62px; display: grid; gap: 6px; padding: 6px; border: 1px solid var(--ws-border); border-radius: 8px; background: var(--ws-surface); box-shadow: 0 14px 28px var(--ws-shadow); }
 .whitespace-search__results { list-style: none; margin: 0; padding: 0; border: 1px solid var(--ws-border); border-radius: 6px; overflow: hidden; }
 .whitespace-search__results button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--ws-soft); background: var(--ws-surface); font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--ws-ink); }

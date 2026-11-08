@@ -4,7 +4,6 @@ import type { ConceptResponse, GapSummary, MapResponse, SearchResponse } from ".
 import { ConceptPanel, ConceptPanelSkeleton } from "../components/ConceptPanel";
 import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
-import { MapCanvas } from "../components/MapCanvas";
 import MapCanvas3DLazy from "../components/MapCanvas3DLazy";
 import { MapLegend } from "../components/MapLegend";
 import { MapSkeleton } from "../components/MapSkeleton";
@@ -34,8 +33,6 @@ const STAT_HELP = {
 } as const;
 
 export function Explore({ map, selectedYear, loading, selectedConceptId, onSelectConcept, onSearch }: ExploreProps) {
-  const [view, setView] = useState<"3d" | "2d">("3d");
-  const [webglFailed, setWebglFailed] = useState(false);
   // Explicit "go to this concept" request; each new tick recentres the map (search, panel links).
   const [focusReq, setFocusReq] = useState<{ id: string; tick: number } | null>(null);
   const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
@@ -117,8 +114,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
     { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
   ];
-  const mapView = view === "3d" && !webglFailed ? "3d" : "2d";
-
   return (
     <div className="ex">
       <aside className="ex__left" aria-label="Search and filters">
@@ -158,41 +153,20 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           </>
         ) : live ? (
           <>
-            {webglFailed && (
-              <p className="ex__notice" role="status">3D needs WebGL, which this browser did not provide. Showing the 2D map instead.</p>
-            )}
             <div className="ex__mapwrap">
-              <div className="ex__viewtoggle" role="group" aria-label="Map view">
-                <button type="button" aria-pressed={mapView === "3d"} disabled={webglFailed} title={webglFailed ? "3D is not available in this browser" : "Rotatable 3D view: height shows growth"} onClick={() => setView("3d")}>3D</button>
-                <button type="button" aria-pressed={mapView === "2d"} title="Flat 2D view" onClick={() => setView("2d")}>2D</button>
-              </div>
-              {mapView === "3d" ? (
-                <MapCanvas3DLazy
-                  concepts={visible}
-                  edges={edges}
-                  linkedEdges={linkedEdges}
-                  selectedConceptId={selectedId}
-                  focus={map.focus}
-                  focusRequest={focusReq}
-                  showPredicted={filters.showPredicted}
-                  onSelectConcept={pick}
-                  placeholder={false}
-                  onUnsupported={() => setWebglFailed(true)}
-                />
-              ) : (
-                <MapCanvas
-                  concepts={visible}
-                  edges={edges}
-                  linkedEdges={linkedEdges}
-                  selectedConceptId={selectedId}
-                  focus={map.focus}
-                  focusRequest={focusReq}
-                  showPredicted={filters.showPredicted}
-                  onSelectConcept={pick}
-                />
-              )}
+              <MapCanvas3DLazy
+                concepts={visible}
+                edges={edges}
+                linkedEdges={linkedEdges}
+                selectedConceptId={selectedId}
+                focus={map.focus}
+                focusRequest={focusReq}
+                showPredicted={filters.showPredicted}
+                onSelectConcept={pick}
+                placeholder={false}
+              />
             </div>
-            <MapLegend view={mapView} hasLinked={hasLinked} />
+            <MapLegend view="3d" hasLinked={hasLinked} />
           </>
         ) : (
           <div className="ex__loading" role="status" aria-live="polite">

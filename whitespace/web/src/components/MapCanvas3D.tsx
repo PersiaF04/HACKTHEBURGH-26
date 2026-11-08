@@ -23,17 +23,20 @@ export type MapCanvas3DProps = {
   linkedEdges?: LinkedEdge[];
   showPredicted?: boolean;
   showAreaLabels?: boolean;
-  /** Called once if WebGL cannot be created, so the parent can fall back to the 2D map. */
+  /** Called once if WebGL cannot be created, so the host can report unavailable 3D. */
   onUnsupported?: () => void;
 };
 
 const SPAN_XY = 100; // x,y mapped into [-50, 50]
 const SPAN_Z = 50; // z mapped into [-25, 25]
 const FOV = 45;
-const MAX_LABELS = 60;
+const MAX_LABELS = 30;
 const HOME = new THREE.Vector3(0, -105, 75);
 const TARGET = new THREE.Vector3(0, 0, 0);
-const HELP = "Drag to rotate, scroll to zoom, right-drag to pan";
+const TOP_DOWN = new THREE.Vector3(0, -1, 130);
+const FRONT_ON = new THREE.Vector3(0, -130, 6);
+const HELP = "Drag to orbit, scroll or pinch to zoom, right-drag to pan. Use Top and Front to orient the map, then click a node for details.";
+type CameraView = "top" | "front" | "overview";
 
 function growthBucket(g: number | null): number {
   if (g === null || g === undefined || Number.isNaN(g)) return 5;
@@ -77,6 +80,7 @@ type Scene3D = {
   controls: OrbitControls;
   requestRender: () => void;
   resetView: () => void;
+  setCameraView: (view: CameraView) => void;
   zoom: (factor: number) => void;
   rotate: (dAzimuth: number, dPolar: number) => void;
   setData: () => void;
@@ -470,6 +474,21 @@ export function MapCanvas3D({
       controls.update();
       requestRender();
     };
+    const setCameraView = (view: CameraView) => {
+      if (view === "overview") { resetView(); return; }
+      const direction = (view === "top" ? TOP_DOWN : FRONT_ON).clone().normalize();
+      const distance = Math.max(controls.minDistance, Math.min(controls.maxDistance, camera.position.distanceTo(controls.target)));
+      const toO = direction.multiplyScalar(distance);
+      if (reduced) {
+        flight = null;
+        camera.position.copy(controls.target).add(toO);
+        controls.update();
+        requestRender();
+        return;
+      }
+      flight = { t0: performance.now(), dur: 260, fromT: controls.target.clone(), toT: controls.target.clone(), fromO: camera.position.clone().sub(controls.target), toO };
+      requestRender();
+    };
 
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -575,7 +594,7 @@ export function MapCanvas3D({
     canvas.addEventListener("webglcontextrestored", onContextRestored);
 
     engineRef.current = {
-      renderer, scene, camera, controls, requestRender, resetView, zoom, rotate, setData, applyTheme, setLines, flyTo, focused: false,
+      renderer, scene, camera, controls, requestRender, resetView, setCameraView, zoom, rotate, setData, applyTheme, setLines, flyTo, focused: false,
     };
     applyTheme();
     setData();
@@ -637,6 +656,11 @@ export function MapCanvas3D({
   }, [focusTick, hasData]);
 
   const onZoom = useCallback((f: number) => engineRef.current?.zoom(f), []);
+  const [cameraView, setCameraView] = useState<CameraView>("overview");
+  const chooseCameraView = useCallback((view: CameraView) => {
+    engineRef.current?.setCameraView(view);
+    setCameraView(view);
+  }, []);
 
   return (
     <section className="ws3d" aria-label="3D research concept map">
@@ -644,23 +668,28 @@ export function MapCanvas3D({
         ref={stageRef}
         className="ws3d__stage"
         tabIndex={0}
-        role="application"
+        role="region"
         title={HELP}
-        aria-label="3D concept map. Arrow keys rotate, plus and minus zoom, zero resets. Drag to rotate, scroll to zoom, right-drag to pan."
+        aria-label="3D concept map. Drag to orbit, scroll or pinch to zoom, right-drag to pan. Use Top, Front, or Overview camera controls. Arrow keys rotate, plus and minus zoom, zero resets."
       >
         {unsupported ? (
-          <div className="ws3d__unsupported" role="status">3D view is not supported in this browser. Showing the 2D map instead.</div>
+          <div className="ws3d__unsupported" role="status">This browser cannot display the 3D research map.</div>
         ) : (
           <>
             <div ref={overlayRef} className="ws3d__overlay" aria-hidden="true" />
             {placeholder && <span className="ws3d__tag">Placeholder data: this map is not the real corpus</span>}
-            <div className="ws3d__controls" role="group" aria-label="Map controls" title={HELP}>
+            <div className="ws3d__controls" role="group" aria-label="3D map controls" title={HELP}>
+              <div className="ws3d__camera" role="group" aria-label="Camera angle">
+                <button type="button" aria-pressed={cameraView === "top"} onClick={() => chooseCameraView("top")} title="Look straight down on the map">Top</button>
+                <button type="button" aria-pressed={cameraView === "front"} onClick={() => chooseCameraView("front")} title="Look across the map at node height">Front</button>
+                <button type="button" aria-pressed={cameraView === "overview"} onClick={() => chooseCameraView("overview")} title="Return to the overview camera">Overview</button>
+              </div>
               <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>
               <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out" title="Zoom out (-)">{"−"}</button>
-              <button type="button" onClick={() => engineRef.current?.resetView()} title="Back to the full view (0)">Reset view</button>
             </div>
+            <p className="ws3d__guide">Drag to orbit · Scroll to zoom · Right-drag to pan · Click a node to inspect it</p>
             {!concepts.length && <div className="ws3d__unsupported ws3d__empty" role="status">No concepts match the current filters.</div>}
-            {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not come back, switch to 2D.</div>}
+            {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not recover, refresh the page.</div>}
             {hoverText && <div className="ws3d__hover" aria-hidden="true">{hoverText}</div>}
           </>
         )}
