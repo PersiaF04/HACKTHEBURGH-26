@@ -41,7 +41,9 @@ def test_denylist_is_curated_lowercase_and_documented():
                              "nevertheless", "future work"):
         assert extension_phrase in GENERIC_PHRASES
     # domain terms stay visible
-    for kept in ("covid", "roberta", "pretrained language model", "indonesia", "classification", "client"):
+    for kept in ("covid", "roberta", "pretrained language model", "indonesia", "classification", "client",
+                 "algoritmo", "modelo", "problema", "sistema", "técnica", "rede", "objetivo", "método", "metode",
+                 "algoritma", "sistem", "data", "dato", "dado", "different model", "number of feature"):
         assert kept not in GENERIC_PHRASES
 
 

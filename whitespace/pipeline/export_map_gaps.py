@@ -85,31 +85,26 @@ GENERIC_PHRASES = frozenset({
     "menentukan", "mengetahui", "menggunakan", "menghasilkan", "menjadi", "menunjukkan", "merupakan",
     "namun", "oleh", "pada", "sangat", "satu", "saat", "sebagai", "sebesar", "sebuah", "secara",
     "sedangkan", "sehingga", "seperti", "serta", "sesuai", "setiap", "suatu", "sudah", "tentang",
-    "terdapat", "terhadap", "terjadi", "tersebut", "tidak", "tujuan", "untuk", "waktu", "yaitu", "yang",
+    "terdapat", "terhadap", "terjadi", "tersebut", "tidak", "untuk", "yaitu", "yang",
     # Indonesian/Malay scaffolding words
-    "metode", "penelitian", "hasil",
+    "penelitian", "hasil",
     # Indonesian/Malay phrases
     "bertujuan untuk", "dalam penelitian ini", "dapat digunakan", "dapat membantu", "dari penelitian",
-    "dari penelitian ini", "data yang", "dengan menggunakan", "dengan menggunakan metode",
-    "dengan metode", "digunakan dalam", "digunakan untuk", "dilakukan dengan", "hal ini", "hasil dari",
+    "dari penelitian ini", "dengan menggunakan", "dengan menggunakan metode", "dengan metode",
+    "digunakan dalam", "digunakan untuk", "dilakukan dengan", "hal ini", "hasil dari",
     "hasil penelitian", "hasil pengujian", "ini adalah", "ini bertujuan", "ini dapat",
-    "ini menggunakan", "menggunakan algoritma", "menggunakan metode", "metode yang", "oleh karena itu",
-    "pada penelitian ini", "penelitian ini", "penelitian ini adalah", "saat ini", "sesuai dengan",
-    "sistem yang", "untuk mengetahui", "yang ada", "yang akan", "yang dapat", "yang digunakan",
-    "yang dilakukan", "yang lebih", "yang telah", "yang tidak",
+    "ini menggunakan", "menggunakan metode", "metode yang", "oleh karena itu", "pada penelitian ini",
+    "penelitian ini", "penelitian ini adalah", "saat ini", "sesuai dengan", "untuk mengetahui",
+    "yang ada", "yang akan", "yang dapat", "yang digunakan", "yang dilakukan", "yang lebih",
+    "yang telah", "yang tidak",
     # Spanish/Portuguese/French/German function words
     "aux", "avec", "cada", "como", "con", "das", "del", "der", "des", "die", "dos", "du", "el", "en",
     "entre", "est", "esta", "este", "la", "las", "le", "les", "los", "mais", "nos", "nous", "ou",
     "para", "por", "pour", "que", "qui", "sobre", "sont", "sur", "um", "uma", "una", "une", "von", "à",
     "é",
-    # Spanish/Portuguese/French generic words
-    "artigo", "trabajo", "trabalho", "objetivo", "resultado", "método", "modelo", "problema", "sistema",
-    "forma", "técnica", "presente", "caso", "dato", "dado", "tipo", "uso", "utilizando", "diferente",
-    "algoritmo", "rede", "donnée",
     # Spanish/Portuguese phrases
-    "base de", "con el", "de dado", "de la", "de las", "de los", "de um", "de un", "de una", "en el",
-    "en este", "en la", "este trabajo", "et de", "modelo de", "para el", "para la", "partir de",
-    "que la", "que se", "sistema de", "uso de", "à la",
+    "con el", "de dado", "de la", "de las", "de los", "de um", "de un", "de una", "en el", "en este",
+    "en la", "este trabajo", "et de", "para el", "para la", "partir de", "que la", "que se", "à la",
     # Cyrillic and Korean function words
     "для", "и", "на", "при", "с", "в", "а", "대한", "및", "본", "수", "위한", "위해", "있는", "있다", "제안한다", "통해",
     # Extraction fragments
@@ -161,22 +156,12 @@ GENERIC_PHRASES = frozenset({
     "several benchmark", "several state", "several method", "point of view", "range of application",
     "type of data", "volume of data", "source of information", "area of research", "around the world",
     "across different", "across various", "five different", "four different", "require a large",
-    "relatively small", "many different", "best known", "best performing", "best model",
-    "best solution", "best accuracy", "best performance", "good performance", "high accuracy",
-    "high performance", "high quality", "high efficiency",
+    "relatively small", "many different", "best known", "best performing", "best accuracy",
+    "best performance", "good performance", "high accuracy", "high performance", "high quality",
+    "high efficiency",
     # English quantity phrases
-    "amount of data", "amount of information", "amount of labeled", "amount of training",
-    "number of data", "number of feature", "number of iteration", "number of parameter",
-    "number of sample", "number of training", "small amount", "large number", "total number",
-    "increasing number", "limited number", "reduce the number", "reduce the computational",
-    # English generic determiner + noun / method labels
-    "different algorithm", "different application", "different aspect", "different data",
-    "different dataset", "different domain", "different feature", "different kind",
-    "different language", "different level", "different method", "different model",
-    "different scenario", "different source", "different task", "different technique", "different type",
-    "different way", "various application", "various aspect", "various data", "various domain",
-    "various method", "various task", "various type", "various field", "existing method",
-    "previous method", "traditional method", "conventional method", "current method", "baseline method",
+    "small amount", "large number", "total number", "increasing number", "limited number",
+    "reduce the number", "reduce the computational",
 })
 STOPLIST_NOTE = ("{n} generic phrases hidden from this list; vocabulary and backtest unchanged")
 
