@@ -17,7 +17,7 @@ export interface GapsPageProps {
 type SortKey = "gap_score" | "p_link" | "momentum" | "novelty";
 
 const sortOptions: Array<[SortKey, string]> = [
-  ["gap_score", "Gap score"], ["p_link", "P(link)"], ["momentum", "Momentum"], ["novelty", "Novelty"],
+  ["gap_score", "Gap score"], ["p_link", "Likelihood"], ["momentum", "Momentum"], ["novelty", "Novelty"],
 ];
 
 function sortValue(g: GapSummary, key: SortKey): number | null {
@@ -133,9 +133,9 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     <div className="gx">
       <aside className="gx-rail" aria-label="Filters and overview" data-tour="gap-filters">
         <div className="gx-field">
-          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum P(link)</label><span className="gx-mono">{empty ? NA : fmtDec(minimumProbability)}</span></div>
+          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum likelihood</label><span className="gx-mono">{empty ? NA : fmtPct(minimumProbability)}</span></div>
           <input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value={minimumProbability} disabled={empty} aria-describedby="gf-minp-h" onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
-          <p id="gf-minp-h" className="gx-help">Hide pairs the model rates below this chance of linking</p>
+          <p id="gf-minp-h" className="gx-help">Hide pairs the model rates as less likely than this to connect</p>
         </div>
         <div className="gx-field">
           <label htmlFor="gf-sort">Sort gaps by</label>

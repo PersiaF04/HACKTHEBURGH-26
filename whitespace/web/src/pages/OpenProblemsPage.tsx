@@ -132,6 +132,7 @@ export function OpenProblemsPage({
       <header className="ws-page__header">
         <p className="ws-eyebrow">Source-led reading</p>
         <h1>Open Problems</h1>
+        <p className="ws-question"><strong>What do authors themselves say is still unsolved?</strong></p>
         <p className="ws-lede">
           Questions, limitations and future work stated by authors — always linked back to the paper where the wording appears.
         </p>
