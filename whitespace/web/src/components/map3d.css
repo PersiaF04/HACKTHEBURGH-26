@@ -13,8 +13,8 @@
 .ws3d__ring--hover { border: 1.5px solid var(--ws-muted); }
 .ws3d__ring--sel { border: 2.5px solid var(--ws-ink); box-shadow: 0 0 0 3px var(--ws-surface), 0 0 0 4.5px var(--ws-ink); }
 .ws3d__controls { position: absolute; z-index: 2; top: 0.75rem; right: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.45rem; max-width: calc(100% - 1.5rem); }
-.ws3d__camera { display: flex; padding: 3px; border: 1px solid var(--ws-border-strong); border-radius: 0.7rem; background: color-mix(in srgb, var(--ws-surface) 92%, transparent); box-shadow: 0 5px 16px color-mix(in srgb, var(--ws-ink) 12%, transparent); backdrop-filter: blur(10px); }
-.ws3d__controls button { min-width: 2.6rem; min-height: 2.6rem; padding: 0.35rem 0.7rem; border: 1px solid var(--ws-border-strong); border-radius: 0.55rem; background: color-mix(in srgb, var(--ws-surface) 94%, transparent); color: var(--ws-ink); font: 650 0.78rem/1 var(--ws-sans); cursor: pointer; box-shadow: 0 3px 10px color-mix(in srgb, var(--ws-ink) 9%, transparent); transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+.ws3d__camera { display: flex; padding: 3px; border: 1px solid var(--ws-border-strong); border-radius: 0.7rem; background: color-mix(in srgb, var(--ws-surface) 92%, transparent); backdrop-filter: blur(10px); }
+.ws3d__controls button { min-width: 2.6rem; min-height: 2.6rem; padding: 0.35rem 0.7rem; border: 1px solid var(--ws-border-strong); border-radius: 0.55rem; background: color-mix(in srgb, var(--ws-surface) 94%, transparent); color: var(--ws-ink); font: 650 0.78rem/1 var(--ws-sans); cursor: pointer; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
 .ws3d__camera button { min-width: auto; border: 0; border-radius: 0.43rem; box-shadow: none; }
 .ws3d__camera button[aria-pressed="true"] { background: var(--ws-ink); color: var(--ws-on-ink); font-weight: 700; }
 .ws3d__heat { border-color: color-mix(in srgb, var(--ws-accent) 42%, var(--ws-border-strong)) !important; }
@@ -28,3 +28,8 @@
 .ws3d__unsupported { display: grid; place-items: center; height: 100%; padding: 1rem; text-align: center; color: var(--ws-muted); font-size: 0.9rem; }
 @media (prefers-reduced-motion: reduce) { .ws3d__label, .ws3d__area, .ws3d__chip { transition: none; } }
 @media (max-width: 600px) { .ws3d__controls { left: 0.6rem; right: 0.6rem; justify-content: space-between; } .ws3d__guide { display: none; } }
+
+.ws3d__controls button:hover, .ws3d__controls button:active { box-shadow: none; }
+
+/* Branch labels are the first thing to read: larger, bolder, on a chip. */
+.ws3d__label--hub { font-size: 14px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, var(--ws-surface) 82%, transparent); border: 1px solid var(--ws-border-strong); }

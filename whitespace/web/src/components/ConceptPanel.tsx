@@ -101,7 +101,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
     <h2>Try this</h2>
     <ol>
       <li><strong>Click a dot</strong> on the map.</li>
-      <li>See which concepts it is <strong>predicted</strong> to link with.</li>
+      <li>See its papers per year, growth and the gaps it appears in.</li>
       <li>Open <a href="/gaps" onClick={goToGaps}>Gaps &amp; open problems</a> to rank them.</li>
     </ol>
     <p className="whitespace-help">Predictions are model outputs, not findings. Nothing is selected yet.</p>

@@ -15,6 +15,13 @@ export function fmtInt(value: Maybe<number>): string {
   return isNum(value) ? Math.round(value).toLocaleString("en-GB") : NA;
 }
 
+/** Compact count for tight spaces: 10010345 -> "10M", 1010345 -> "1.01M", 12400 -> "12.4K"; under 10,000 it stays in full. */
+export function fmtCompact(value: Maybe<number>): string {
+  if (!isNum(value)) return NA;
+  if (Math.abs(value) < 10000) return fmtInt(value);
+  return new Intl.NumberFormat("en-GB", { notation: "compact", maximumFractionDigits: 2 }).format(value).replace(/[a-z]+$/i, (u) => u.toUpperCase());
+}
+
 /** Fixed decimals: fmtDec(0.7134, 2) -> "0.71". */
 export function fmtDec(value: Maybe<number>, digits = 2): string {
   return isNum(value) ? value.toFixed(digits) : NA;
