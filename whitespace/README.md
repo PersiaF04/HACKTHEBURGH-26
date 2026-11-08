@@ -1,4 +1,4 @@
-# Whitespace pipeline
+﻿# Whitespace pipeline
 
 Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data and no results: nothing here is a measured forecast, and no claim of accuracy is made until a purged backtest has been run once, after the code freeze.
 
@@ -114,6 +114,14 @@ python -m whitespace.pipeline.run_real --corpus ... --caches-only --origins 2010
 - Writes `metrics.json`, `run_manifest.json` (corpus sha256 and counts per year, vocabulary size per origin, config hash, seeds, code commit, library versions, stage times, peak memory). No abstract text is printed or written.
 
 **Data label.** `run_backtest(..., data_label=...)` accepts exactly `real`, `synthetic` or `unlabelled` (free text is rejected). Only `is_real_run(manifest)` (label `real` and no generator) may be treated as a real result by the run script and every exporter; synthetic and unlabelled runs stay placeholders. **Model ranking.** Model metrics rank by the calibrated logit `a*d + b`, the ordering of the deployed probability; a non-positive fitted slope adds a `warning` and the reported slope.
+
+## Map, gaps and meta export (issue #162)
+
+`pipeline/export_map_gaps.py` turns pipeline objects into the frontend's files (`map-<year>.json`, `gaps.json`, `gap-details.json`, `concepts.json`, `meta.json`), shaped like the types in `whitespace/web/src/api.ts`. `build_export(works, years, predictor, ...)` returns them; `write_export` writes them. `trained_predictor(train(...))` supplies calibrated `p_link` from works dated on or before each year only.
+
+- **Layout** is a projection, not a similarity measure: truncated SVD (numpy, fixed seed) of the positive-PMI co-occurrence matrix at the final snapshot, scaled to [-1, 1]. One layout serves every year, so each map file carries `layout_year`; counts, growth and edges use only that year's snapshot, but x/y do come from the final snapshot.
+- **Gap score** is `p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) * (1 + gap_rate_a + gap_rate_b)`. Cosine (no embeddings) and gap rate (no open-problem mining) are omitted while missing, `meta` and `gaps.json` state the formula used, and the score is not a probability. Gaps rank the top pairs by `p_link` (default pool 2000).
+- **Papers** are exported as id, year and link only. No abstract text. `meta` headline numbers are copied from a real backtest dict, otherwise null; NaN becomes null.
 
 ## Code layer (`pipeline/code_layer.py`, issue #142)
 
