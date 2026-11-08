@@ -30,3 +30,6 @@
 @media (max-width: 600px) { .ws3d__controls { left: 0.6rem; right: 0.6rem; justify-content: space-between; } .ws3d__guide { display: none; } }
 
 .ws3d__controls button:hover, .ws3d__controls button:active { box-shadow: none; }
+
+/* Branch labels are the first thing to read: larger, bolder, on a chip. */
+.ws3d__label--hub { font-size: 14px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, var(--ws-surface) 82%, transparent); border: 1px solid var(--ws-border-strong); }

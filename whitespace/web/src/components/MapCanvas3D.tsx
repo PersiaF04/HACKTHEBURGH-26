@@ -196,11 +196,11 @@ export function MapCanvas3D({
       const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
       heat[i] = c.heat !== undefined ? c.heat : Math.max(0, Math.min(1, (g / zRef + 1) / 2));
       // Dot area is proportional to papers (diameter to its square root), scaled to the biggest concept drawn.
-      size[i] = 0.7 + 2.5 * Math.sqrt(Math.max(0, c.paper_count ?? 0) / pmax); // world diameter
+      size[i] = 1.0 + 2.4 * Math.sqrt(Math.max(0, c.paper_count ?? 0) / pmax); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
       if (c.scale) size[i] *= c.scale;
-      if (c.kind === "branch") size[i] = 3.8;
+      if (c.kind === "branch") size[i] = 6.2;
       else if (c.kind === "hypothesis") size[i] = 1.8 + 2.4 * (c.strength ?? 0.5);
       else if (c.gapEnd) size[i] = Math.max(size[i] * 1.8, 1.6);
       const hue = c.kind === "branch" ? themeHues.ink : c.kind === "hypothesis" ? themeHues.accent : palette[b];
@@ -358,23 +358,83 @@ export function MapCanvas3D({
 
       // Concept labels, greedy collision control.
       const placed: number[][] = [];
+      const labelled = new Set<number>();
       let used = 0;
-      const tryLabel = (i: number, strong: boolean) => {
-        if (used >= labelEls.length) return false;
+      // Free-space test: a label may not touch another node, a connection line or another label.
+      const CELL = 40;
+      const grid = new Map<number, number[]>();
+      for (let j = 0; j < d.n; j += 1) {
+        if (screen[j * 3 + 2] <= 0) continue;
+        const key = Math.floor(screen[j * 3] / CELL) * 4096 + Math.floor(screen[j * 3 + 1] / CELL);
+        const cell = grid.get(key);
+        if (cell) cell.push(j); else grid.set(key, [j]);
+      }
+      const segs: number[][] = [];
+      for (const e of s.structure ?? []) {
+        const a = d.indexById.get(e.source), b = d.indexById.get(e.target);
+        if (a === undefined || b === undefined || screen[a * 3 + 2] <= 0 || screen[b * 3 + 2] <= 0) continue;
+        segs.push([screen[a * 3], screen[a * 3 + 1], screen[b * 3], screen[b * 3 + 1], a, b]);
+      }
+      const segHits = (sg: number[], x0: number, y0: number, x1: number, y1: number) => {
+        let t0 = 0, t1 = 1;
+        const dx = sg[2] - sg[0], dy = sg[3] - sg[1];
+        const p = [-dx, dx, -dy, dy], q = [sg[0] - x0, x1 - sg[0], sg[1] - y0, y1 - sg[1]];
+        for (let k = 0; k < 4; k += 1) {
+          if (p[k] === 0) { if (q[k] < 0) return false; }
+          else { const r = q[k] / p[k]; if (p[k] < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; } }
+        }
+        return true;
+      };
+      const free = (self: number, x0: number, y0: number, x1: number, y1: number) => {
+        if (x0 < 2 || y0 < 2 || x1 > width - 2 || y1 > height - 2) return false;
+        for (const p of placed) if (x0 < p[2] && x1 > p[0] && y0 < p[3] && y1 > p[1]) return false;
+        for (let cx = Math.floor((x0 - 8) / CELL); cx <= Math.floor((x1 + 8) / CELL); cx += 1) {
+          for (let cy = Math.floor((y0 - 8) / CELL); cy <= Math.floor((y1 + 8) / CELL); cy += 1) {
+            for (const j of grid.get(cx * 4096 + cy) ?? []) {
+              if (j === self) continue;
+              const r = pxSize(j, screen[j * 3 + 2]) / 2 + 1;
+              if (screen[j * 3] > x0 - r && screen[j * 3] < x1 + r && screen[j * 3 + 1] > y0 - r && screen[j * 3 + 1] < y1 + r) return false;
+            }
+          }
+        }
+        for (const sg of segs) if (sg[4] !== self && sg[5] !== self && segHits(sg, x0, y0, x1, y1)) return false;
+        return true;
+      };
+      const tryLabel = (i: number, strong: boolean, hub = false) => {
+        if (used >= labelEls.length || labelled.has(i)) return false;
         const depth = screen[i * 3 + 2];
         const x = screen[i * 3], y = screen[i * 3 + 1];
         if (depth <= 0 || x < -10 || y < -10 || x > width + 10 || y > height + 10) return false;
         const text = fmtText(s.concepts[i].label);
-        const w = text.length * 5.8 + 4;
-        const lx = x + pxSize(i, depth) / 2 + 4, ly = y - 7;
-        for (const p of placed) if (lx < p[2] && lx + w > p[0] && ly < p[3] && ly + 14 > p[1]) return false;
-        placed.push([lx, ly, lx + w, ly + 14]);
+        const w = hub ? text.length * 7.6 + 18 : text.length * 5.8 + 4;
+        const h = hub ? 22 : 14;
+        const r = pxSize(i, depth) / 2;
+        // Candidates: beside the dot first (right, left), then above/below, then further out. Hubs and picked dots may fall back to the first spot.
+        const gap = 4;
+        const cands: [number, number][] = [];
+        for (const extra of [0, 8, 18]) {
+          cands.push([x + r + gap + extra, y - h / 2], [x - r - gap - extra - w, y - h / 2],
+            [x - w / 2, y - r - gap - extra - h], [x - w / 2, y + r + gap + extra],
+            [x + r + gap + extra, y - r - h - extra], [x - r - gap - extra - w, y - r - h - extra],
+            [x + r + gap + extra, y + r + extra], [x - r - gap - extra - w, y + r + extra]);
+        }
+        let spot: [number, number] | null = null;
+        for (const c of cands) if (free(i, c[0], c[1], c[0] + w, c[1] + h)) { spot = c; break; }
+        if (!spot) {
+          if (!strong) return false;
+          spot = cands[0];
+          if (spot[0] + w > width - 4) spot = cands[1];
+        }
+        placed.push([spot[0], spot[1], spot[0] + w, spot[1] + h]);
+        labelled.add(i);
         const el = labelEls[used++];
         if (el.textContent !== text) el.textContent = text;
         el.classList.toggle("ws3d__label--strong", strong);
-        place(el, lx, ly);
+        el.classList.toggle("ws3d__label--hub", hub);
+        place(el, spot[0], spot[1] + (hub ? 0 : -1));
         return true;
       };
+      for (let i = 0; i < s.concepts.length; i += 1) if (s.concepts[i].kind === "branch") tryLabel(i, true, true);
       if (selIdx >= 0) tryLabel(selIdx, true);
       if (hov >= 0 && hov !== selIdx) tryLabel(hov, true);
       let count = used;
@@ -477,13 +537,14 @@ export function MapCanvas3D({
       for (let i = 0; i < n; i += 1) {
         const depth = screen[i * 3 + 2];
         if (depth <= 0) continue;
-        const reach = Math.max(9 + slop, pxSize(i, depth) / 2 + 3 + slop);
+        const isHub = live.current.concepts[i]?.kind === "branch";
+        const reach = Math.max((isHub ? 26 : 12) + slop, pxSize(i, depth) / 2 + 4 + slop);
         const dx = screen[i * 3] - px;
         if (dx > reach || dx < -reach) continue;
         const dy = screen[i * 3 + 1] - py;
         const dist = Math.hypot(dx, dy);
         if (dist <= reach) {
-          const score = dist + depth * 0.02; // prefer closer to the cursor, then nearer to the camera
+          const score = dist + depth * 0.02 - (isHub ? 14 : 0); // prefer closer to the cursor, then nearer to the camera
           if (score < bestScore) { best = i; bestScore = score; }
         }
       }
