@@ -1,9 +1,5 @@
 # Whitespace: Find research gaps worth a closer look
 
-## In short
-
-Whitespace is a research-discovery tool for AI literature. It turns 730,671 OpenAlex papers in AI (subfield 1702) into a 3D map of concepts, then ranks pairs of topics that are not yet studied together but look likely to connect within three years. Each ranked gap comes with its supporting papers, how fast both topics are growing, and short author-stated open problems quoted from related abstracts. We built it in 24 hours at HackTheBurgh XIII with a Python pipeline (phrase extraction, co-occurrence graphs, a logistic link model) and a static React and Three.js site deployed on Vercel. We evaluated the forecast with a purged, pre-registered temporal backtest scored once on held-out 2021–2023 outcomes: it beats the pre-registered baseline on aggregate average precision (0.6876 vs 0.5984, +0.0892, 95% interval [0.0845, 0.0945]), though simpler graph baselines are stronger within each stratum, and we report that openly. The team worked with AI coding agents: Claude Code agents implemented features and Codex agents reviewed pull requests, under the team's decisions on scope and merging.
-
 ## Inspiration
 
 Research moves faster than people can read it. Search finds work that already exists, but it does not rank combinations that have not yet become connected in published literature. Authors' open problems are scattered across papers, and paper-to-code links are incomplete and difficult to compare. We built Whitespace to help people explore research directions and inspect the evidence behind them.
@@ -70,3 +66,7 @@ These are the team's own framings; the official prompts are unconfirmed.
 - [ ] Approve the AI-use disclosure wording.
 - [ ] Disclose pre-existing code and external contributions as required by the event Code of Conduct.
 - [ ] Record a two-minute backup video with audio or captions and store it for offline playback.
+
+## Short description
+
+Whitespace is a research-discovery tool for AI literature. It turns 730,671 OpenAlex papers in AI (subfield 1702) into a 3D map of concepts, then ranks pairs of topics that are not yet studied together but look likely to connect within three years. Each ranked gap comes with its supporting papers, how fast both topics are growing, and short author-stated open problems quoted from related abstracts. We built it in 24 hours at HackTheBurgh XIII with a Python pipeline (phrase extraction, co-occurrence graphs, a logistic link model) and a static React and Three.js site deployed on Vercel. We evaluated the forecast with a purged, pre-registered temporal backtest scored once on held-out 2021–2023 outcomes: it beats the pre-registered baseline on aggregate average precision (0.6876 vs 0.5984, +0.0892, 95% interval [0.0845, 0.0945]), though simpler graph baselines are stronger within each stratum, and we report that openly. The team worked with AI coding agents: Claude Code agents implemented features and Codex agents reviewed pull requests, under the team's decisions on scope and merging.
