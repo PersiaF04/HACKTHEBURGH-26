@@ -2,15 +2,16 @@
  "backtest_available": true,
  "concepts_note": "Concepts are 1 to 3 word phrases from titles and abstracts (a vocabulary chosen from works up to each year), not OpenAlex topic ids. Coverage uses topic ids.",
  "corpus": {
-  "last_year": 2026,
-  "note": "The corpus ends in 2026. Snapshot years after 2026 are absent, not zero: no map, gap or coverage file exists for them."
+  "last_year": 2023,
+  "note": "The export ends in 2023. The corpus also holds 840 records dated 2024 to 2026; they are excluded from every file here (no map, gap or coverage file exists for those years, and they are absent, not zero).",
+  "records_after_last_year_excluded": 840
  },
  "counts": {
   "concepts": 5000,
-  "map_years": 12,
+  "map_years": 3,
   "predicted_edges_final_year": 300,
   "ranked_gaps": 50,
-  "works": 731511
+  "works": 730671
  },
  "data_label": "real",
  "headline_metrics": {
@@ -25,7 +26,7 @@
   "test_origin": 2020,
   "verdict": "model beats best baseline (current_weight) on average_precision: interval excludes 0"
  },
- "headline_source": "held-out backtest (backtest.json); the production forecast has no result",
+ "headline_source": "held-out backtest (backtest.json), which scores the backtest model; the production forecast (gaps.json) has no result and its model may differ (see production_forecast)",
  "layout": {
   "method": "truncated SVD of positive-PMI co-occurrence matrix, per year",
   "note": "Positions are a 2D projection (truncated SVD of the positive-PMI co-occurrence matrix) of this year's snapshot only, so points can move between years. Distance is not research similarity."
@@ -33,13 +34,32 @@
  "placeholder": false,
  "production_forecast": {
   "file": "gaps.json",
-  "label": "Production forecast, not the held-out test. The model frozen for the backtest (fit on origins [2010, 2011, 2012, 2013, 2014], calibrated at [2017]; no test origin used) ranks pairs that have not yet co-occurred 3+ times at the 2026 snapshot, the last year in the corpus. Their outcomes (2027 to 2029) are not observed, so nothing in this file was evaluated. The held-out result is in backtest.json.",
-  "snapshot_year": 2026
+  "label": "Production forecast, not the held-out test. A model trained after the held-out test was scored: fit on origins [2010, 2011, 2012, 2013, 2014, 2017] and Platt-calibrated at [2020], which is the test origin, so its outcomes were used for training. This model was never itself held-out tested, and its probabilities are not shown to be better calibrated than the backtest model's. It ranks pairs that have not yet co-occurred 3+ times at the 2023 snapshot, the last year in this export. Their outcomes (2024 to 2026) are not observed, so nothing in this file was evaluated. The held-out result is in backtest.json and describes the backtest model, not this one.",
+  "model": {
+   "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of the calibration origin",
+   "calibration_origins": [
+    2020
+   ],
+   "fit_origins": [
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2017
+   ],
+   "held_out_tested": false,
+   "model": "through-2020",
+   "test_origins_used": [
+    2020
+   ]
+  },
+  "snapshot_year": 2023
  },
  "synthetic": false,
  "titles_available": true,
  "year_range": {
-  "max": 2026,
-  "min": 2015
+  "max": 2023,
+  "min": 2021
  }
 }

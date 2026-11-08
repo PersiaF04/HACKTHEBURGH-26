@@ -390,6 +390,11 @@ def test_through_2020_model_is_labelled_and_differs_from_backtest(dry):
     assert same_frozen is True and frozen.info["coefficients"] != trained.info["coefficients"]
     label = E.production_label(run, 2020, "through-2020")
     assert "never itself held-out tested" in label and "not shown to be better calibrated" in label
+    assert "backtest's ranks" not in label
+    assert "calibrated than the backtest model's. It ranks pairs that have not yet co-occurred" in label
+    frozen_label = E.production_label(run, 2020, "frozen")
+    assert "no test origin used) ranks pairs that have not yet co-occurred" in frozen_label
+    assert "backtest's ranks" not in frozen_label and "backtest model's." not in frozen_label
     on = E.production_trained_on(run, "through-2020")
     assert on["calibration_origins"] == [min(run.config.test_origins)] and on["held_out_tested"] is False
     assert "Platt" in on["calibration_method"]
