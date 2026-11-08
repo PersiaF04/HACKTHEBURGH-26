@@ -7,8 +7,6 @@ import gapDetailFixture from "../mock/gap-detail.json";
 import openProblemsFixture from "../mock/open-problems.json";
 import backtestFixture from "../mock/backtest.json";
 import coverageFixture from "../mock/coverage.json";
-// TEMPORARY: delete src/demo and DemoToggle when real data is connected.
-import { demoApi, isDemoOn } from "./demo";
 
 /** Frontend-facing shapes for the proposed Whitespace API in PRD.md §14. */
 export type YearRange = { min: number; max: number };
@@ -407,17 +405,7 @@ const realApi = {
   },
 };
 
-/** TEMPORARY demo switch: when "Demo data" is on, the invented demo set answers; otherwise the real path above, unchanged. */
-export const api = {
-  ...realApi,
-  meta: () => (isDemoOn() ? demoApi.meta() : realApi.meta()),
-  map: (year: number) => (isDemoOn() ? demoApi.map(year) : realApi.map(year)),
-  search: (query: string, k = 20) => (isDemoOn() ? demoApi.search(query, k) : realApi.search(query, k)),
-  concept: (id: string) => (isDemoOn() ? demoApi.concept(id) : realApi.concept(id)),
-  gaps: (query: GapQuery = {}) => (isDemoOn() ? demoApi.gaps(query) : realApi.gaps(query)),
-  gap: (a: string, b: string) => (isDemoOn() ? demoApi.gap(a, b) : realApi.gap(a, b)),
-  openProblems: (concept = "", type = "") => (isDemoOn() ? demoApi.openProblems(concept, type) : realApi.openProblems(concept, type)),
-};
+export const api = realApi;
 
 export function isPlaceholder(data: { placeholder?: boolean }): boolean {
   return data.placeholder === true;

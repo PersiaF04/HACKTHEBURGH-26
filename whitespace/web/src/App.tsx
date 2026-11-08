@@ -12,7 +12,6 @@ import { Onboarding } from "./components/Onboarding";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { SkeletonBlock, SkeletonText } from "./components/Skeleton";
 import { fmtYear } from "./lib/format";
-import { DemoToggle, DEMO_BADGE, DEMO_BADGE_TIP, useDemoMode } from "./demo"; // TEMPORARY demo data
 
 const PLACEHOLDER_TIP = "Placeholder data: this build shows fixtures, not results";
 const REAL_TIP = "Real export: OpenAlex AI subfield 1702";
@@ -50,7 +49,6 @@ export default function App() {
   const [problemConcept, setProblemConcept] = useState("");
   const [problemType, setProblemType] = useState<"all" | "future_work" | "limitation" | "open_problem">("all");
   const [selectedCoverageCell, setSelectedCoverageCell] = useState<{ conceptId: string; year: number } | null>(null);
-  const [demo] = useDemoMode();
   const year = useWhitespaceStore((state) => state.year);
   const selectedConcepts = useWhitespaceStore((state) => state.selectedConcepts);
   const setYear = useWhitespaceStore((state) => state.setYear);
@@ -64,18 +62,6 @@ export default function App() {
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [error, setError] = useState<string>();
   const active = pages.find(([route]) => route === path) ?? pages[0];
-
-  // Switching demo data on or off drops everything loaded so far; pages remount below via key.
-  useEffect(() => {
-    setMap(null);
-    setGaps(null);
-    setOpenProblems(null);
-    setBacktest(null);
-    setCoverage(null);
-    setSelectedCoverageCell(null);
-    setMeta(MOCK_META);
-    useWhitespaceStore.setState({ selectedConcepts: [], focus: null, openGap: null });
-  }, [demo]);
 
   useEffect(() => { document.title = `${active[1]} · Whitespace`; }, [active]);
 
@@ -127,7 +113,7 @@ export default function App() {
     };
     void load();
     return () => { current = false; };
-  }, [path, year, retry, problemConcept, problemType, demo]);
+  }, [path, year, retry, problemConcept, problemType]);
 
   const selectedConceptId = selectedConcepts[0] ?? null;
   const isPlaceholder = path === "/" ? map?.placeholder ?? true
@@ -145,8 +131,8 @@ export default function App() {
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
 
-  const badge = demo ? DEMO_BADGE : isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
-  const badgeTip = demo ? DEMO_BADGE_TIP : isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
+  const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
+  const badgeTip = isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
   const tabActive = (route: string) => route === path;
 
   const fullBleed = path === "/" || path === "/gaps";
@@ -168,11 +154,10 @@ export default function App() {
         <div className="topbar-tools">
           <button type="button" className="onboarding-trigger" aria-label="Show feature tour" title="What can I do here?" onClick={() => setOnboardingOpen(true)}>i</button>
           <ThemeToggle />
-          <DemoToggle />
         </div>
-        <span className={demo ? "data-badge data-badge--demo" : "data-badge"} tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
+        <span className="data-badge" tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
       </header>
-      <main id="main-content" className={fullBleed ? "main-content" : "main-content main-content--padded"} key={demo ? "demo" : "real"}>
+      <main id="main-content" className={fullBleed ? "main-content" : "main-content main-content--padded"}>
           {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} selectedConceptId={selectedConceptId} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <PageSkeleton label="Loading research map…" />}
           {path === "/gaps" && status === "loading" && !gaps && <PageSkeleton label="Loading gap finder…" />}
@@ -193,6 +178,11 @@ export default function App() {
           </>}
             {status === "error" && <p className="app-error" role="alert">{error}</p>}
       </main>
+      <footer className="app-footer" aria-label="Additional research views">
+        <span>More:</span>
+        <a href="/evidence" aria-current={path === "/evidence" ? "page" : undefined} onClick={(event) => navigate(event, "/evidence")}>Evidence</a>
+        <a href="/coverage" aria-current={path === "/coverage" ? "page" : undefined} onClick={(event) => navigate(event, "/coverage")}>Code coverage</a>
+      </footer>
       <Onboarding open={onboardingOpen} onClose={() => setOnboardingOpen(false)} onNavigate={navigateTo} />
     </div>
   );

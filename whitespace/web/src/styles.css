@@ -112,16 +112,6 @@ html { background: var(--ws-page); }
 :root[data-theme="dark"] .skeleton, :root[data-theme="dark"] img { color-scheme: dark; }
 :root[data-theme-switching] *, :root[data-theme-switching] *::before, :root[data-theme-switching] *::after { transition: none !important; }
 
-/* TEMPORARY demo-data switch and badge */
-.demo-toggle { flex: none; min-height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--ws-border-strong); border-radius: var(--ws-radius); background: var(--ws-surface); color: var(--ws-ink); font: 500 13px/1 var(--ws-sans); cursor: pointer; white-space: nowrap; }
-.demo-toggle:hover { background: var(--ws-hover); }
-.demo-toggle__track { position: relative; width: 28px; height: 16px; border-radius: 8px; background: var(--ws-border-strong); transition: background .15s; }
-.demo-toggle__knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--ws-surface); transition: transform .15s; }
-.demo-toggle[aria-pressed="true"] { border-color: var(--ws-warn-ink); }
-.demo-toggle[aria-pressed="true"] .demo-toggle__track { background: var(--ws-warn-ink); }
-.demo-toggle[aria-pressed="true"] .demo-toggle__knob { transform: translateX(12px); }
-.data-badge--demo { border: 1px dashed var(--ws-warn-ink); background: var(--ws-warn-bg); color: var(--ws-warn-ink); font-weight: 600; }
-
 /* Theme toggle */
 .topbar-tools { display: flex; align-items: center; gap: 8px; }
 .onboarding-trigger { width: 36px; height: 36px; padding: 0; border: 1px solid var(--ws-border-strong); border-radius: 50%; background: var(--ws-surface); color: var(--ws-ink); font: 650 15px/1 var(--ws-sans); cursor: pointer; }
@@ -136,6 +126,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .num, td, .ws-num { font-variant-numeric: tabular-nums; }
 html, body, #root { width: 100%; min-height: 100vh; }
 .app-shell { width: 100%; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.app-footer { flex: none; display: flex; align-items: center; gap: .65rem; min-height: 2.4rem; padding: .45rem 1.5rem; border-top: 1px solid var(--ws-border); background: var(--ws-surface); color: var(--ws-muted); font-size: .78rem; }
+.app-footer a { color: var(--ws-ink); text-decoration-color: var(--ws-border-strong); text-underline-offset: .18em; }
+.app-footer a:hover { color: var(--ws-accent); }
 
 /* Header: 56 px min, white, 1px bottom border; wraps on narrow screens. */
 .topbar { flex: none; min-height: 60px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 8px 24px; border-bottom: 1px solid var(--ws-border); background: color-mix(in srgb, var(--ws-surface) 92%, transparent); backdrop-filter: blur(14px); }
