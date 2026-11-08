@@ -8,7 +8,11 @@ export interface GapRow {
   rank: number;
 }
 
+export type GapSortKey = "gap_score" | "p_link" | "momentum" | "novelty";
+
 export interface GapTableProps {
+  sort?: GapSortKey;
+  onSort?: (key: GapSortKey) => void;
   rows: GapRow[];
   maxScore: number;
   selectedId: string | null;
@@ -39,24 +43,29 @@ export const fmtFactor = (v: number | null | undefined): string => (isNum(v) ? `
 
 export const gapKey = (g: GapSummary) => `${g.a}::${g.b}`;
 
-const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right" }> = [
-  { label: "#", cls: "gx-th--rank", help: "Position in the full ranking by gap score, whatever the current filters." },
+const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right"; sort?: GapSortKey }> = [
+  { label: "#", cls: "gx-th--rank", sort: "gap_score", help: "Position in the full ranking by gap score, whatever the current filters." },
   { label: "Concept pair", cls: "", help: "Two research concepts that do not yet share three or more papers." },
-  { label: "Likelihood", cls: "gx-th--p", help: "The model's estimate that these two topics will share 3+ papers within three years. Calibration is imperfect, so read it as a ranking rather than an exact chance." },
-  { label: "Momentum", cls: "gx-th--r", align: "right", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
-  { label: "Novelty", cls: "gx-th--r", align: "right", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
+  { label: "Likelihood", cls: "gx-th--p", sort: "p_link", help: "The model's estimate that these two topics will share 3+ papers within three years. Calibration is imperfect, so read it as a ranking rather than an exact chance." },
+  { label: "Momentum", cls: "gx-th--r", align: "right", sort: "momentum", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
+  { label: "Novelty", cls: "gx-th--r", align: "right", sort: "novelty", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
   { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "Display only, not part of the gap score. The share of each concept's papers whose abstract states an open problem, future work or limitation (concept A, then B)." },
-  { label: "Strength", cls: "gx-th--score", align: "right", help: "Strong, moderate or weak compared with the top gap in this list. It combines likelihood, momentum and novelty and is not a probability. Hover a value to see the exact score." },
+  { label: "Strength", cls: "gx-th--score", align: "right", sort: "gap_score", help: "Strong, moderate or weak compared with the top gap in this list. It combines likelihood, momentum and novelty and is not a probability. Hover a value to see the exact score." },
 ];
 
 /** Header row with real column names and a (?) explanation on each. */
-export function GapTableHead() {
+export function GapTableHead({ sort, onSort }: { sort?: GapSortKey; onSort?: (key: GapSortKey) => void } = {}) {
   return (
     <thead>
       <tr>
         {COLUMNS.map((c) => (
-          <th key={c.label} scope="col" className={`gx-th ${c.cls}`.trim()}>
-            <span className="gx-th__in">{c.label}<HelpTip label={c.label} text={c.help} align={c.align ?? "left"} /></span>
+          <th key={c.label} scope="col" className={`gx-th ${c.cls}`.trim()} aria-sort={onSort && c.sort ? (sort === c.sort ? "descending" : "none") : undefined}>
+            <span className="gx-th__in">
+              {onSort && c.sort && c.label !== "#"
+                ? <button type="button" className={sort === c.sort ? "gx-sortbtn is-on" : "gx-sortbtn"} title={`Sort by ${c.label.toLowerCase()}, highest first`} onClick={() => onSort(c.sort as GapSortKey)}>{c.label}<span aria-hidden="true" className="gx-sortbtn__ar">{sort === c.sort ? "▼" : "↕"}</span></button>
+                : c.label}
+              <HelpTip label={c.label} text={c.help} align={c.align ?? "left"} />
+            </span>
           </th>
         ))}
       </tr>
@@ -98,7 +107,7 @@ export function GapTableSkeleton({ loading, error }: GapTableSkeletonProps) {
   );
 }
 
-export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect, onReset }: GapTableProps) {
+export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect, onReset, sort, onSort }: GapTableProps) {
   function onKey(e: KeyboardEvent<HTMLTableRowElement>, gap: GapSummary) {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(gap); return; }
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
@@ -111,7 +120,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
   return (
     <div className={`gx-tablecard${loading ? " is-loading" : ""}`} aria-busy={loading || undefined}>
       <table className="gx-table">
-        <GapTableHead />
+        <GapTableHead sort={sort} onSort={onSort} />
         <tbody>
           {rows.map(({ gap, rank }) => {
             const key = gapKey(gap);

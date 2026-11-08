@@ -16,10 +16,6 @@ export interface GapsPageProps {
 
 type SortKey = "gap_score" | "p_link" | "momentum" | "novelty";
 
-const sortOptions: Array<[SortKey, string]> = [
-  ["gap_score", "Gap score"], ["p_link", "Likelihood"], ["momentum", "Momentum"], ["novelty", "Novelty"],
-];
-
 function sortValue(g: GapSummary, key: SortKey): number | null {
   return g[key];
 }
@@ -106,12 +102,10 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   const focusLabel = focus ? concepts.find((c) => c.id === focus)?.label ?? focus : null;
 
   const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
-  const topProbability = rows.reduce<number | null>((m, r) => isNum(r.gap.p_link) && (m == null || r.gap.p_link > m) ? r.gap.p_link : m, null);
   const maxScore = Math.max(0, ...response.items.map((g) => g.gap_score ?? 0));
   const summary: Array<[string, string, boolean, string]> = [
     ["Gaps shown", empty ? NA : fmtInt(rows.length), false, "Pairs that pass the filters"],
     ["Typical likelihood", empty ? NA : fmtPct(medianP), true, "Median model estimate among them"],
-    ["Top likelihood", empty ? NA : fmtPct(topProbability), false, "Highest model estimate among them"],
     ["Focused area", focusLabel ? fmtText(focusLabel) : "All concepts", false, "Use the left rail to narrow the list"],
   ];
   const shrinking = concepts.filter((c) => c.growth != null && c.growth < 0).length;
@@ -138,13 +132,6 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   return (
     <div className="gx">
       <aside className="gx-rail" aria-label="Filters and overview" data-tour="gap-filters">
-        <div className="gx-field">
-          <label htmlFor="gf-sort">Sort gaps by</label>
-          <select id="gf-sort" value={sort} disabled={empty} aria-describedby="gf-sort-h" onChange={(e) => setSort(e.currentTarget.value as SortKey)}>
-            {sortOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-          </select>
-          <p id="gf-sort-h" className="gx-help">Choose which measure orders the table</p>
-        </div>
 
         <section className="gx-sec" aria-labelledby="gf-ov">
           <h2 id="gf-ov" className="gx-label">All areas at a glance</h2>
@@ -218,7 +205,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
 
         {empty
           ? <GapTableSkeleton loading={loading} error={error} />
-          : <GapTable rows={rows} maxScore={maxScore} selectedId={selKey} loading={loading} error={error} onSelect={(g) => setSelectedId(gapKey(g))} onReset={resetFilters} />}
+          : <GapTable sort={sort} onSort={(k) => setSort(k)} rows={rows} maxScore={maxScore} selectedId={selKey} loading={loading} error={error} onSelect={(g) => setSelectedId(gapKey(g))} onReset={resetFilters} />}
 
       </section>
 
