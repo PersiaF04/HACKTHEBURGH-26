@@ -17,7 +17,7 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 ![Whitespace research map](docs/images/research-map.png)
 
-*Research map screenshot; the live site currently uses labelled placeholder data.*
+*Research map screenshot uses labelled placeholder fixtures; the live site now serves the real OpenAlex export (2015–2026) with the frozen backtest model.*
 
 **Contents:** [Problem](#the-problem) · [What it does](#what-it-does) · [Results](#results) · [How it works](#how-it-works) · [Tracks](#tracks) · [Tech stack](#tech-stack) · [Run locally](#run-locally) · [Deployment](#deployment) · [Data and limitations](#data-and-limitations) · [Team](#team) · [Licence](#licence)
 
