@@ -67,6 +67,7 @@ from .export_map_gaps import (
     GAP_NOTE, GENERIC_PHRASES, build_gap_detail, build_gaps, build_map, clean, compute_layout, headline_from_backtest,
     paper_ref, concept_series, trained_predictor, visible_works,
 )
+from . import open_problems as OP
 from .graphs import build_snapshot, vocabulary
 
 CONTRACT_DIR = Path(__file__).parent / "frontend_contract"  # tiny copies of web/mock/*.json (PR #159)
@@ -677,6 +678,25 @@ def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
     return bool(lookup) or not ids
 
 
+def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int) -> dict:
+    """Fill open-problems.json, gap-details and concepts from the extractor cache (reduced version, issue #270)."""
+    hits, counts = OP.load_cache(cache_dir)
+    pairs = [(g["a"], g["b"]) for g in files["gaps.json"]["items"]]
+    built = OP.build_export(hits, counts, pairs, list(files["concepts.json"]["entries"]), default_url, final,
+                           exclude=frozenset(GENERIC_PHRASES))
+    for key, items in built["gap_details"].items():
+        if key in files["gap-details.json"]["entries"]:
+            files["gap-details.json"]["entries"][key]["open_problems"] = items
+    for cid, items in built["concepts"].items():
+        if cid in files["concepts.json"]["entries"]:
+            files["concepts.json"]["entries"][cid]["open_problems"] = items
+    files["open-problems.json"] = built["file"]
+    return {"cache_hits": len(hits), "items": len(built["file"]["items"]), "quality": "unmeasured",
+            "gaps_with_sentences": sum(1 for v in built["gap_details"].values() if v),
+            "concepts_with_sentences": len(built["concepts"]), "attribution": OP.ATTRIBUTION,
+            "display_only": "rates are not used in any gap score or backtest"}
+
+
 def _is_export_name(name: str) -> bool:
     return (name in ("routes.json", "manifest.json", "meta.json", "backtest.json", "gaps.json", "gap-details.json",
                      "concepts.json", *STATIC_PLACEHOLDERS)
@@ -705,7 +725,7 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
                edge_threshold: float = EDGE_THRESHOLD, max_edges: int = MAX_EDGES, gap_pool: int = GAP_POOL,
                gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP,
                production_model: str = "through-2020", last_year: int | None = None,
-               stoplist: frozenset[str] | None = GENERIC_PHRASES) -> dict:
+               stoplist: frozenset[str] | None = GENERIC_PHRASES, open_problems_dir=None) -> dict:
     """Export every frontend file and validate the result. Returns ``{synthetic, files, problems, ...}``.
     ``last_year`` caps the exported snapshot years (default: the corpus end)."""
     run = load_run(run_dir)
@@ -746,6 +766,9 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
                                 join_dir=Path(join_dir) if join_dir else None, top=coverage_top))
     for name, why in STATIC_PLACEHOLDERS.items():
         files[name] = placeholder(name, why, synthetic)
+    open_problems_info = None
+    if open_problems_dir and not synthetic:
+        open_problems_info = attach_open_problems(files, Path(open_problems_dir), final)
     titles_available = False
     if corpus and not synthetic:
         titles_available = add_titles(files, run, Path(corpus))
@@ -774,6 +797,7 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
         "coverage_source": "code join output (papers.csv, coverage.json)" if table is not None else None,
         "titles_available": titles_available,
         "path_check": path_check,
+        "open_problems": open_problems_info,
     }
     write_json(out / "manifest.json", manifest)
     problems = validate_export(out)
@@ -845,6 +869,31 @@ def _no_interval(item, where: str, errs: list[str]) -> None:
                 errs.append(f"{where}.{k}: must be null (the production forecast has no interval)")
 
 
+OPEN_PROBLEM_TYPES = ("open_problem", "future_work", "limitation")
+
+
+def _check_open_problem_items(items, where: str, errs: list[str], limit: int = OP.MAX_ITEMS) -> None:
+    """The one place a quoted sentence is allowed: short, whole, typed, attributed to a linked paper."""
+    if not isinstance(items, list):
+        errs.append(f"{where}: items must be a list")
+        return
+    if len(items) > limit:
+        errs.append(f"{where}: {len(items)} sentences, more than the cap of {limit}")
+    for k, it in enumerate(items):
+        w = f"{where}[{k}]"
+        _record(it, {"sentence": _STR, "type": _STR, "confidence": _NUM_OR_NULL, "paper": _DICT, "concept_ids": _LIST}, w, errs)
+        if not isinstance(it, dict):
+            continue
+        if isinstance(it.get("sentence"), str) and not OP.MIN_SENTENCE <= len(it["sentence"]) <= OP.MAX_SENTENCE:
+            errs.append(f"{w}.sentence: {len(it['sentence'])} characters, outside {OP.MIN_SENTENCE}-{OP.MAX_SENTENCE}")
+        if it.get("type") not in OPEN_PROBLEM_TYPES:
+            errs.append(f"{w}.type: {it.get('type')!r} is not one of {OPEN_PROBLEM_TYPES}")
+        if isinstance(it.get("paper"), dict):
+            _record(it["paper"], PAPER, f"{w}.paper", errs)
+            if not it["paper"].get("url"):
+                errs.append(f"{w}.paper: a quoted sentence must link to its paper")
+
+
 def _check_gap_detail(d: dict, where: str, errs: list[str], real: bool = False) -> None:
     if _keys(d, contract("gap-detail.json"), where, errs):
         if d["summary"] is not None:
@@ -854,6 +903,7 @@ def _check_gap_detail(d: dict, where: str, errs: list[str], real: bool = False) 
         for k in ("closest_a", "closest_b"):
             _items(d, k, PAPER, where, errs)
         _items(d, "shared_neighbours", CONCEPT_SUMMARY, where, errs)
+        _check_open_problem_items(d["open_problems"], f"{where}.open_problems", errs, limit=OP.PER_GAP)
 
 
 def _check_concept(d: dict, where: str, errs: list[str]) -> None:
@@ -861,6 +911,7 @@ def _check_concept(d: dict, where: str, errs: list[str]) -> None:
         _items(d, "counts_by_year", YEAR_COUNT, where, errs)
         _items(d, "top_papers", PAPER, where, errs)
         _items(d, "neighbours", CONCEPT_SUMMARY, where, errs)
+        _check_open_problem_items(d["open_problems"], f"{where}.open_problems", errs, limit=OP.PER_CONCEPT)
 
 
 def check_contract(name: str, payload, errs: list[str]) -> None:
@@ -915,10 +966,18 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
                     s = entry["summary"]
                     if key != f"{s.get('a')}|{s.get('b')}":
                         errs.append(f"{name}[{key!r}]: key does not match its summary pair")
+            for key, entry in list(payload["entries"].items())[200:]:  # the quoted sentences are checked on every entry
+                if isinstance(entry, dict):
+                    _check_open_problem_items(entry.get("open_problems", []), f"{name}[{key!r}].open_problems", errs,
+                                              limit=OP.PER_GAP)
     elif name == "concepts.json":
         if _keys(payload, ("entries",), name, errs):
             for key, entry in list(payload["entries"].items())[:200]:
                 _check_concept(entry, f"{name}[{key!r}]", errs)
+            for key, entry in list(payload["entries"].items())[200:]:  # the quoted sentences are checked on every entry
+                if isinstance(entry, dict):
+                    _check_open_problem_items(entry.get("open_problems", []), f"{name}[{key!r}].open_problems", errs,
+                                              limit=OP.PER_CONCEPT)
     elif name.startswith("coverage-"):
         base = contract("coverage.json")
         if _keys(payload, base, name, errs):
@@ -941,7 +1000,11 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
     elif name == "search.json":
         _keys(payload, contract("search.json"), name, errs)
     elif name == "open-problems.json":
-        _keys(payload, contract("open-problems.json"), name, errs)
+        if _keys(payload, contract("open-problems.json"), name, errs):
+            _check_open_problem_items(payload["items"], name, errs)
+            if payload["items"] and (payload.get("placeholder") is not False or not payload.get("attribution")
+                                     or payload.get("quality") != "unmeasured"):
+                errs.append(f"{name}: quoted sentences need placeholder false, an attribution and a quality label")
     else:
         errs.append(f"{name}: not a file of the frontend contract")
 
@@ -1101,6 +1164,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--gap-pool", type=int, default=GAP_POOL)
     ap.add_argument("--gap-limit", type=int, default=GAP_LIMIT)
     ap.add_argument("--detail-limit", type=int, default=DETAIL_LIMIT)
+    ap.add_argument("--open-problems", type=Path, help="open_problems.py cache directory (hits.jsonl, counts.json); "
+                    "fills open-problems.json and the open_problems of gap details and concepts")
     ap.add_argument("--no-stoplist", action="store_true",
                     help="do not hide generic filler phrases (GENERIC_PHRASES) from the production gap list")
     args = ap.parse_args(argv)
@@ -1109,7 +1174,8 @@ def main(argv: list[str] | None = None) -> int:
                             first_year=args.first_year, last_year=args.last_year, edge_threshold=args.edge_threshold, max_edges=args.max_edges,
                             gap_pool=args.gap_pool, gap_limit=args.gap_limit, detail_limit=args.detail_limit,
                             coverage_top=args.coverage_top, production_model=args.production_model,
-                            stoplist=None if args.no_stoplist else GENERIC_PHRASES)
+                            stoplist=None if args.no_stoplist else GENERIC_PHRASES,
+                            open_problems_dir=args.open_problems)
     except (ExportError, R.RunError, ValueError, backtest.OneShotError) as exc:
         print(f"export failed: {exc}", file=sys.stderr)
         return 2
