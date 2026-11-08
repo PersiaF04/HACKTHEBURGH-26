@@ -8,6 +8,8 @@ import EvidencePage from "./pages/Evidence";
 import { CoveragePage } from "./pages/CoveragePage";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
 import { PaperLink } from "./components/PaperLink";
+import { Onboarding } from "./components/Onboarding";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { SkeletonBlock, SkeletonText } from "./components/Skeleton";
 import { fmtYear } from "./lib/format";
 import { DemoToggle, DEMO_BADGE, DEMO_BADGE_TIP, useDemoMode } from "./demo"; // TEMPORARY demo data
@@ -41,6 +43,9 @@ function currentPath() {
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try { return window.localStorage.getItem("ws-onboarding-seen") !== "true"; } catch { return true; }
+  });
   const [retry, setRetry] = useState(0);
   const [problemConcept, setProblemConcept] = useState("");
   const [problemType, setProblemType] = useState<"all" | "future_work" | "limitation" | "open_problem">("all");
@@ -74,11 +79,14 @@ export default function App() {
 
   useEffect(() => { document.title = `${active[1]} · Whitespace`; }, [active]);
 
-  const navigate = useCallback((event: React.MouseEvent<HTMLAnchorElement>, route: string) => {
-    event.preventDefault();
+  const navigateTo = useCallback((route: string) => {
     window.history.pushState({}, "", route);
     setPath(route);
   }, []);
+  const navigate = useCallback((event: React.MouseEvent<HTMLAnchorElement>, route: string) => {
+    event.preventDefault();
+    navigateTo(route);
+  }, [navigateTo]);
 
   useEffect(() => {
     const handlePopState = () => setPath(currentPath());
@@ -158,6 +166,8 @@ export default function App() {
         </nav>
         <div className="topbar-spacer" />
         <div className="topbar-tools">
+          <button type="button" className="onboarding-trigger" aria-label="Show feature tour" title="What can I do here?" onClick={() => setOnboardingOpen(true)}>i</button>
+          <ThemeToggle />
           <DemoToggle />
         </div>
         <span className={demo ? "data-badge data-badge--demo" : "data-badge"} tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
@@ -183,6 +193,7 @@ export default function App() {
           </>}
             {status === "error" && <p className="app-error" role="alert">{error}</p>}
       </main>
+      <Onboarding open={onboardingOpen} onClose={() => setOnboardingOpen(false)} onNavigate={navigateTo} />
     </div>
   );
 }
