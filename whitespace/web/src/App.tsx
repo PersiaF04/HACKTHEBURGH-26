@@ -7,6 +7,7 @@ import { OpenProblemsPage } from "./pages/OpenProblemsPage";
 import EvidencePage from "./pages/Evidence";
 import { CoveragePage } from "./pages/CoveragePage";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
+import { PaperLink } from "./components/PaperLink";
 
 const sections = [
   ["/", "Explore"],
@@ -96,6 +97,17 @@ export default function App() {
         : path === "/coverage" ? coverage?.placeholder ?? true
           : backtest?.placeholder ?? true;
   const yearRange = meta.year_range ?? { min: 2015, max: 2026 };
+  // Only once this year's request has resolved: a stale response from the previous year must
+  // not read as "no data" while the new file loads.
+  const noDataForYear = status === "ready" && (
+    (path === "/" && map?.no_data === true && map.year === year)
+    || (path === "/coverage" && coverage?.no_data === true && coverage.year === year));
+
+  // Start inside the exported years: the corpus may end before the default year.
+  useEffect(() => {
+    const range = meta.year_range;
+    if (range && (year < range.min || year > range.max)) setYear(range.max);
+  }, [meta.year_range]); // only when the data's year range changes, not on every year change
   const retryPage = () => setRetry((value) => value + 1);
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
@@ -120,8 +132,10 @@ export default function App() {
         <main id="main-content" className="main-content">
           <div className="page-heading">
             <h1>{active[1]}</h1>
+            {meta.titles_available === false && meta.titles_note && <p className="topbar-note">Note: {meta.titles_note}.</p>}
           </div>
           {isPlaceholder && <div className="placeholder-banner" role="status"><strong>Placeholder data</strong><span>{MOCK_NOTICE}</span></div>}
+          {noDataForYear && <p className="placeholder-banner" role="status"><strong>No data for {year}</strong><span>{meta.year_range ? `The exported data covers ${meta.year_range.min} to ${meta.year_range.max}. Later years are absent, not zero.` : "No file was exported for this year."}</span></p>}
           {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} yearRange={yearRange} selectedConceptId={selectedConceptId} onYearChange={setYear} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <p role="status">Loading research map…</p>}
           {path === "/gaps" && status === "loading" && !gaps && <p role="status">Loading gap finder…</p>}
@@ -138,7 +152,7 @@ export default function App() {
               return <section className="coverage-selection" aria-live="polite" aria-labelledby="coverage-selection-title">
                 <h2 id="coverage-selection-title">Papers without a linked code record</h2>
                 <p>{concept?.label || "Selected concept"} - {selectedCoverageCell.year}. A missing archive link does not mean an implementation does not exist.</p>
-                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><a href={paper.url} target="_blank" rel="noreferrer">{paper.title} ({paper.year})</a></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
+                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><PaperLink paper={paper} /></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
               </section>;
             })()}
           </>}

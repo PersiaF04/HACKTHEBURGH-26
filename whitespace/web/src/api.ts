@@ -33,8 +33,11 @@ export type MapResponse = {
   concepts: ConceptPoint[];
   edges: PredictedEdge[];
   focus: FocusPoint;
+  /** Static data only: no file exists for this year (for example, after the corpus ends). */
+  no_data?: boolean;
 };
 export type SearchResponse = {
+  placeholder?: boolean;
   papers: PaperSummary[];
   concepts: ConceptSummary[];
   focus: FocusPoint;
@@ -44,6 +47,9 @@ export type MetaResponse = {
   year_range: YearRange | null;
   counts: Record<string, number | null>;
   headline_metrics: Record<string, number | string | null>;
+  /** Export runner: false when papers carry their id as the title. */
+  titles_available?: boolean;
+  titles_note?: string | null;
 };
 export type GapSummary = {
   a: string;
@@ -70,6 +76,8 @@ export type OpenProblem = {
   sentence: string;
   type: "future_work" | "limitation" | "open_problem";
   confidence?: number;
+  /** Phrase concept ids the item concerns (export runner item_shape). */
+  concept_ids?: string[];
   paper: PaperSummary;
 };
 export type GapOpenProblem = OpenProblem;
@@ -115,6 +123,11 @@ export type CoverageResponse = {
   concepts: CoverageConcept[];
   caveat: string;
   archive: CoverageArchive;
+  /** Export runner: "phrase" means the same concept ids as the map. */
+  concept_kind?: string;
+  concept_note?: string | null;
+  /** Static data only: no file exists for this year (for example, after the corpus ends). */
+  no_data?: boolean;
 };
 export type GapListResponse = { placeholder: boolean; items: GapSummary[] };
 export type ConceptResponse = {
@@ -191,31 +204,197 @@ export const API_ROUTES = {
   coverage: (year: number) => `/api/coverage?year=${year}`,
 } as const;
 
-const mockMode = import.meta.env.VITE_USE_MOCK !== "false";
+/**
+ * Data modes:
+ * - VITE_USE_MOCK=true: always the bundled fixtures in ../mock.
+ * - VITE_USE_MOCK=false: fetch the /api/... routes from a server.
+ * - unset (default): read the exported files in public/data (served at /data/...) when
+ *   /data/meta.json loads with placeholder: false, otherwise the bundled fixtures. No external service is called.
+ */
+const mockSetting = import.meta.env.VITE_USE_MOCK;
+const apiMode = mockSetting === "false";
+const forceMock = mockSetting === "true";
+const DATA_BASE = `${import.meta.env.BASE_URL}data/`;
 export const MOCK_NOTICE = "Placeholder fixtures only. No corpus, predictions, metrics, paper links, or coverage values are included.";
 export const MOCK_META = metaFixture as MetaResponse;
 
-async function requestJson<T>(route: string, fixture: T): Promise<T> {
-  if (mockMode) return fixture;
+async function requestJson<T>(route: string): Promise<T> {
   const response = await fetch(route);
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
   return (await response.json()) as T;
 }
 
-/** Local placeholders are the default, so the demo has no judging-time network dependency. */
+// ------------------------------------------------------------------ static export files
+
+/** gap-details.json and concepts.json wrap their keyed payloads in `entries`. */
+type KeyedFile<T> = { placeholder?: boolean; entries?: Record<string, T> };
+
+const fileCache = new Map<string, Promise<unknown | null>>();
+
+/**
+ * Load `/data/<name>` once. Resolves null when the file is absent: a 404, or a non-JSON body
+ * (the Vercel SPA rewrite answers a missing file with index.html and status 200).
+ */
+function loadFile<T>(name: string): Promise<T | null> {
+  let cached = fileCache.get(name);
+  if (!cached) {
+    cached = fetch(`${DATA_BASE}${name}`).then(async (response) => {
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Could not load ${name} (${response.status})`);
+      try {
+        return JSON.parse(await response.text()) as unknown;
+      } catch {
+        return null;
+      }
+    });
+    cached.catch(() => fileCache.delete(name)); // a failed request can be retried
+    fileCache.set(name, cached);
+  }
+  return cached as Promise<T | null>;
+}
+
+let staticModePromise: Promise<boolean> | null = null;
+/** True only for a real export: /data/meta.json loads and says placeholder: false (decided once). A placeholder export falls back to the bundled fixtures. */
+function useStaticData(): Promise<boolean> {
+  if (apiMode || forceMock) return Promise.resolve(false);
+  staticModePromise ??= loadFile<MetaResponse>("meta.json")
+    .then((meta) => meta !== null && typeof meta === "object" && (meta as { placeholder?: unknown }).placeholder === false)
+    .catch(() => false);
+  return staticModePromise;
+}
+
+/** Choose the data source for one api call. */
+async function pick<T>(route: string, fixture: T, fromStatic: () => Promise<T>): Promise<T> {
+  if (apiMode) return requestJson<T>(route);
+  if (await useStaticData()) return fromStatic();
+  return fixture;
+}
+
+/** Fixture labelled as placeholder, for files the export does not have. */
+function placeholderFixture<T extends object>(fixture: T): T {
+  return { ...fixture, placeholder: true };
+}
+
+async function metaPlaceholder(): Promise<boolean> {
+  return (await loadFile<MetaResponse>("meta.json"))?.placeholder !== false;
+}
+
+function entriesOf<T>(file: KeyedFile<T> | null): Record<string, T> {
+  return file?.entries ?? {};
+}
+
+/** Year files that do not exist (for example, after the corpus ends) mean "no data", not zero. */
+async function staticByYear<T extends { placeholder: boolean }>(prefix: "map" | "coverage", year: number, empty: T): Promise<T> {
+  const file = await loadFile<T>(`${prefix}-${year}.json`);
+  if (file) return file;
+  return { ...empty, year, placeholder: await metaPlaceholder(), no_data: true };
+}
+
+async function staticMeta(): Promise<MetaResponse> {
+  return (await loadFile<MetaResponse>("meta.json"))!; // present: static mode is chosen from it
+}
+
+function compareNullable(a: number | null | undefined, b: number | null | undefined): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return b - a; // descending
+}
+
+async function staticGaps(query: GapQuery): Promise<GapListResponse> {
+  const file = await loadFile<GapListResponse>("gaps.json");
+  if (!file) return placeholderFixture(gapsFixture as GapListResponse);
+  const wanted = new Set(query.concepts ?? []);
+  const sortKey = (query.sort ?? "gap_score") as keyof GapSummary;
+  let items = file.items.filter((gap) =>
+    (wanted.size === 0 || wanted.has(gap.a) || wanted.has(gap.b))
+    && (query.min_p === undefined || gap.p_link >= query.min_p));
+  items = [...items].sort((left, right) =>
+    compareNullable(left[sortKey] as number | null, right[sortKey] as number | null) || right.p_link - left.p_link);
+  if (query.limit !== undefined) items = items.slice(0, query.limit);
+  return { ...file, items };
+}
+
+async function staticGap(a: string, b: string): Promise<GapDetailResponse> {
+  const entries = entriesOf(await loadFile<KeyedFile<GapDetail>>("gap-details.json"));
+  return entries[`${a}|${b}`] ?? entries[`${b}|${a}`] ?? null;
+}
+
+async function staticConcept(id: string): Promise<ConceptResponse | null> {
+  return entriesOf(await loadFile<KeyedFile<ConceptResponse>>("concepts.json"))[id] ?? null;
+}
+
+/** Simple client-side search: concept ids and labels containing the query, prefix matches first. */
+async function staticSearch(query: string, k: number): Promise<SearchResponse> {
+  const file = await loadFile<KeyedFile<ConceptResponse>>("concepts.json");
+  const entries = Object.entries(entriesOf(file));
+  if (entries.length === 0) {
+    const fallback = await loadFile<SearchResponse>("search.json");
+    return fallback ?? placeholderFixture(searchFixture as SearchResponse);
+  }
+  const needle = query.trim().toLocaleLowerCase();
+  const matches = entries
+    .filter(([id]) => needle && id.toLocaleLowerCase().includes(needle))
+    .map(([id, concept]) => ({
+      id,
+      concept,
+      prefix: id.toLocaleLowerCase().startsWith(needle) ? 0 : 1,
+      count: concept.counts_by_year.reduce((sum, row) => sum + row.count, 0),
+    }))
+    .sort((x, y) => x.prefix - y.prefix || y.count - x.count || x.id.localeCompare(y.id))
+    .slice(0, k);
+  const papers = new Map<string, PaperSummary>();
+  for (const match of matches) {
+    for (const paper of match.concept.top_papers) if (papers.size < k) papers.set(paper.id, paper);
+  }
+  return {
+    placeholder: file?.placeholder ?? true,
+    concepts: matches.map((match) => ({ id: match.id, label: match.id, paper_count: match.count })),
+    papers: [...papers.values()],
+    focus: null,
+  };
+}
+
+async function staticOpenProblems(concept: string, type: string): Promise<OpenProblemResponse> {
+  const file = await loadFile<OpenProblemResponse>("open-problems.json")
+    ?? placeholderFixture(openProblemsFixture as OpenProblemResponse);
+  const items = file.items.filter((item) =>
+    (!type || item.type === type) && (!concept || (item.concept_ids ?? []).includes(concept)));
+  return { ...file, items };
+}
+
+async function staticOrFixture<T extends object>(name: string, fixture: T): Promise<T> {
+  return (await loadFile<T>(name)) ?? placeholderFixture(fixture);
+}
+
+/** Local data only by default, so the demo has no judging-time network dependency. */
 export const api = {
-  meta: () => requestJson<MetaResponse>(API_ROUTES.meta, metaFixture),
-  map: (year: number) => requestJson<MapResponse>(API_ROUTES.map(year), { ...mapFixture, year } as MapResponse),
-  search: (query: string, k = 20) => requestJson<SearchResponse>(API_ROUTES.search(query, k), searchFixture),
-  concept: (id: string) => requestJson<ConceptResponse>(API_ROUTES.concept(id), conceptFixture as ConceptResponse),
-  gaps: (query: GapQuery = {}) => requestJson<GapListResponse>(API_ROUTES.gaps(query), gapsFixture),
+  meta: () => pick<MetaResponse>(API_ROUTES.meta, metaFixture as MetaResponse, staticMeta),
+  map: (year: number) => {
+    const fixture = { ...mapFixture, year } as MapResponse;
+    return pick<MapResponse>(API_ROUTES.map(year), fixture, () =>
+      staticByYear("map", year, { ...fixture, concepts: [], edges: [], focus: null }));
+  },
+  search: (query: string, k = 20) =>
+    pick<SearchResponse>(API_ROUTES.search(query, k), searchFixture as SearchResponse, () => staticSearch(query, k)),
+  concept: (id: string) =>
+    pick<ConceptResponse | null>(API_ROUTES.concept(id), conceptFixture as ConceptResponse, () => staticConcept(id)),
+  gaps: (query: GapQuery = {}) =>
+    pick<GapListResponse>(API_ROUTES.gaps(query), gapsFixture as GapListResponse, () => staticGaps(query)),
   gap: (a: string, b: string) =>
-    requestJson<GapDetailResponse>(API_ROUTES.gap(a, b), gapDetailFixture.summary ? gapDetailFixture as unknown as GapDetail : null),
+    pick<GapDetailResponse>(API_ROUTES.gap(a, b), gapDetailFixture.summary ? gapDetailFixture as unknown as GapDetail : null,
+      () => staticGap(a, b)),
   openProblems: (concept = "", type = "") =>
-    requestJson<OpenProblemResponse>(API_ROUTES.openProblems(concept, type), openProblemsFixture),
-  backtest: () => requestJson<BacktestResponse>(API_ROUTES.backtest, backtestFixture),
-  coverage: (year: number) =>
-    requestJson<CoverageResponse>(API_ROUTES.coverage(year), { ...coverageFixture, year } as CoverageResponse),
+    pick<OpenProblemResponse>(API_ROUTES.openProblems(concept, type), openProblemsFixture as OpenProblemResponse,
+      () => staticOpenProblems(concept, type)),
+  backtest: () =>
+    pick<BacktestResponse>(API_ROUTES.backtest, backtestFixture as BacktestResponse,
+      () => staticOrFixture("backtest.json", backtestFixture as BacktestResponse)),
+  coverage: (year: number) => {
+    const fixture = { ...coverageFixture, year } as CoverageResponse;
+    return pick<CoverageResponse>(API_ROUTES.coverage(year), fixture, () =>
+      staticByYear("coverage", year, { ...fixture, concepts: [], years: [] }));
+  },
 };
 
 export function isPlaceholder(data: { placeholder?: boolean }): boolean {

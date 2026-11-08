@@ -1,6 +1,6 @@
 .gap-table-wrap,
 .gap-drawer__content {
-  color: #17231f;
+  color: var(--ws-ink);
 }
 
 .gaps-page {
@@ -11,7 +11,7 @@
 .gaps-page__intro {
   max-width: 70ch;
   margin: 0;
-  color: #43554c;
+  color: var(--ws-ink-2);
   line-height: 1.6;
 }
 
@@ -21,15 +21,15 @@
   align-items: end;
   gap: 0.9rem;
   padding: 1rem;
-  border: 1px solid #d7dfda;
+  border: 1px solid var(--ws-border);
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .gaps-filter {
   display: grid;
   gap: 0.4rem;
-  color: #43554c;
+  color: var(--ws-ink-2);
   font-size: 0.85rem;
   font-weight: 650;
 }
@@ -38,21 +38,21 @@
   width: 100%;
   min-height: 2.75rem;
   padding: 0.55rem 0.7rem;
-  border: 1px solid #9baea3;
+  border: 1px solid var(--ws-border-strong);
   border-radius: 0.45rem;
-  background: #fff;
-  color: #17231f;
+  background: var(--ws-surface);
+  color: var(--ws-ink);
   font: inherit;
 }
 
 .gaps-filter input:focus-visible {
-  outline: 3px solid #167b61;
+  outline: 3px solid var(--ws-accent);
   outline-offset: 2px;
 }
 
 .gaps-filters__count {
   margin: 0 0 0.7rem;
-  color: #53645c;
+  color: var(--ws-muted);
   font-size: 0.85rem;
   white-space: nowrap;
 }
@@ -60,18 +60,18 @@
 .gap-placeholder {
   margin: 0 0 1rem;
   padding: 0.7rem 0.9rem;
-  border: 1px solid #9a6b19;
+  border: 1px solid var(--ws-warn-ink);
   border-radius: 0.5rem;
-  background: #fff7e5;
-  color: #573800;
+  background: var(--ws-warn-bg);
+  color: var(--ws-warn-ink);
   font-weight: 600;
 }
 
 .gap-table-wrap {
   overflow-x: auto;
-  border: 1px solid #d7dfda;
+  border: 1px solid var(--ws-border);
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .gap-table {
@@ -84,15 +84,15 @@
 .gap-table th,
 .gap-table td {
   padding: 0.8rem 0.9rem;
-  border-bottom: 1px solid #e4eae6;
+  border-bottom: 1px solid var(--ws-border);
   vertical-align: top;
 }
 
 .gap-table thead th {
   position: sticky;
   top: 0;
-  background: #f3f7f4;
-  color: #40534b;
+  background: var(--ws-track);
+  color: var(--ws-ink-2);
   font-size: 0.78rem;
   letter-spacing: 0.035em;
   white-space: nowrap;
@@ -111,7 +111,7 @@
 
 .gap-sort:hover,
 .gap-pair:hover {
-  color: #075e4a;
+  color: var(--ws-accent);
   text-decoration: underline;
   text-underline-offset: 0.18em;
 }
@@ -121,7 +121,7 @@
 .gap-drawer__close:focus-visible,
 .gap-paper-list a:focus-visible,
 .gap-problem-list a:focus-visible {
-  outline: 3px solid #167b61;
+  outline: 3px solid var(--ws-accent);
   outline-offset: 3px;
   border-radius: 0.15rem;
 }
@@ -130,17 +130,17 @@
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
-  color: #18372b;
+  color: var(--ws-ink);
   font-weight: 650;
 }
 
 .gap-pair__join {
-  color: #73877c;
+  color: var(--ws-muted);
 }
 
 .gap-table tbody tr:hover,
 .gap-table tbody tr.is-selected {
-  background: #f0f7f2;
+  background: var(--ws-track);
 }
 
 .gap-score-cell {
@@ -151,12 +151,12 @@
 .gap-state {
   margin: 0;
   padding: 0.9rem 1rem;
-  color: #53645c;
+  color: var(--ws-muted);
   font-size: 0.9rem;
 }
 
 .gap-state--error {
-  color: #9b2929;
+  color: var(--ws-error);
 }
 
 .gap-drawer-backdrop {
@@ -173,7 +173,7 @@
   height: 100%;
   overflow-y: auto;
   padding: clamp(1.2rem, 3vw, 2.2rem);
-  background: #fbfdfb;
+  background: var(--ws-track);
   box-shadow: -1rem 0 3rem rgb(0 0 0 / 20%);
 }
 
@@ -183,20 +183,20 @@
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 1.3rem;
-  border-bottom: 1px solid #d7dfda;
+  border-bottom: 1px solid var(--ws-border);
 }
 
 .gap-drawer__header h2 {
   max-width: 34rem;
   margin: 0.25rem 0 0;
-  color: #14231c;
+  color: var(--ws-ink);
   font-size: clamp(1.5rem, 4vw, 2rem);
   line-height: 1.15;
 }
 
 .gap-eyebrow {
   margin: 0;
-  color: #536a5e;
+  color: var(--ws-ink-2);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -207,10 +207,10 @@
   flex: 0 0 auto;
   min-height: 2.75rem;
   padding: 0.55rem 0.9rem;
-  border: 1px solid #9baea3;
+  border: 1px solid var(--ws-border-strong);
   border-radius: 0.45rem;
-  background: #fff;
-  color: #18372b;
+  background: var(--ws-surface);
+  color: var(--ws-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -224,15 +224,15 @@
 .gap-drawer__section,
 .gap-score {
   padding: 1rem;
-  border: 1px solid #d7dfda;
+  border: 1px solid var(--ws-border);
   border-radius: 0.7rem;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .gap-drawer__section h3,
 .gap-score h3 {
   margin: 0 0 0.8rem;
-  color: #1f382c;
+  color: var(--ws-ink);
   font-size: 1.05rem;
 }
 
@@ -258,7 +258,7 @@
 
 .gap-paper-list a,
 .gap-problem-list a {
-  color: #075e4a;
+  color: var(--ws-accent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
 }
@@ -266,7 +266,7 @@
 .gap-paper-year,
 .gap-paper-list p,
 .gap-problem-list p {
-  color: #596b62;
+  color: var(--ws-ink-2);
   font-size: 0.9rem;
 }
 
@@ -278,8 +278,8 @@
 .gap-problem-list blockquote {
   margin: 0;
   padding-left: 0.8rem;
-  border-left: 3px solid #92b5a2;
-  color: #273a31;
+  border-left: 3px solid var(--ws-border-strong);
+  color: var(--ws-ink);
 }
 
 .gap-score__list {
@@ -292,33 +292,33 @@
 .gap-score__formula {
   margin: 0 0 1rem;
   padding: 0.8rem;
-  border-left: 3px solid #92b5a2;
-  background: #f3f7f4;
-  color: #40534b;
+  border-left: 3px solid var(--ws-border-strong);
+  background: var(--ws-track);
+  color: var(--ws-ink-2);
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
 .gap-score__formula code {
-  color: #172c22;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--ws-ink);
+  font-family: var(--ws-mono);
 }
 
 .gap-score__row {
   min-width: 0;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: #f3f7f4;
+  background: var(--ws-track);
 }
 
 .gap-score__row dt {
-  color: #53645c;
+  color: var(--ws-muted);
   font-size: 0.82rem;
 }
 
 .gap-score__row dd {
   margin: 0.25rem 0 0;
-  color: #172c22;
+  color: var(--ws-ink);
   font-size: 1.15rem;
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -326,7 +326,7 @@
 
 .gap-score__note {
   margin: 0.4rem 0 0;
-  color: #53645c;
+  color: var(--ws-muted);
   font-size: 0.8rem;
 }
 
@@ -382,3 +382,31 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Numbers in IBM Plex Mono with tabular figures, per the design spec. */
+
+/* Ranked table (design: Gaps.dc.html) */
+.gap-table tbody tr { cursor: pointer; }
+.gap-table tbody tr.is-selected { box-shadow: inset 3px 0 0 var(--ws-accent); }
+.gap-table td { font-family: var(--ws-mono); font-size: 0.9em; font-variant-numeric: tabular-nums; }
+.gap-table .gap-num { text-align: right; }
+.gap-table thead .gap-num .gap-sort { text-align: right; }
+.gap-col-rank { width: 2.5rem; color: var(--ws-muted); }
+.gap-table tbody th { font-weight: 600; }
+.gap-pair { flex-direction: column; align-items: flex-start; gap: 0.25rem; min-height: 2.75rem; justify-content: center; }
+.gap-pair__names { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.gap-pair__join { color: var(--ws-accent); font-weight: 500; }
+.gap-areas { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.gap-chip { padding: 0.05rem 0.45rem; border-radius: 4px; background: var(--ws-track); color: var(--ws-ink-2); font-size: 0.75rem; font-weight: 500; }
+.gap-plink { display: flex; align-items: center; gap: 0.5rem; min-width: 9rem; }
+.gap-plink__value { min-width: 3.4rem; font-weight: 500; }
+.gap-interval { position: relative; flex: 1; height: 14px; min-width: 3rem; }
+.gap-interval::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--ws-border); }
+.gap-interval__range { position: absolute; top: 3px; height: 8px; border-radius: 2px; background: #DCE3FB; }
+.gap-interval__point { position: absolute; top: 1px; width: 3px; height: 12px; margin-left: -1.5px; border-radius: 1px; background: var(--ws-accent); }
+.gap-scorebar { display: flex; align-items: center; gap: 0.5rem; min-width: 7.5rem; }
+.gap-scorebar__value { min-width: 3.4rem; font-weight: 600; }
+.gap-scorebar__track { flex: 1; height: 6px; border-radius: 3px; background: var(--ws-border); }
+.gap-scorebar__fill { display: block; height: 6px; border-radius: 3px; background: var(--ws-ink); }
+.gap-state--empty { text-align: center; padding: 1.5rem; }
+.gap-score__row dd { font-family: var(--ws-mono); font-variant-numeric: tabular-nums; }

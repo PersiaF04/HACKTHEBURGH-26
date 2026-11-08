@@ -10,7 +10,7 @@ interface Metric {
 }
 
 function display(value: number | null | undefined, format: Metric["format"]): string {
-  if (value == null || !Number.isFinite(value)) return "Not available";
+  if (value == null || !Number.isFinite(value)) return "not available";
   return format === "probability" ? `${(value * 100).toFixed(1)}%` : value.toFixed(3);
 }
 
@@ -51,7 +51,7 @@ export function ScoreBreakdown({ gap }: { gap: GapSummary }) {
         {!hasValidatedInterval && (
           <div className="gap-score__row">
             <dt>Model interval</dt>
-            <dd>Not shown</dd>
+            <dd>not available</dd>
             <p className="gap-score__note">The interval's interpretation and coverage have not both been validated.</p>
           </div>
         )}

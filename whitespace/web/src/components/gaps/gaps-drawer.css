@@ -1,0 +1,24 @@
+.gap-drawer__arrow { color: var(--ws-accent); }
+.gap-drawer__link-statement { margin: 6px 0 0; font-size: 13px; color: var(--ws-muted); }
+.gap-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.open-problems { display: flex; flex-direction: column; gap: 18px; }
+.open-problems__intro { margin: 0; font-size: 13px; color: var(--ws-muted); }
+.open-problems__cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.open-problems__card { border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: var(--ws-surface); padding: 12px 14px; }
+.open-problems__card blockquote { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--ws-ink); }
+.open-problems__meta { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ws-muted); }
+.open-problems__tag { font-weight: 600; color: var(--ws-ink); }
+.open-problems__meta a { color: var(--ws-accent); }
+.open-problems__meta a:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
+.open-problems__empty { margin: 0; padding: 16px; border: 1px dashed var(--ws-border-strong); border-radius: var(--ws-radius-lg); font-size: 13px; color: var(--ws-muted); }
+.open-problems__chart { display: flex; flex-direction: column; gap: 8px; }
+.open-problems__chart h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.open-problems__legend { display: flex; gap: 16px; font-size: 12px; color: var(--ws-muted); }
+.open-problems__legend i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid var(--ws-accent); }
+.open-problems__legend i.is-baseline { border-top: 2px dashed var(--ws-muted); }
+.open-problems__svg { width: 100%; height: auto; max-width: 560px; }
+.open-problems__svg text { font-family: var(--ws-mono); font-size: 10px; fill: var(--ws-muted); }
+.open-problems__table summary { cursor: pointer; font-size: 12px; color: var(--ws-accent); }
+.open-problems__table table { border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+.open-problems__table th, .open-problems__table td { padding: 4px 12px 4px 0; text-align: left; border-bottom: 1px solid var(--ws-border); font-family: var(--ws-mono); }
