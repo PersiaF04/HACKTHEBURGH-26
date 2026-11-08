@@ -1,0 +1,49 @@
+name: Deploy production
+
+# Deploys the Whitespace site to Vercel production after a merge to main.
+# Runs only on main (never on pull_request), so PR code never sees VERCEL_TOKEN.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "whitespace/web/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: team_ccn0Ne8DQ8aAseyT16RVxOsq
+  VERCEL_PROJECT_ID: prj_3d2J3WV70jZESmSEAQW7rZqYxjuE
+
+jobs:
+  deploy:
+    name: Vercel production
+    # main only, including manual runs; the token lives in the protected production environment.
+    if: github.repository == 'PersiaF04/HACKTHEBURGH-26' && github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull Vercel project settings
+        run: npx --yes vercel@65.12.1 pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        run: npx --yes vercel@65.12.1 build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy to production
+        run: npx --yes vercel@65.12.1 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
