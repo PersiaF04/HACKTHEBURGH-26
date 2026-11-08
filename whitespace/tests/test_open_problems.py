@@ -167,7 +167,7 @@ def _cache(tmp_path, pairs):
     cache = tmp_path / "cache"
     cache.mkdir()
     (cache / "hits.jsonl").write_text("\n".join(json.dumps(h) for h in reversed(hits)) + "\n", encoding="utf-8")
-    (cache / "counts.json").write_text(json.dumps({"columns": [], "rows": [["", 2022, 100, 10]]}), encoding="utf-8")
+    (cache / "counts.json").write_text(json.dumps({"columns": [], "rows": [["", 2022, 100, 10, 5]]}), encoding="utf-8")
     return cache
 
 
@@ -299,3 +299,14 @@ def test_attach_fills_display_only_rates_and_leaves_the_gap_score_untouched(tmp_
     op_file = json.loads((tmp_path / "out" / "open-problems.json").read_text(encoding="utf-8"))
     assert op_file["rates_by_concept"][a][0] == {"year": final, "concept_rate": 0.2, "ai_ml_rate": 0.1, "papers": 40,
                                                  "with_open_problem": 8}
+
+
+def test_types_filter_keeps_only_the_chosen_statement_types():
+    hits = [_hit(1, ["a"], kind="open_problem"), _hit(2, ["a"], kind="future_work"), _hit(3, ["a"], kind="limitation")]
+    counts = {("", 2022): (100, 10, 5), ("a", 2022): (40, 8, 4)}
+    out = op.build_export(hits, counts, [("a", "a")], ["a"], lambda i: f"https://example.org/{i}", 2022, types=("open_problem",))
+    assert out["gap_rates"] == {"a": 0.1}  # rates count papers with an open_problem statement only (4 of 40)
+    assert {i["type"] for i in out["file"]["items"]} == {"open_problem"}
+    with pytest.raises(ValueError):
+        op.build_export(hits, counts, [("a", "a")], ["a"], lambda i: i, 2022, types=("open_problem", "limitation"))
+    assert {i["type"] for v in out["concepts"].values() for i in v} == {"open_problem"}

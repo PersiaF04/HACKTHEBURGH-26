@@ -678,12 +678,12 @@ def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
     return bool(lookup) or not ids
 
 
-def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int) -> dict:
+def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int, types: tuple[str, ...] = OP.TYPES) -> dict:
     """Fill open-problems.json, gap-details and concepts from the extractor cache (reduced version, issue #270)."""
     hits, counts = OP.load_cache(cache_dir)
     pairs = [(g["a"], g["b"]) for g in files["gaps.json"]["items"]]
     built = OP.build_export(hits, counts, pairs, list(files["concepts.json"]["entries"]), default_url, final,
-                           exclude=frozenset(GENERIC_PHRASES))
+                           exclude=frozenset(GENERIC_PHRASES), types=types)
     for key, items in built["gap_details"].items():
         if key in files["gap-details.json"]["entries"]:
             files["gap-details.json"]["entries"][key]["open_problems"] = items
