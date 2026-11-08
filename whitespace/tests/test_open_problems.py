@@ -77,7 +77,7 @@ def test_label_frame_is_reproducible_and_capped():
     hits = [{"sentence": f"s{i}", "type": "limitation", "confidence": 0.5, "paper": {"id": f"W{i}", "year": 2020},
              "concept_ids": [], "sentence_level": False} for i in range(30)]
     a, b = op.label_frame(hits, n=10), op.label_frame(hits, n=10)
-    assert a == b and len(a) == 10 and Counter(x["correct"] for x in a) == {"": 10}
+    assert a == b and len(a) == 10 and all("correct" not in x for x in a)
     assert len(op.label_frame(hits, n=100)) == 30
 
 
@@ -146,3 +146,84 @@ def test_validator_checks_quoted_sentences_on_every_concept_entry_not_only_the_f
     errs: list[str] = []
     E.check_contract("concepts.json", {"entries": entries}, errs)
     assert any("c250" in e and "sentence" in e for e in errs)
+
+
+# ---- attach to an existing export (issue #278) ------------------------------------------------------------
+
+import shutil  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import pytest  # noqa: E402
+
+DATA = Path(__file__).resolve().parents[1] / "web" / "public" / "data"
+
+
+def _cache(tmp_path, pairs):
+    """A synthetic extractor cache (invented sentences) with hits on the given gap concepts."""
+    hits = []
+    for n, (a, b) in enumerate(pairs):
+        for k in range(3):
+            hits.append(_hit(100 * n + k, [a, b], conf=0.8 - 0.1 * k, year=2020 + k))
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    (cache / "hits.jsonl").write_text("\n".join(json.dumps(h) for h in reversed(hits)) + "\n", encoding="utf-8")
+    (cache / "counts.json").write_text(json.dumps({"columns": [], "rows": [["", 2022, 100, 10]]}), encoding="utf-8")
+    return cache
+
+
+@pytest.mark.skipif(not (DATA / "manifest.json").is_file(), reason="no committed export to attach to")
+def test_attach_fills_the_export_validates_and_is_deterministic(tmp_path):
+    gaps = json.loads((DATA / "gaps.json").read_text(encoding="utf-8"))
+    if gaps.get("placeholder"):
+        pytest.skip("committed export is a placeholder")
+    pairs = [(g["a"], g["b"]) for g in gaps["items"][:2]]
+    cache = _cache(tmp_path, pairs)
+    outs = []
+    for name in ("one", "two"):
+        out = tmp_path / name
+        res = op.attach(DATA, cache, out)
+        assert res["problems"] == [] and res["items"] > 0
+        outs.append(out)
+    for n in ("open-problems.json", "gap-details.json", "concepts.json", "manifest.json"):
+        assert (outs[0] / n).read_bytes() == (outs[1] / n).read_bytes(), n  # deterministic, independent of hit order
+    f = json.loads((outs[0] / "open-problems.json").read_text(encoding="utf-8"))
+    assert f["placeholder"] is False and f["quality"] == "unmeasured" and f["attribution"] == op.ATTRIBUTION
+    gd = json.loads((outs[0] / "gap-details.json").read_text(encoding="utf-8"))["entries"]
+    first = gd[f"{pairs[0][0]}|{pairs[0][1]}"]["open_problems"]  # hits on both concepts come first (pairs can share one)
+    assert len(first) >= 3 and all(set(pairs[0]) <= set(x["concept_ids"]) for x in first[:3])
+    man = json.loads((outs[0] / "manifest.json").read_text(encoding="utf-8"))
+    assert man["export"]["open_problems"]["post_process"] == "open_problems attach"
+    import hashlib
+    for n in ("open-problems.json", "gap-details.json", "concepts.json", "meta.json", "routes.json"):
+        assert man["files"][n] == hashlib.sha256((outs[0] / n).read_bytes()).hexdigest(), n
+    assert json.loads((DATA / "open-problems.json").read_text(encoding="utf-8")) == json.loads(
+        (DATA / "open-problems.json").read_text(encoding="utf-8"))  # the source folder is untouched
+    assert op.ATTRIBUTION.startswith("Short excerpts quoted from abstracts indexed by OpenAlex")
+    assert "No full abstracts are included" in op.ATTRIBUTION
+
+
+@pytest.mark.skipif(not (DATA / "manifest.json").is_file(), reason="no committed export to attach to")
+def test_attach_refuses_a_folder_that_is_not_an_export_and_a_cache_that_breaks_validation(tmp_path):
+    with pytest.raises(op.AttachError):
+        op.attach(tmp_path, tmp_path / "nothing")
+    gaps = json.loads((DATA / "gaps.json").read_text(encoding="utf-8"))
+    if gaps.get("placeholder"):
+        pytest.skip("committed export is a placeholder")
+    a, b = gaps["items"][0]["a"], gaps["items"][0]["b"]
+    cache = _cache(tmp_path, [(a, b)])
+    bad = [json.loads(line) for line in (cache / "hits.jsonl").read_text(encoding="utf-8").splitlines()]
+    bad[0]["sentence"] = "x" * 700  # longer than a quote may be: the validator must stop it
+    (cache / "hits.jsonl").write_text("\n".join(json.dumps(h) for h in bad) + "\n", encoding="utf-8")
+    with pytest.raises(op.AttachError):
+        op.attach(DATA, cache, tmp_path / "out")
+
+
+def test_cli_extract_still_accepts_the_old_positional_form(tmp_path):
+    corpus = tmp_path / "c.jsonl"
+    corpus.write_text(_line(1, 2020, "We study toy graphs in depth here. Their behaviour remains unexplored today.") + "\n",
+                      encoding="utf-8")
+    vocab = tmp_path / "v.json"
+    vocab.write_text(json.dumps(["toy graph"]), encoding="utf-8")
+    out = tmp_path / "o"
+    assert op.main([str(corpus), "--vocabulary", str(vocab), "--out", str(out), "--workers", "1"]) == 0
+    assert (out / "hits.jsonl").is_file() and (out / "label_frame.json").is_file()
