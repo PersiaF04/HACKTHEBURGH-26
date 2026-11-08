@@ -118,19 +118,15 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
           </section>
 
           <section className="whitespace-filters__section" aria-labelledby={`${uid}-gaps`}>
+            <div className="whitespace-filters__label">
+              <label htmlFor={`${uid}-gap-n`}>Gaps shown</label>
+              <span className="whitespace-mono">{graph.gapCount}</span>
+            </div>
+            <input id={`${uid}-gap-n`} type="range" min={3} max={50} step={1} value={graph.gapCount} disabled={!graph.showGaps} onChange={(event) => graph.onGapCount(Number(event.currentTarget.value))} />
             <label className="whitespace-check whitespace-check--switch">
               <input type="checkbox" checked={graph.showGaps} onChange={(event) => graph.onShowGaps(event.currentTarget.checked)} />
               <span><strong id={`${uid}-gaps`}>Show gaps and their links</strong><small>Draw the top ranked gaps as bridges between two topics.</small></span>
             </label>
-            {graph.showGaps && (
-              <>
-                <div className="whitespace-filters__label">
-                  <label htmlFor={`${uid}-gap-n`}>Gaps shown</label>
-                  <span className="whitespace-mono">{graph.gapCount}</span>
-                </div>
-                <input id={`${uid}-gap-n`} type="range" min={3} max={50} step={1} value={graph.gapCount} onChange={(event) => graph.onGapCount(Number(event.currentTarget.value))} />
-              </>
-            )}
           </section>
         </>
       )}
