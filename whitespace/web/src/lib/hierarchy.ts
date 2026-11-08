@@ -10,7 +10,7 @@ import type { ConceptPoint, GapSummary, PredictedEdge } from "../api";
 export type NodeKind = "branch" | "concept" | "hypothesis";
 export type StructureKind = "split" | "member" | "hypothesis";
 export type StructureEdge = { source: string; target: string; kind: StructureKind };
-export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string] };
+export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string]; scale?: number };
 export type BranchInfo = { id: string; label: string; total: number; papers: number; growth: number | null; shown: ConceptPoint[]; hypotheses: GapSummary[] };
 export type Hierarchy = {
   nodes: HNode[]; structure: StructureEdge[]; branches: number;
@@ -18,7 +18,6 @@ export type Hierarchy = {
 };
 
 const K = 7;
-const RING = 8; // hub ring radius; branches start far apart and repel from there
 export const DEFAULT_PER_BRANCH = 60;
 export const BRANCH_PREFIX = "branch:";
 export const HYPOTHESIS_PREFIX = "hyp:";
@@ -130,74 +129,71 @@ export const supporting = (edges: PredictedEdge[], ids: Set<string>) =>
   edges.filter((e) => ids.has(e.source) && ids.has(e.target));
 
 /**
- * Re-position the nodes into separate clusters: hubs on a ring (keeping their neighbours from the
- * map layout adjacent), concepts in a spiral around their hub, hypotheses outside the ring. Heights
- * still come from growth. This is a reading layout, not a measured one.
+ * Layout formula, one rule applied at each level (smaller scale each level down).
+ *
+ * Level 1, the concepts of a branch: a sunflower (Vogel) spiral, p_i = c * sqrt(i + 1/2) at angle i * 137.5 deg.
+ *   With c = 0.7 the nearest two points are at least D0 = 1 unit apart, and a branch of n concepts fills a disc of
+ *   radius R = c * sqrt(n) + D0 / 2. No two concepts overlap by construction, so no iteration is needed.
+ * Level 0, the branches: K discs of radius up to Rmax sit evenly on a ring of radius
+ *   Rring = Rmax * (1 + G) / sin(pi / K),
+ *   so neighbouring centres are 2 * Rmax * (1 + G) apart and every pair of discs clears by G * Rmax (G = 0.9).
+ * The same rule would repeat for deeper levels with D0 and c scaled down per level (here there are two levels).
+ * Dot size is scaled so the nearest concepts do not touch, since the map is drawn into a fixed 140-unit span.
  */
+const C_SPIRAL = 0.7;
+const D0 = 1;
+const G = 0.9;
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+const WORLD_SPAN = 140;
+const DOT_WORLD = 3.4; // world diameter of the largest concept dot
+
 function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; x: number; y: number }[]) {
   const cx = hubs.reduce((s, h) => s + h.x, 0) / hubs.length;
   const cy = hubs.reduce((s, h) => s + h.y, 0) / hubs.length;
-  const order = [...hubs].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-  const ring = new Map(order.map((h, i) => {
-    const a = (Math.PI * 2 * i) / order.length - Math.PI / 2;
-    const r = RING * (i % 2 ? 1.18 : 0.92); // alternate the radius so neighbouring branches are not side by side
-    return [h.id, { x: Math.cos(a) * r, y: Math.sin(a) * r }];
-  }));
+  const order = [...hubs].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx)); // keep map neighbours adjacent
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const members = new Map<string, string[]>();
   for (const e of structure) if (e.kind === "member") members.set(e.source, [...(members.get(e.source) ?? []), e.target]);
-  const GAP = 5; // clear space kept between any two branches
-  const clusters = [...members].map(([hubId, ids]) => {
-    const hub = byId.get(hubId)!, at = ring.get(hubId)!;
-    hub.x = at.x; hub.y = at.y;
-    const grow = Math.sqrt(Math.max(1, ids.length / 60)); // a bigger branch takes more room
-    let radius = 0;
+
+  const radius = (n: number) => C_SPIRAL * Math.sqrt(n) + D0 / 2;
+  const Rmax = Math.max(...order.map((h) => radius(members.get(h.id)?.length ?? 0)));
+  const K = order.length;
+  const Rring = (Rmax * (1 + G)) / Math.sin(Math.PI / Math.max(3, K));
+
+  const clusters = order.map((h, k) => {
+    const angle = (Math.PI * 2 * k) / K - Math.PI / 2;
+    const hub = byId.get(h.id)!;
+    hub.x = Math.cos(angle) * Rring; hub.y = Math.sin(angle) * Rring;
+    const ids = members.get(h.id) ?? [];
     ids.forEach((id, i) => {
       const n = byId.get(id)!;
-      const ang = i * 2.399963 + Math.atan2(at.y, at.x);
-      const rad = (0.3 + 1.2 * Math.sqrt((i + 1) / ids.length)) * grow;
-      n.x = at.x + Math.cos(ang) * rad;
-      n.y = at.y + Math.sin(ang) * rad;
-      radius = Math.max(radius, rad);
+      const rho = C_SPIRAL * Math.sqrt(i + 0.5);
+      n.x = hub.x + Math.cos(i * GOLDEN + angle) * rho;
+      n.y = hub.y + Math.sin(i * GOLDEN + angle) * rho;
     });
-    return { hub, ids, radius, dx: 0, dy: 0 };
+    return { hub, radius: radius(ids.length) };
   });
-  // Branches repel: push any two apart until their clusters clear each other by GAP.
-  for (let pass = 0; pass < 120; pass += 1) {
-    let moved = false;
-    for (let a = 0; a < clusters.length; a += 1) {
-      for (let b = a + 1; b < clusters.length; b += 1) {
-        const A = clusters[a], B = clusters[b];
-        let dx = B.hub.x + B.dx - (A.hub.x + A.dx), dy = B.hub.y + B.dy - (A.hub.y + A.dy);
-        const d = Math.hypot(dx, dy) || 0.001;
-        const need = A.radius + B.radius + GAP;
-        if (d >= need) continue;
-        dx /= d; dy /= d;
-        const push = (need - d) / 2;
-        A.dx -= dx * push; A.dy -= dy * push; B.dx += dx * push; B.dy += dy * push;
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  for (const c of clusters) {
-    c.hub.x += c.dx; c.hub.y += c.dy;
-    for (const id of c.ids) { const n = byId.get(id)!; n.x += c.dx; n.y += c.dy; }
-  }
+
+  // Dot size follows the room each concept gets in the fixed world span.
+  const worldPerUnit = WORLD_SPAN / (2 * (Rring + Rmax + 1));
+  const scale = Math.max(0.3, Math.min(1, (D0 * worldPerUnit) / DOT_WORLD));
+  for (const n of nodes) if (n.kind === "concept") n.scale = scale;
+
+  // A hypothesis sits just outside the ring, beyond the midpoint of its two concepts, and clear of other branches.
   for (const n of nodes) {
     if (n.kind !== "hypothesis") continue;
     const [a, b] = n.id.slice(HYPOTHESIS_PREFIX.length).split("|").map((id) => byId.get(id));
     if (!a || !b) continue;
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const len = Math.hypot(mx, my) || 1;
-    n.x = mx + (mx / len) * 0.3;
-    n.y = my + (my / len) * 0.3;
-    // A hypothesis also keeps out of every branch it does not belong to.
+    n.x = mx + (mx / len) * D0 * 2;
+    n.y = my + (my / len) * D0 * 2;
     for (const c of clusters) {
+      if (n.ends?.includes(c.hub.id)) continue;
       const dx = n.x - c.hub.x, dy = n.y - c.hub.y;
       const d = Math.hypot(dx, dy) || 0.001;
-      const need = c.radius + 0.25;
-      if (d < need && !n.ends?.includes(c.hub.id)) { n.x = c.hub.x + (dx / d) * need; n.y = c.hub.y + (dy / d) * need; }
+      const need = c.radius + D0;
+      if (d < need) { n.x = c.hub.x + (dx / d) * need; n.y = c.hub.y + (dy / d) * need; }
     }
   }
 }

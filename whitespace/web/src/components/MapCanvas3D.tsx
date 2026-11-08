@@ -9,7 +9,7 @@ import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
-type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string] };
+type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string]; scale?: number };
 type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
@@ -196,6 +196,7 @@ export function MapCanvas3D({
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
+      if (c.scale) size[i] *= c.scale;
       if (c.kind === "branch") size[i] = 3.8;
       else if (c.kind === "hypothesis") size[i] = 2.4;
       const hue = c.kind === "branch" ? themeHues.ink : c.kind === "hypothesis" ? themeHues.accent : palette[b];
