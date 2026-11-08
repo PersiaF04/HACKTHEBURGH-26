@@ -1,0 +1,14 @@
+{
+  "placeholder": true,
+  "base_rate": null,
+  "roc_auc": null,
+  "pr_auc": null,
+  "average_precision": null,
+  "precision_at_100": null,
+  "baselines": {},
+  "calibration": { "bins": [], "note": null },
+  "hits": [],
+  "misses": [],
+  "by_starting_weight": {},
+  "code_link_evaluation": { "precision": null, "lower": null, "upper": null, "interval_method": null, "sample_size": null, "correct_matches": null, "sample_composition": null, "protocol": null }
+}

@@ -1,0 +1,15 @@
+{
+  "placeholder": true,
+  "year": 2026,
+  "years": [],
+  "concepts": [],
+  "caveat": "Coverage is a lower bound from an incomplete historical archive; no linked code in this archive does not mean no implementation exists.",
+  "archive": {
+    "source_url": "https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code",
+    "snapshot_date": "2025-07-28",
+    "revision_sha": null,
+    "file_vintage_verified": false,
+    "license_id": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/"
+  }
+}
