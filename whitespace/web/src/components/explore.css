@@ -92,7 +92,7 @@
 .whitespace-concept__papers a { font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--ws-ink); text-decoration: none; }
 .whitespace-concept__papers a:hover { text-decoration: underline; }
 .whitespace-concept__papers li > span { font-family: var(--ws-mono); font-size: 11px; color: var(--ws-muted); }
-.whitespace-concept__problem { margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; border-radius: 8px; background: var(--ws-page); font-size: 13px; line-height: 1.45; }
+.whitespace-concept__problem { margin: 0; padding: 12px; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius); background: var(--ws-hover); font-size: 13px; line-height: 1.45; }
 .whitespace-concept__tag { align-self: flex-start; padding: 2px 6px; border-radius: 4px; background: var(--ws-selected); color: var(--ws-ink-2); font-size: 11px; font-weight: 600; }
 .whitespace-concept__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .whitespace-concept__chips button { min-height: 32px; padding: 0 10px; border: 1px solid var(--ws-border-strong); border-radius: 4px; background: var(--ws-surface); color: var(--ws-ink); font: inherit; font-size: 12px; cursor: pointer; }
