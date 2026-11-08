@@ -312,6 +312,7 @@ export function MapCanvas3D({
     let dirty = true;
     let flight: Flight | null = null;
     const lockPrev = new THREE.Vector3();
+    const flightQ = new THREE.Quaternion(), flightId = new THREE.Quaternion(), flightTo = new THREE.Vector3();
     let lockIdx = -1; // node the camera is locked onto; it keeps following it as its branch drifts
     const v = new THREE.Vector3();
     const proj = new THREE.Matrix4();
@@ -523,7 +524,12 @@ export function MapCanvas3D({
         const k = Math.min(1, (now - flight.t0) / flight.dur);
         const e = 1 - (1 - k) ** 3;
         controls.target.lerpVectors(flight.fromT, flight.toT, e);
-        camera.position.copy(controls.target).add(v.lerpVectors(flight.fromO, flight.toO, e));
+        // Swing round the target on an arc (spherical interpolation) while the distance eases, instead of cutting straight through it.
+        const lf = flight.fromO.length(), lt = flight.toO.length();
+        flightQ.setFromUnitVectors(v.copy(flight.fromO).normalize(), flightTo.copy(flight.toO).normalize());
+        flightId.identity().slerp(flightQ, e);
+        v.copy(flight.fromO).normalize().applyQuaternion(flightId).multiplyScalar(lf + (lt - lf) * e);
+        camera.position.copy(controls.target).add(v);
         flying = k < 1;
         if (!flying) flight = null;
         dirty = true;
@@ -834,7 +840,9 @@ export function MapCanvas3D({
       const fromO = camera.position.clone().sub(controls.target);
       const isHub = live.current.concepts[index]?.kind === "branch";
       const dist = Math.max(controls.minDistance, Math.min(fromO.length(), isHub ? 70 : 45));
-      const toO = fromO.clone().setLength(dist);
+      // Face the node from the centre side, so its own cluster fans out in front of the camera; tilt up a little for depth.
+      const outward = toT.clone().sub(d.center);
+      const toO = isHub || outward.lengthSq() < 1 ? fromO.clone().setLength(dist) : new THREE.Vector3(-outward.x, -outward.y, Math.max(18, -outward.z + 28)).setLength(dist);
       lockIdx = index;
       lockPrev.copy(toT);
       if (instant || reduced) {
@@ -845,7 +853,7 @@ export function MapCanvas3D({
         requestRender();
         return;
       }
-      flight = { t0: performance.now(), dur: 650, fromT: controls.target.clone(), toT, fromO, toO };
+      flight = { t0: performance.now(), dur: 800, fromT: controls.target.clone(), toT, fromO, toO };
       requestRender();
     };
 
