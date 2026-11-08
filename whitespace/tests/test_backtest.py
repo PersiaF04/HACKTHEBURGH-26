@@ -239,6 +239,44 @@ def test_model_requires_both_classes():
         LogisticModel().fit(np.zeros((4, 2)), np.zeros(4))
 
 
+# ---- works_for_origin(T): per-origin concept assignment (issue #164) -------------------------
+
+
+def test_works_for_origin_callable_gives_each_origin_its_own_universe():
+    base = generate_works(signal=True, seed=SEED)
+
+    def relabel(w, tag):
+        return Work(w.id, w.date, tuple(f"{c}{tag}" for c in w.concepts))
+
+    def works_for_origin(origin):  # a different concept vocabulary at every origin
+        return [relabel(w, f"_o{origin}") for w in base if w.date.year <= origin + 3]
+
+    cfg = BacktestConfig((2012, 2013), (2016,), (2019,), seed=0, n_boot=5)
+    ctx = {o: origin_context(works_for_origin(o), o, cfg.n_min)[0] for o in (2012, 2013)}
+    assert ctx[2012].names != ctx[2013].names
+    assert all(n.endswith("_o2012") for n in ctx[2012].names) and all(n.endswith("_o2013") for n in ctx[2013].names)
+    result = run_backtest(works_for_origin, cfg, guard=OneShotGuard())
+    assert result["training"]["fit_origins"][2012]["universe"] == len(ctx[2012])
+    assert result["training"]["fit_origins"][2013]["universe"] == len(ctx[2013])
+    assert set(result["manifest"]["n_works"]) == {"2012", "2013", "2016", "2019"}
+    # the same list, passed whole, still works and keeps its numeric n_works
+    assert run_backtest(base, cfg, guard=OneShotGuard())["manifest"]["n_works"] == len(base)
+
+
+def test_return_test_artifacts_is_opt_in_and_guarded(signal_works):
+    cfg = BacktestConfig((2012, 2013), (2016,), (2019,), seed=0, n_boot=5)
+    guard = OneShotGuard()
+    plain = run_backtest(signal_works, cfg, guard=OneShotGuard())
+    assert "artifacts" not in plain
+    res = run_backtest(signal_works, cfg, guard=guard, return_test_artifacts=True)
+    a = res["artifacts"]["2019"]
+    n = res["test"]["2019"]["eligible_universe"]
+    assert len(a["pairs"]) == len(a["calibrated_score"]) == len(a["labels"]) == len(a["starting_weight"]) == n
+    assert a["labels"].sum() == res["test"]["2019"]["strata_base_rates"]["all"]["positives"]
+    assert res["test"] == plain["test"]  # same numbers either way
+    with pytest.raises(OneShotError):  # the guard still fires once
+        run_backtest(signal_works, cfg, guard=guard, return_test_artifacts=True)
+
 # ---- review fixes (PR #158): deployed ranking and one data-label convention ---------------
 
 
