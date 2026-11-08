@@ -4,7 +4,7 @@ import type { GapDetailResponse, GapListResponse, GapSummary, OpenProblemRespons
 import { GapDrawer } from "../components/gaps/GapDrawer";
 import { GapTable } from "../components/gaps/GapTable";
 import type { GapSortKey } from "../components/gaps/GapTable";
-import { OpenProblemsPage } from "./OpenProblemsPage";
+import { OpenProblemsList } from "../components/gaps/OpenProblemsList";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -220,18 +220,37 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
           onSort={handleSort}
           onSelect={setSelected}
         />
-        <div id="open-problems">
-          <OpenProblemsPage
-            response={problems}
-            selectedConcept={problemConcept}
-            onConceptChange={setProblemConcept}
-            selectedType={problemType}
-            onTypeChange={setProblemType}
-            status={problemStatus}
-            errorMessage={problemError}
-            onRetry={() => setProblemRetry((n) => n + 1)}
-          />
-        </div>
+        <section id="open-problems" className="gaps-open" aria-labelledby="gaps-open-h">
+          <h2 id="gaps-open-h">What authors say is still open</h2>
+          <label className="gaps-open__filter">
+            <span>Concept</span>
+            <select value={problemConcept} onChange={(e) => setProblemConcept(e.currentTarget.value)}>
+              <option value="">All concepts</option>
+              {(problems?.concept_options ?? []).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </label>
+          <label className="gaps-open__filter">
+            <span>Type</span>
+            <select value={problemType} onChange={(e) => setProblemType(e.currentTarget.value as typeof problemType)}>
+              <option value="all">All types</option>
+              <option value="open_problem">Open problem</option>
+              <option value="limitation">Limitation</option>
+              <option value="future_work">Future work</option>
+            </select>
+          </label>
+          {problemStatus === "error" ? (
+            <p role="alert" className="ws-error">{problemError ?? "Could not load open problems."}
+              <button type="button" onClick={() => setProblemRetry((n) => n + 1)}>Retry</button></p>
+          ) : problemStatus === "loading" ? (
+            <p role="status" className="ws-muted">Loading open problems…</p>
+          ) : (
+            <OpenProblemsList
+              items={problems?.items ?? []}
+              rates={problems?.rates_by_year ?? null}
+              conceptLabel={(problems?.concept_options ?? []).find((c) => c.id === problemConcept)?.label ?? null}
+            />
+          )}
+        </section>
       </div>
 
       <GapDrawer
