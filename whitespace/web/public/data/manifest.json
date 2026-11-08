@@ -1,0 +1,162 @@
+{
+  "synthetic": false,
+  "real_run": true,
+  "data_label": "real",
+  "corpus": {
+    "query": null,
+    "counts": {
+      "2007": 18,
+      "2008": 50,
+      "2009": 200,
+      "2010": 34615,
+      "2011": 33166,
+      "2012": 35149,
+      "2013": 37302,
+      "2014": 37646,
+      "2015": 37720,
+      "2016": 38411,
+      "2017": 41249,
+      "2018": 50448,
+      "2019": 59537,
+      "2020": 68644,
+      "2021": 77899,
+      "2022": 82957,
+      "2023": 95660,
+      "2024": 639,
+      "2025": 139,
+      "2026": 62
+    },
+    "retrieved_at": null,
+    "topic_assignment_vintage": null,
+    "n_works": {
+      "2010": 140500,
+      "2011": 178146,
+      "2012": 215866,
+      "2013": 254277,
+      "2014": 295526,
+      "2017": 474155,
+      "2020": 730671
+    }
+  },
+  "origins": {
+    "fit": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014
+    ],
+    "calibration": [
+      2017
+    ],
+    "test": [
+      2020
+    ]
+  },
+  "seed": 0,
+  "config": {
+    "fit_origins": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014
+    ],
+    "calibration_origins": [
+      2017
+    ],
+    "test_origins": [
+      2020
+    ],
+    "seed": 0,
+    "l2": 1.0,
+    "neg_ratio": 10,
+    "n_min": 30,
+    "horizon": 3,
+    "ks": [
+      100,
+      1000
+    ],
+    "n_boot": 200
+  },
+  "config_hash": "f88c67dc1135341539a63fe47daa10f73ccd527d688ec4340d46c2d23177042b",
+  "link_threshold": 3,
+  "code_commit": "93448d23a063b88ee056ac1a86bd1cb88e8e60da",
+  "library_versions": {
+    "python": "3.14.5",
+    "numpy": "2.5.4",
+    "pytest": "9.2.0"
+  },
+  "files": {
+    "backtest.json": "171fe67e1f9bab79273c90d6345f060548c68933cc1e278fe8dec0e9e523b74c",
+    "concepts.json": "c0cdef654a23abf5e0c65e25f3d8ae520333a8e858d06696ab401c1f39fef673",
+    "coverage-2015.json": "75499790c4ade14467cd31d9891a9c4524d97f3419e6734e77007ca771e6a1c6",
+    "coverage-2016.json": "d915febee9d9a3a8c204e5e1e8e03dcfa6fb7c20b80711b8966c9afe7520d272",
+    "coverage-2017.json": "a3e2e636fe5cae1345a3e49ad4be9eaa0a9111fe104bd8e108b51197f52b1055",
+    "coverage-2018.json": "6c6dfbbc30bcfbcba35ca3ddfe9ded3503daf532e951b95de14a910526391676",
+    "coverage-2019.json": "f0f251c914a244463195329eef72af1354cf6ae82d2270ec6ec0b52e7deb0c2b",
+    "coverage-2020.json": "eeaa7edddb1b8389b3fbb92a5c1c9e1253514ac74dacef1718dd28585e715114",
+    "coverage-2021.json": "460a82605b9b56dd089828dda885af91c97d6e0ff5b3e521e02e3f6aca6db966",
+    "coverage-2022.json": "dace165b59f23da4be401caf37db5195fa9964bde185bd68fac101d0de3c006f",
+    "coverage-2023.json": "c6b0e836df6f83339c2c71e287fca757fa9ea8d35ff54d80d92e0a74abcc8851",
+    "coverage-2024.json": "9c6eb81bc10d4d753d2b14893dd38aa4c1cf4bb6b81269c20e49f9b9284b8912",
+    "coverage-2025.json": "16ce2e0fca4eed19dcaf21e11583de83cb09478dfe682487aed96ae94744d2b0",
+    "coverage-2026.json": "5e482b031cf65ada49611335fd77e8b666d226f2526584f551ad2934fe820938",
+    "gap-details.json": "e9a8eff4637814bddcdee090aa2ee02dc0713d02a9e5986c85cc7c826a5a11fa",
+    "gaps.json": "1d3ebbd4355a99fe798a05148c69955dccdcb45bd501a9798f64eef7c9f9d7a1",
+    "map-2015.json": "24638f3ba051e272326d95dbb23abd2e7a174498a5100084cecd053fbfb4f04c",
+    "map-2016.json": "2a97ae5b9c624ed759050f1c33580eb3be783ccd0be0de473fd17c4e1a946452",
+    "map-2017.json": "331b75b433d557248772795e7fd27b6ab955ea88f80a5395becb34987e0662df",
+    "map-2018.json": "43877b09806641bd6e09da216ebbaaef9bcb4f327d1784abcbce9e7b7efbdea4",
+    "map-2019.json": "be988b4748072c10274772a383bd3195a5d23de065cb39def83c2e1597fe67df",
+    "map-2020.json": "80ecd7272b45905109577857d47e4b6dae8789b6777bee415ad2b9df61f07c1b",
+    "map-2021.json": "ad7557455641297d92af1500eb8b37434d97bcce67eabada34b79c377790fcf9",
+    "map-2022.json": "f652cd2ff7fc3472fc1a7ef67880c8a5633614951cedeb7b8acc6e0ac9310f31",
+    "map-2023.json": "5b3ccb6eae197845469e7ca5b81cca740cdfe7db52823f8f4970d7c8e2f1c3f3",
+    "map-2024.json": "ba6ba2c4e4003107f7d93014d02543f5ec2b5240903626a078f7dc432500c61a",
+    "map-2025.json": "bc5e049001339a9a47deecde2491289a79740e89f840fafaea8843fb6bfb2ad0",
+    "map-2026.json": "73e1c9d07195e097353f72e31f0c1d199db2f2921f55b5f7465b05763d729114",
+    "meta.json": "64ef84ab47cd9fa39fdced4d0f8512401d0304e331fd8d40eaae885f3e6d4552",
+    "open-problems.json": "83f1a92e76131ea6a3b455ff1d973ed189d5dad700b28a0f977af4763d217587",
+    "search.json": "9a476d3f0dec809d786be6edcc10f062e2bad43190eaa1556124a450423a13fb",
+    "routes.json": "10eba37ab8c7e3e88cd59b73c89d55f4ffa11f512e5a65449738a82613413b7e"
+  },
+  "export": {
+    "synthetic": false,
+    "synthetic_reasons": [],
+    "corpus_last_year": 2026,
+    "map_years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "run_dir_config_hash": "811f8e0c657789080ed754c02ed747a1b9b94efdbf14eae4bcdf9ab55e195fd0",
+    "corpus_sha256": "d0d42526e68159f9e81884e850ec0e42445b494185d74011f5384ec4d5efa6ad",
+    "production_model_equals_backtest_model": true,
+    "production_trained_on": {
+      "fit_origins": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014
+      ],
+      "calibration_origins": [
+        2017
+      ],
+      "test_origins_used": []
+    },
+    "coverage_source": "code join output (papers.csv, coverage.json)",
+    "titles_available": true,
+    "path_check": null
+  }
+}

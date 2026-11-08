@@ -1,0 +1,459 @@
+{
+ "average_precision": 0.6875595297953053,
+ "base_rate": 0.28104300059941395,
+ "baselines": {
+  "adamic_adar": {
+   "average_precision": 0.6064391821579653,
+   "pr_auc": null,
+   "precision_at_100": 0.96,
+   "roc_auc": 0.8049856552635648
+  },
+  "current_weight": {
+   "average_precision": 0.5983782407643273,
+   "pr_auc": null,
+   "precision_at_100": 0.66,
+   "roc_auc": 0.8184195749538651
+  },
+  "degree_product": {
+   "average_precision": 0.5865400664610629,
+   "pr_auc": null,
+   "precision_at_100": 1.0,
+   "roc_auc": 0.7901921971491491
+  },
+  "preferential_attachment": {
+   "average_precision": 0.5840574069828813,
+   "pr_auc": null,
+   "precision_at_100": 0.91,
+   "roc_auc": 0.7925435137956726
+  }
+ },
+ "by_starting_weight": {
+  "0": {
+   "average_precision": 0.1544844812354293,
+   "base_rate": 0.05577683486013164,
+   "baselines": {
+    "adamic_adar": {
+     "average_precision": 0.23969588610622256,
+     "pr_auc": null,
+     "precision_at_100": 0.64,
+     "roc_auc": 0.8399902483711335
+    },
+    "current_weight": {
+     "average_precision": 0.055510956637327045,
+     "pr_auc": null,
+     "precision_at_100": 0.05,
+     "roc_auc": 0.49894564973423033
+    },
+    "degree_product": {
+     "average_precision": 0.22402222627677917,
+     "pr_auc": null,
+     "precision_at_100": 0.67,
+     "roc_auc": 0.8241976730900367
+    },
+    "preferential_attachment": {
+     "average_precision": 0.21599483787938512,
+     "pr_auc": null,
+     "precision_at_100": 0.57,
+     "roc_auc": 0.8250540679123468
+    }
+   },
+   "pr_auc": null,
+   "precision_at_100": 0.53,
+   "roc_auc": 0.7958117919574952
+  },
+  "1": {
+   "average_precision": 0.4434312750896849,
+   "base_rate": 0.28374788179375904,
+   "baselines": {
+    "adamic_adar": {
+     "average_precision": 0.5222132541970643,
+     "pr_auc": null,
+     "precision_at_100": 0.87,
+     "roc_auc": 0.7472399258820387
+    },
+    "current_weight": {
+     "average_precision": 0.28373075389613805,
+     "pr_auc": null,
+     "precision_at_100": 0.27,
+     "roc_auc": 0.5004141381303081
+    },
+    "degree_product": {
+     "average_precision": 0.49794751055091585,
+     "pr_auc": null,
+     "precision_at_100": 0.9,
+     "roc_auc": 0.7255336017567553
+    },
+    "preferential_attachment": {
+     "average_precision": 0.502209828390275,
+     "pr_auc": null,
+     "precision_at_100": 0.84,
+     "roc_auc": 0.7338294754336334
+    }
+   },
+   "pr_auc": null,
+   "precision_at_100": 0.89,
+   "roc_auc": 0.7046838189611024
+  },
+  "2": {
+   "average_precision": 0.7774898046482108,
+   "base_rate": 0.6659578430913605,
+   "baselines": {
+    "adamic_adar": {
+     "average_precision": 0.8202810652955598,
+     "pr_auc": null,
+     "precision_at_100": 0.97,
+     "roc_auc": 0.7142881057931292
+    },
+    "current_weight": {
+     "average_precision": 0.6666389925732172,
+     "pr_auc": null,
+     "precision_at_100": 0.66,
+     "roc_auc": 0.5006032213498136
+    },
+    "degree_product": {
+     "average_precision": 0.8075199866110172,
+     "pr_auc": null,
+     "precision_at_100": 1.0,
+     "roc_auc": 0.6942587834123928
+    },
+    "preferential_attachment": {
+     "average_precision": 0.8117026511443726,
+     "pr_auc": null,
+     "precision_at_100": 0.95,
+     "roc_auc": 0.70376785727622
+    }
+   },
+   "pr_auc": null,
+   "precision_at_100": 1.0,
+   "roc_auc": 0.6703207957940234
+  },
+  "all": {
+   "average_precision": 0.6875595297953053,
+   "base_rate": 0.28104300059941395,
+   "baselines": {
+    "adamic_adar": {
+     "average_precision": 0.6064391821579653,
+     "pr_auc": null,
+     "precision_at_100": 0.96,
+     "roc_auc": 0.8049856552635648
+    },
+    "current_weight": {
+     "average_precision": 0.5983782407643273,
+     "pr_auc": null,
+     "precision_at_100": 0.66,
+     "roc_auc": 0.8184195749538651
+    },
+    "degree_product": {
+     "average_precision": 0.5865400664610629,
+     "pr_auc": null,
+     "precision_at_100": 1.0,
+     "roc_auc": 0.7901921971491491
+    },
+    "preferential_attachment": {
+     "average_precision": 0.5840574069828813,
+     "pr_auc": null,
+     "precision_at_100": 0.91,
+     "roc_auc": 0.7925435137956726
+    }
+   },
+   "pr_auc": null,
+   "precision_at_100": 1.0,
+   "roc_auc": 0.8669331765904394
+  }
+ },
+ "calibration": {
+  "bins": [
+   {
+    "count": 394386,
+    "observed": 0.002647152789399218,
+    "predicted": 0.0028042792594385278
+   },
+   {
+    "count": 394386,
+    "observed": 0.012857961489505205,
+    "predicted": 0.008615204365041184
+   },
+   {
+    "count": 394385,
+    "observed": 0.041205928217351064,
+    "predicted": 0.015673485761447174
+   },
+   {
+    "count": 394385,
+    "observed": 0.0885023517628713,
+    "predicted": 0.024312258667441994
+   },
+   {
+    "count": 394385,
+    "observed": 0.14010674848181345,
+    "predicted": 0.04218014948161561
+   },
+   {
+    "count": 394385,
+    "observed": 0.2329246801982834,
+    "predicted": 0.07486691963633428
+   },
+   {
+    "count": 394385,
+    "observed": 0.3632009330983684,
+    "predicted": 0.11775843658847855
+   },
+   {
+    "count": 394385,
+    "observed": 0.4852948261216831,
+    "predicted": 0.21152124251137297
+   },
+   {
+    "count": 394385,
+    "observed": 0.6615058889156535,
+    "predicted": 0.3495597670192716
+   },
+   {
+    "count": 394385,
+    "observed": 0.7821849208260964,
+    "predicted": 0.5323309790969353
+   }
+  ],
+  "note": "Platt-calibrated probabilities on the test origin; empty bins omitted; Brier 0.1644; Brier skill 0.1862; ECE 0.1431"
+ },
+ "code_link_evaluation": {
+  "correct_matches": null,
+  "interval_method": null,
+  "lower": null,
+  "precision": null,
+  "protocol": null,
+  "sample_composition": null,
+  "sample_size": null,
+  "upper": null
+ },
+ "data_label": "real",
+ "hits": [
+  {
+   "a": "cognitive",
+   "b": "self attention",
+   "score": 0.9974145959842511,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "high dimensional",
+   "b": "self attention",
+   "score": 0.9970902920714404,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "organization",
+   "b": "self attention",
+   "score": 0.9970675484904853,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "self attention",
+   "b": "validation",
+   "score": 0.9970048650859975,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "physical",
+   "b": "self attention",
+   "score": 0.9969226898112767,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "monitoring",
+   "b": "self attention",
+   "score": 0.9963608969554532,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "discovery",
+   "b": "self attention",
+   "score": 0.9963074872677067,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "center",
+   "b": "self attention",
+   "score": 0.9962967176643577,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "equation",
+   "b": "self attention",
+   "score": 0.9962425866415314,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "autonomous",
+   "b": "self attention",
+   "score": 0.996125089522468,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "big data",
+   "b": "self attention",
+   "score": 0.9960388024493281,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "self attention",
+   "b": "variance",
+   "score": 0.9959877318694097,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "feasible",
+   "b": "self attention",
+   "score": 0.9959650417116983,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "creation",
+   "b": "self attention",
+   "score": 0.995954021569802,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "desired",
+   "b": "self attention",
+   "score": 0.9959206913755991,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "self attention",
+   "b": "today",
+   "score": 0.9958582890278062,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "participant",
+   "b": "self attention",
+   "score": 0.9958542540865023,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "already",
+   "b": "self attention",
+   "score": 0.9957983409343277,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "descent",
+   "b": "self attention",
+   "score": 0.9957396762680173,
+   "starting_weight": 2,
+   "year": 2021
+  },
+  {
+   "a": "posterior",
+   "b": "self attention",
+   "score": 0.9957087735755921,
+   "starting_weight": 2,
+   "year": 2021
+  }
+ ],
+ "hits_note": "Year is the calendar year of the work that took the pair to the link threshold, from work dates (arXiv-id month where available).",
+ "kind": "held_out_backtest",
+ "meta": {
+  "config_hash": "f88c67dc1135341539a63fe47daa10f73ccd527d688ec4340d46c2d23177042b",
+  "data_label": "real",
+  "examples_available": true,
+  "hits_note": "Year is the calendar year of the work that took the pair to the link threshold, from work dates (arXiv-id month where available).",
+  "test_origin": 2020
+ },
+ "misses": [
+  {
+   "a": "self attention",
+   "b": "wordnet",
+   "score": 0.9910919128574088,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "self attention",
+   "b": "voting",
+   "score": 0.9909948936399414,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "colony",
+   "b": "generative adversarial",
+   "score": 0.9864564669877712,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "self attention",
+   "b": "un",
+   "score": 0.9857678449844984,
+   "starting_weight": 1,
+   "year": null
+  },
+  {
+   "a": "derivation",
+   "b": "self attention",
+   "score": 0.9855124078893389,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "domain ontology",
+   "b": "self attention",
+   "score": 0.9842364257713996,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "cost function",
+   "b": "self attention",
+   "score": 0.9840683833667254,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "diagram",
+   "b": "self attention",
+   "score": 0.983564987501369,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "feature selection method",
+   "b": "self attention",
+   "score": 0.9827622633228952,
+   "starting_weight": 2,
+   "year": null
+  },
+  {
+   "a": "self attention",
+   "b": "statistical method",
+   "score": 0.980780949625834,
+   "starting_weight": 2,
+   "year": null
+  }
+ ],
+ "note": "Held-out test (scored once on the frozen model). The production forecast is gaps.json, a separate file.",
+ "placeholder": false,
+ "pr_auc": null,
+ "precision_at_100": 1.0,
+ "roc_auc": 0.8669331765904394,
+ "synthetic": false
+}
