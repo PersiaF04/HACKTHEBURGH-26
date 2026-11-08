@@ -6,7 +6,6 @@ type Props = {
   branch?: BranchInfo;
   hypothesis?: GapSummary;
   onSelectConcept: (id: string) => void;
-  onClose: () => void;
 };
 
 /** Growth is a log ratio in the export; fmtGrowth converts it to a percentage that cannot fall below -100%. */
@@ -22,7 +21,7 @@ const goToGaps = (event: React.MouseEvent) => {
 };
 
 /** Detail for a clicked branch hub or hypothesis node on the graph. Branches are derived in the app. */
-export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Props) {
+export function BranchPanel({ branch, hypothesis, onSelectConcept }: Props) {
   if (hypothesis) {
     return (
       <aside className="whitespace-concept ex__right" aria-label="Hypothesis details" aria-live="polite">
@@ -43,7 +42,6 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Pr
           </ul>
           <p className="whitespace-help">A predicted link, not a finding. <a href="/gaps" onClick={goToGaps}>Open the Gap finder</a> for the score breakdown.</p>
         </section>
-        <button type="button" className="ws-link-button" onClick={onClose}>Clear selection</button>
       </aside>
     );
   }
@@ -87,7 +85,6 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Pr
         </ul>
         {branch.total > 12 && <p className="whitespace-help">Showing the 12 largest of {fmtInt(branch.total)} sub-areas.</p>}
       </section>
-      <button type="button" className="ws-link-button" onClick={onClose}>Clear selection</button>
     </aside>
   );
 }

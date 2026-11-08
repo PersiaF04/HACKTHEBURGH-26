@@ -265,14 +265,14 @@ export function MapCanvas3D({
     const controls = new OrbitControls(camera, canvas);
     controls.target.copy(TARGET);
     controls.enableDamping = !reduced;
-    controls.dampingFactor = 0.08;
+    controls.dampingFactor = 0.1;
     controls.rotateSpeed = 0.8;
     controls.enablePan = true;
     controls.screenSpacePanning = true;
     controls.zoomToCursor = true;
     controls.minDistance = 8;
     controls.maxDistance = 400;
-    controls.zoomSpeed = 0.7;
+    controls.zoomSpeed = 0.8;
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.update();
 
@@ -486,6 +486,34 @@ export function MapCanvas3D({
       updateOverlay();
     };
 
+    // Zooming toward the cursor moves the orbit target; without a guard it can wander off the graph and
+    // leave you looking at empty space. Keep the target inside the graph, and drift it back to the centre
+    // as you zoom out, panning camera and target together so the view only slides, never turns.
+    let prevDist = camera.position.distanceTo(controls.target);
+    let boundsFor: unknown = null, boundsR = 100;
+    const keepInView = () => {
+      const d = live.current.data;
+      if (boundsFor !== d) {
+        boundsFor = d;
+        let r = 20;
+        for (let i = 0; i < d.n; i += 1) r = Math.max(r, Math.hypot(d.pos[i * 3] - d.center.x, d.pos[i * 3 + 1] - d.center.y, d.pos[i * 3 + 2] - d.center.z));
+        boundsR = r;
+      }
+      const dist = camera.position.distanceTo(controls.target);
+      const off = v.copy(controls.target).sub(d.center);
+      const limit = boundsR * 0.85;
+      let shift = 0;
+      const len = off.length();
+      if (dist > prevDist * 1.0005 && len > 0.01) shift = Math.min(len, len * Math.min(0.5, ((dist - prevDist) / dist) * 3)); // zooming out: slide back to the centre
+      if (len - shift > limit) shift = len - limit; // never let the target leave the graph
+      if (shift > 0) {
+        off.setLength(shift);
+        controls.target.sub(off);
+        camera.position.sub(off);
+      }
+      prevDist = camera.position.distanceTo(controls.target);
+    };
+
     const loop = (now: number) => {
       rafId = 0;
       let flying = false;
@@ -499,6 +527,7 @@ export function MapCanvas3D({
         dirty = true;
       }
       const moved = controls.update();
+      if (moved && !flying) keepInView();
       if (moved || dirty) {
         dirty = false;
         projDirty = true;
@@ -595,6 +624,9 @@ export function MapCanvas3D({
     canvas.addEventListener("pointerleave", onLeave);
     const onDouble = (e: MouseEvent) => { if (hit(e.clientX, e.clientY) < 0) resetView(); };
     canvas.addEventListener("dblclick", onDouble);
+    // A wheel turn takes over from any camera flight so the two never fight.
+    const onWheel = () => { flight = null; };
+    canvas.addEventListener("wheel", onWheel, { passive: true });
 
     const zoom = (factor: number) => {
       flight = null;
@@ -825,6 +857,7 @@ export function MapCanvas3D({
       window.removeEventListener("pointercancel", onCancel);
       canvas.removeEventListener("pointerleave", onLeave);
       canvas.removeEventListener("dblclick", onDouble);
+      canvas.removeEventListener("wheel", onWheel);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       stage.removeEventListener("keydown", onKey);
