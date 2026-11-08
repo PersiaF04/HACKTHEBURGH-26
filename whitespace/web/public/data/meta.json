@@ -34,7 +34,7 @@
  "open_problems": {
   "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
   "items": 923,
-  "note": "Extraction quality is unmeasured: sentences were picked by a regex prefilter and have not been hand-labelled, so some are not real author-stated open problems.",
+  "note": "Extraction quality was measured on a 100-sentence sample labelled by an AI reviewer (Claude), not by a human; it is not human-validated. AI-labelled precision: 36/100 overall (UNSURE counted as not correct; 36/94 excluding UNSURE). By type, on a stratified sample: open_problem 25/34, future_work 8/33, limitation 3/33 (small-sample estimates). The sample has equal numbers per type, so 36/100 is not the precision over all 923 sentences: open_problem sentences are mostly right, while future_work and limitation sentences are often survey boilerplate or limitations of prior work. Sentences were picked by a regex prefilter, so some are not real author-stated open problems.",
   "quality": "unmeasured",
   "rates": "display only: not used in gap_score or the backtest"
  },
