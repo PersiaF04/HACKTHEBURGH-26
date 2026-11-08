@@ -163,9 +163,13 @@ h1, h2, h3 { font-family: var(--ws-sans); letter-spacing: -.01em; color: var(--w
 .coverage-selection ul { display: grid; gap: 8px; padding-left: 20px; }
 .coverage-selection a { color: var(--ws-accent); }
 .app-error { border-color: var(--ws-error); color: var(--ws-error); }
-.onboarding-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--ws-ink) 42%, transparent); }
+.onboarding-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: transparent; }
+.onboarding-backdrop--top { align-items: start; }
+.onboarding-backdrop--bottom { align-items: end; }
+@media (min-width: 1101px) { .onboarding-backdrop { align-items: center; } }
+.onboarding__status { min-height: 1.4em; margin-top: 8px; color: var(--ws-muted); font-size: 13px; }
 .onboarding-backdrop + * { isolation: isolate; }
-[data-tour-highlight="true"] { position: relative; z-index: 51; outline: 3px solid var(--ws-accent); outline-offset: 5px; border-radius: 12px; box-shadow: 0 0 0 9999px color-mix(in srgb, var(--ws-ink) 20%, transparent), 0 0 0 7px color-mix(in srgb, var(--ws-accent) 25%, transparent); transition: outline-color .18s ease, box-shadow .18s ease; }
+[data-tour-highlight="true"] { position: relative; z-index: 49; outline: 3px solid var(--ws-accent); outline-offset: 5px; border-radius: 12px; box-shadow: 0 0 0 9999px color-mix(in srgb, var(--ws-ink) 42%, transparent), 0 0 0 7px color-mix(in srgb, var(--ws-accent) 25%, transparent); transition: outline-color .18s ease, box-shadow .18s ease; }
 .onboarding { width: min(490px, 100%); padding: 24px; border: 1px solid var(--ws-border-strong); border-radius: 16px; background: var(--ws-surface); box-shadow: 0 24px 60px var(--ws-shadow); }
 .onboarding__topline { display: flex; justify-content: space-between; gap: 12px; color: var(--ws-muted); font: 600 12px/1.3 var(--ws-mono); text-transform: uppercase; letter-spacing: .04em; }
 .onboarding h2 { margin: 18px 0 8px; font-size: clamp(22px, 4vw, 28px); line-height: 1.15; }
