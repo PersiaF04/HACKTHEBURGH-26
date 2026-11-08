@@ -525,3 +525,43 @@ def test_headline_source_says_the_numbers_are_the_backtest_models(dry):
     src = meta["headline_source"]
     assert src.startswith("held-out backtest (backtest.json)") and "scores the backtest model" in src
     assert "production forecast (gaps.json) has no result" in src and "its model may differ" in src
+
+
+def test_last_year_caps_every_snapshot_and_states_the_exclusion(dry, tmp_path):
+    from whitespace.pipeline.export_map_gaps import visible_works
+    result = E.export_run(dry, tmp_path / "o", production_model="frozen", last_year=2018, **KW)
+    assert result["problems"] == [] and result["years"] == list(range(2015, 2019))
+    out = tmp_path / "o"
+    assert not (out / "map-2019.json").exists() and (out / "map-2018.json").exists()
+    assert read(out / "manifest.json")["export"]["corpus_last_year"] == 2018
+    routes = read(out / "routes.json")
+    assert routes["corpus_last_year"] == 2018 and routes["map_years"] == [2015, 2016, 2017, 2018]
+    assert read(out / "meta.json")["year_range"] == {"min": 2015, "max": 2018}
+    # the real-shaped builders: snapshot, concepts and note all use the cap; later works are cut
+    run = E.load_run(dry)
+    trained, _ = E.train_frozen(run)
+    built = E.build_real_files(run, trained, [2017, 2018], **KW)
+    assert built["gaps.json"]["snapshot_year"] == 2018 and built["concepts.json"]["year"] == 2018
+    assert "2018 snapshot, the last year in this export" in built["gaps.json"]["label"]
+    after = 707 + 778  # records dated 2019 and 2020 in the dry corpus
+    corpus = built["meta.json"]["corpus"]
+    assert corpus["records_after_last_year_excluded"] == after == E.records_after(run, 2018)
+    assert f"holds {after} records dated 2019 to 2020" in corpus["note"] and "excluded" in corpus["note"]
+    full = len(visible_works(R.load_works(dry, 2020), 2020))
+    assert built["meta.json"]["counts"]["works"] == len(visible_works(R.load_works(dry, 2018), 2018)) < full
+
+
+def test_last_year_at_or_above_the_corpus_end_changes_nothing(dry, tmp_path):
+    base = E.export_run(dry, tmp_path / "a", **KW)
+    for n in (None, 2020, 2031):
+        r = E.export_run(dry, tmp_path / f"b{n}", last_year=n, **KW)
+        assert r["years"] == base["years"] == list(range(2015, 2021)) and r["problems"] == []
+        assert read(tmp_path / f"b{n}" / "meta.json") == read(tmp_path / "a" / "meta.json")
+
+
+def test_last_year_too_low_is_an_export_error(dry, tmp_path):
+    with pytest.raises(E.ExportError, match="after the last exported year"):
+        E.export_run(dry, tmp_path / "a", last_year=2014, **KW)
+    with pytest.raises(E.ExportError, match="calibration origin"):
+        E.export_run(dry, tmp_path / "b", last_year=2019, **KW)  # through-2020 needs 2017 + 3
+    assert not (tmp_path / "a").exists() or not any((tmp_path / "a").iterdir())
