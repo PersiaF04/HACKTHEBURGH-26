@@ -98,7 +98,14 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   }), [map.concepts, filters.minPapers, filters.growth, offAreas]);
   const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
   const shownNodes = useMemo(
-    () => (hierarchy ? hierarchy.nodes.filter((n) => n.kind !== "concept" || visibleIds.has(n.id)) : visible),
+    () => (hierarchy
+      ? hierarchy.nodes.filter((n) => {
+        if (n.kind === "concept") return visibleIds.has(n.id);
+        // A hypothesis needs both of its concepts on screen, so filters never leave it floating alone.
+        if (n.kind === "hypothesis") return n.id.slice(4).split("|").every((id) => visibleIds.has(id));
+        return true;
+      })
+      : visible),
     [hierarchy, visible, visibleIds],
   );
   const shownStructure = useMemo(() => {
@@ -137,8 +144,10 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   }
 
   const nothing = skeleton || !live;
+  const kindCount = (kind: string) => shownNodes.filter((n) => (n as { kind?: string }).kind === kind).length;
+  const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts, ${fmtInt(kindCount("branch"))} branches, ${fmtInt(kindCount("hypothesis"))} hypotheses` : "";
   const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
-    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? `${fmtInt(shownNodes.filter((n) => (n as { kind?: string }).kind === "concept").length)} drawn in the graph` : "Dots on the map" },
+    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
     { label: "Links", value: nothing || !hasLinked ? fmtInt(null) : fmtInt(linkedEdges.length), help: STAT_HELP.links, caption: "Pairs sharing 3+ papers" },
     { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
     { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
@@ -203,7 +212,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
             {hierarchy && (
               <div className="ex__perbranch">
                 <label htmlFor="ex-per-branch">Concepts per branch</label>
-                <input id="ex-per-branch" type="range" min={10} max={300} step={10} value={perBranch} onChange={(e) => setPerBranch(Number(e.currentTarget.value))} />
+                <input id="ex-per-branch" type="range" min={10} max={1000} step={10} value={perBranch} onChange={(e) => setPerBranch(Number(e.currentTarget.value))} />
                 <span className="whitespace-mono">{perBranch}</span>
               </div>
             )}

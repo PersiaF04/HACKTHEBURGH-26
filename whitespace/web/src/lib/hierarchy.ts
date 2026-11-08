@@ -18,7 +18,7 @@ export type Hierarchy = {
 };
 
 const K = 7;
-const RING = 2.3; // hub ring radius; a branch itself is about 0.45 wide, so the branches sit well apart
+const RING = 4.2; // hub ring radius; a branch is about 2.7 wide, so the branches sit well apart
 export const DEFAULT_PER_BRANCH = 60;
 export const BRANCH_PREFIX = "branch:";
 export const HYPOTHESIS_PREFIX = "hyp:";
@@ -152,7 +152,7 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
     ids.forEach((id, i) => {
       const n = byId.get(id)!;
       const ang = i * 2.399963 + Math.atan2(at.y, at.x);
-      const rad = 0.05 + 0.4 * Math.sqrt((i + 1) / ids.length);
+      const rad = 0.25 + 1.1 * Math.sqrt((i + 1) / ids.length);
       n.x = at.x + Math.cos(ang) * rad;
       n.y = at.y + Math.sin(ang) * rad;
     });
