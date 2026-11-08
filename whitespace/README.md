@@ -1,6 +1,11 @@
 ﻿# Whitespace pipeline
 
-Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data and no results: nothing here is a measured forecast, and no claim of accuracy is made until a purged backtest has been run once, after the code freeze.
+Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data. Unit tests use synthetic corpora only; one real run (2020 test) was scored once at frozen SHA 93448d2, see [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122).
+
+## Data licences
+
+- **OpenAlex:** CC0. Attribution is a courtesy. Topic assignments come from OpenAlex's current topic classifier (a later vintage than the papers).
+- **Papers with Code archive:** [pwc-archive/links-between-paper-and-code](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code) on Hugging Face, snapshot of 28 July 2025, CC BY-SA 4.0. Modified by Whitespace: joined to OpenAlex works and aggregated by concept and year. Coverage is a lower bound. Raw abstracts are not published.
 
 ## Layout
 
@@ -50,7 +55,7 @@ Not implemented here: the PRD's embedding-based near-duplicate merge (cosine abo
 
 ## Backtest runner and `metrics.json` (issue #151)
 
-**No real result exists.** The model and runner have only ever seen synthetic corpora from `pipeline/synthetic.py` (a planted latent-topic signal, and a null version without it). The tests show the harness behaves; they say nothing about real literature or forecast quality.
+**Unit tests use synthetic corpora only.** They come from `pipeline/synthetic.py` (a planted latent-topic signal, and a null version without it). The tests show the harness behaves; they say nothing about real literature or forecast quality. One real run (2020 test) was scored once at frozen SHA 93448d2, see [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122).
 
 `backtest.run_backtest(works, BacktestConfig(fit_origins, calibration_origins, test_origins, ...))`:
 

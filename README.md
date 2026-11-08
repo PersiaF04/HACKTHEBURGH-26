@@ -13,13 +13,13 @@
 
 **See where AI research is going, and the questions nobody has answered yet.**
 
-**Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)**
+**Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)** (placeholder data until the real export lands)
 
-Whitespace is a research-discovery tool for AI/ML literature. It builds a concept graph from OpenAlex works in AI (subfield 1702), follows how it changes year by year, and ranks the concept pairs that aren't linked yet by how likely they are to become linked within three years. Alongside the forecast it shows where published work has no linked code in the Papers with Code archive. Mining the open problems authors state is planned, not built.
+Whitespace is a research-discovery tool for AI research. It builds a concept graph from OpenAlex works whose primary subfield is Artificial Intelligence (subfield 1702), 2010-2023, follows how it changes year by year, and ranks the concept pairs that aren't linked yet by how likely they are to become linked within three years. Alongside the forecast it shows where published work has no linked code in the Papers with Code archive. Mining the open problems authors state is planned, not built.
 
 Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
-> **Status:** the real-data run is in progress. Until it finishes, the site shows placeholder data, labelled as such on every page. The forecast is evaluated once, on a held-out test year. No result is claimed until it's recorded, and it's published whichever way it falls.
+> **Status:** the real run has been scored once (2020 test year, see [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122)), but the export is not merged yet, so the site still shows placeholder data, labelled as such on every page. The forecast is evaluated once on a held-out test year, and the result is published whichever way it falls.
 
 ![Whitespace research map](docs/images/research-map.png)
 
@@ -34,7 +34,7 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 ## What it does
 
 - **Explore:** a research map of the latest snapshot year. Concepts are sized by paper count and coloured by growth. Open a concept to see its trend, predicted gaps and top papers. Search and the open-problems view are placeholders for now.
-- **Gaps:** unlinked concept pairs ranked by the calibrated probability that they link within three years, with score components and supporting papers.
+- **Gaps:** unlinked concept pairs ranked by the Platt-scaled link probability (calibration is imperfect: see Evidence) that they link within three years, with score components and supporting papers.
 - **Evidence** (at `/evidence`): the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
 - **Code coverage** (at `/coverage`): a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
 
@@ -111,7 +111,7 @@ Every merge to `main` that changes `whitespace/web/` deploys production through 
 - **Papers:** [OpenAlex](https://openalex.org) metadata (CC0). Raw abstracts aren't committed or published.
 - **Code links:** the [Papers with Code archive](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code) (CC BY-SA 4.0, snapshot of 28 July 2025). Coverage is a lower bound: a paper without a link has no code in that archive, not necessarily no code at all. Papers after mid-2025 will look unlinked.
 - **Links:** a "link" means co-occurrence in at least three papers. It measures attention, not importance or truth.
-- **Prior art:** forecasting concept pairs isn't new; see, for example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881). Whitespace's contribution is the leakage-safe evaluation and turning the forecast into a decision tool.
+- **Prior art:** forecasting concept pairs isn't new; see, for example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881). ERLA (IC Hack 26) is a related project; this is based only on its Devpost entry and repository, not on a detailed comparison. Whitespace's contribution is the purged out-of-sample evaluation (residual: topic assignments are a post-October-2026 snapshot) and turning the forecast into a decision tool.
 
 ## Team
 
