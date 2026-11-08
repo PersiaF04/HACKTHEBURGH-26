@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, MOCK_META, MOCK_NOTICE } from "./api";
+import { api, MOCK_META } from "./api";
 import type { BacktestResponse, CoverageResponse, GapDetailResponse, GapListResponse, MapResponse, MetaResponse, OpenProblemResponse, SearchResponse } from "./api";
 import { Explore } from "./pages/Explore";
 import { GapsPage } from "./pages/Gaps";
@@ -7,14 +7,17 @@ import { OpenProblemsPage } from "./pages/OpenProblemsPage";
 import EvidencePage from "./pages/Evidence";
 import { CoveragePage } from "./pages/CoveragePage";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
+import { PaperLink } from "./components/PaperLink";
 
+// Routes stay mounted; only the first two are linked in the header.
 const sections = [
   ["/", "Explore"],
-  ["/gaps", "Gap finder"],
-  ["/open-problems", "Open problems"],
+  ["/gaps", "Gaps & open problems"],
+  ["/open-problems", "Gaps & open problems"],
   ["/evidence", "Evidence"],
   ["/coverage", "Code coverage"],
 ] as const;
+const navTabs = [["/", "Explore"], ["/gaps", "Gaps & open problems"]] as const;
 
 function currentPath() {
   return window.location.pathname;
@@ -96,32 +99,37 @@ export default function App() {
         : path === "/coverage" ? coverage?.placeholder ?? true
           : backtest?.placeholder ?? true;
   const yearRange = meta.year_range ?? { min: 2015, max: 2026 };
+
+  // Start inside the exported years: the corpus may end before the default year.
+  useEffect(() => {
+    const range = meta.year_range;
+    if (range && (year < range.min || year > range.max)) setYear(range.max);
+  }, [meta.year_range]); // only when the data's year range changes, not on every year change
   const retryPage = () => setRetry((value) => value + 1);
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
+
+  const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${meta.year_range.min}–${meta.year_range.max}` : ""}`;
+  const fullBleed = path === "/" || path === "/gaps" || path === "/open-problems";
+  const tabActive = (route: string) => route === "/" ? path === "/" : path === "/gaps" || path === "/open-problems";
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="topbar">
         <a className="brand" href="/" onClick={(event) => navigate(event, "/")} aria-label="Whitespace home">
-          <span className="brand-mark" aria-hidden="true" /><span>Whitespace</span>
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" fill="#15171C" /><circle cx="21" cy="8" r="4" fill="none" stroke="#15171C" strokeWidth="2" /><line x1="10.5" y1="17" x2="17.5" y2="11" stroke="#2952E3" strokeWidth="2" strokeDasharray="2.5 2.5" /></svg>
+          <span className="brand-name">Whitespace</span>
         </a>
-        <nav className="view-tabs" aria-label="Main navigation">
-          {sections.map(([route, label]) => (
-            <a key={route} href={route} aria-current={path === route ? "page" : undefined} onClick={(event) => navigate(event, route)}>{label}</a>
+        <div className="topbar-spacer" />
+        <nav className="view-tabs" aria-label="Views">
+          {navTabs.map(([route, label]) => (
+            <a key={route} href={route} aria-current={tabActive(route) ? "page" : undefined} onClick={(event) => navigate(event, route)}>{label}</a>
           ))}
         </nav>
-        <span className={isPlaceholder ? "data-badge data-badge--placeholder" : "data-badge"}>
-          {isPlaceholder ? "Placeholder data, not results" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${meta.year_range.min}–${meta.year_range.max}` : ""}`}
-        </span>
+        <span className="data-badge">{badge}</span>
       </header>
-      <div className="workspace">
-        <main id="main-content" className="main-content">
-          <div className="page-heading">
-            <h1>{active[1]}</h1>
-          </div>
-          {isPlaceholder && <div className="placeholder-banner" role="status"><strong>Placeholder data</strong><span>{MOCK_NOTICE}</span></div>}
+      <main id="main-content" className={fullBleed ? "main-content" : "main-content main-content--padded"}>
           {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} yearRange={yearRange} selectedConceptId={selectedConceptId} onYearChange={setYear} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <p role="status">Loading research map…</p>}
           {path === "/gaps" && status === "loading" && !gaps && <p role="status">Loading gap finder…</p>}
@@ -138,13 +146,12 @@ export default function App() {
               return <section className="coverage-selection" aria-live="polite" aria-labelledby="coverage-selection-title">
                 <h2 id="coverage-selection-title">Papers without a linked code record</h2>
                 <p>{concept?.label || "Selected concept"} - {selectedCoverageCell.year}. A missing archive link does not mean an implementation does not exist.</p>
-                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><a href={paper.url} target="_blank" rel="noreferrer">{paper.title} ({paper.year})</a></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
+                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><PaperLink paper={paper} /></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
               </section>;
             })()}
           </>}
             {status === "error" && <p className="app-error" role="alert">{error}</p>}
-        </main>
-      </div>
+      </main>
     </div>
   );
 }
