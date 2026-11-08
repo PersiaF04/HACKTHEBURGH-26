@@ -469,18 +469,38 @@ _ARXIV_URL = re.compile(r"arxiv\.org/(?:abs|pdf)/([^?#\s]+?)(?:\.pdf)?(?:[?#].*)
 _ARXIV_DOI = re.compile(r"10\.48550/arxiv\.(.+)$", re.I)
 
 
-def arxiv_id_of(work: dict) -> str | None:
-    """arXiv id from an arXiv DOI, else from a location URL. ``None`` if neither."""
-    doi = work.get("doi") or ""
-    m = _ARXIV_DOI.search(doi)
-    if m:
-        return normalise_arxiv_id(m.group(1))
+def arxiv_sources(work: dict) -> tuple[str | None, str | None]:
+    """(id from an arXiv DOI, id from the first arxiv.org location URL); either may be ``None``."""
+    m = _ARXIV_DOI.search(work.get("doi") or "")
+    from_doi = normalise_arxiv_id(m.group(1)) if m else None
+    from_loc = None
     for loc in work.get("locations") or []:
         for field in ("landing_page_url", "pdf_url"):
             m = _ARXIV_URL.search(loc.get(field) or "")
-            if m:
-                return normalise_arxiv_id(m.group(1))
-    return None
+            if m and from_loc is None:
+                from_loc = normalise_arxiv_id(m.group(1))
+    return from_doi, from_loc
+
+
+def arxiv_id_of(work: dict) -> str | None:
+    """arXiv id from an arXiv DOI, else from a location URL. ``None`` if neither."""
+    from_doi, from_loc = arxiv_sources(work)
+    return from_doi or from_loc
+
+
+def arxiv_source_info(work: dict) -> tuple[str | None, bool]:
+    """``arxiv_id_source`` ("doi", "location", "both", ``None``) and whether the sources conflict.
+
+    On a conflict the DOI id wins and the source is reported as "doi".
+    """
+    from_doi, from_loc = arxiv_sources(work)
+    if from_doi and from_loc:
+        return ("both", False) if from_doi == from_loc else ("doi", True)
+    if from_doi:
+        return "doi", False
+    if from_loc:
+        return "location", False
+    return None, False
 
 
 def to_record(work: dict, min_words: int = MIN_WORDS) -> dict | None:
@@ -489,6 +509,7 @@ def to_record(work: dict, min_words: int = MIN_WORDS) -> dict | None:
     if len(abstract.split()) < min_words:
         return None
     arxiv = arxiv_id_of(work)
+    source, conflict = arxiv_source_info(work)
     fallback = None
     if work.get("publication_date"):
         fallback = dt.date.fromisoformat(work["publication_date"])
@@ -502,6 +523,8 @@ def to_record(work: dict, min_words: int = MIN_WORDS) -> dict | None:
     return {
         "id": work["id"],
         "arxiv_id": arxiv,
+        "arxiv_id_source": source,
+        "arxiv_id_source_conflict": conflict,
         "year": date.year,
         "date": date.isoformat(),
         "title": work.get("title") or "",
