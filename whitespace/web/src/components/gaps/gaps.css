@@ -240,3 +240,5 @@
 .gx-how summary { cursor: pointer; font-size: 13px; color: var(--ws-ink-2); }
 .gx-how[open] summary { margin-bottom: 8px; }
 @media (max-width: 480px) { .gx-factors { grid-template-columns: minmax(0, 1fr); } }
+
+.gx-pending { color: var(--ws-muted); font-size: 12px; font-style: normal; cursor: help; }

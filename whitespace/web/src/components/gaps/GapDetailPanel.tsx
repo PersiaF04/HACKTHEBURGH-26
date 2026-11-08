@@ -88,9 +88,9 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
   const validated = g.interval_validation?.validated === true && isNum(g.p_lo) && isNum(g.p_hi);
   const factors: Array<{ name: string; v: string; why: string; op?: string; strong?: boolean; blue?: boolean }> = [
     { name: "Likelihood", v: fmtPct(g.p_link), why: "model estimate it connects", blue: true },
-    { name: "Momentum", v: fmtDec(g.momentum), why: isNum(g.growth_a) && isNum(g.growth_b) ? `growth ${fmtDec(g.growth_a)} + ${fmtDec(g.growth_b)}` : "", op: "×" },
+    { name: "Momentum", v: fmtDec(g.momentum), why: isNum(g.growth_a) && isNum(g.growth_b) ? `weaker topic growth ${fmtDec(Math.min(g.growth_a, g.growth_b))}` : "", op: "×" },
     { name: "Novelty", v: fmtDec(g.novelty), why: isNum(g.neighbour_overlap) ? `1 − ${fmtDec(g.neighbour_overlap)} overlap` : "", op: "×" },
-    { name: "Stated gaps", v: isNum(sg) ? fmtDec(sg) : NA, why: isNum(sg) ? `1 + ${fmtDec(g.gap_rate_a)} + ${fmtDec(g.gap_rate_b)}` : "", op: "×" },
+    { name: "Stated gaps", v: isNum(sg) ? fmtDec(sg) : "Not yet", why: isNum(sg) ? `1 + ${fmtDec(g.gap_rate_a)} + ${fmtDec(g.gap_rate_b)}` : "not extracted into this export", op: "×" },
     { name: "Gap score", v: fmtDec(g.gap_score), why: rank != null ? `rank ${fmtInt(rank)} of ${fmtInt(total)}` : "", op: "=", strong: true },
   ];
   const papersA = detail?.closest_a ?? [];

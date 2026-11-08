@@ -142,7 +142,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
                 </td>
                 <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.momentum)}</td>
                 <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.novelty)}</td>
-                <td className="gx-td gx-td--r gx-mono">{fmtFactor(statedGapsFactor(gap))}</td>
+                <td className="gx-td gx-td--r gx-mono">{statedGapsFactor(gap) === null ? <span className="gx-pending" title="Author-stated open problems have not been extracted into this export yet, so no boost is applied.">Not yet</span> : fmtFactor(statedGapsFactor(gap))}</td>
                 <td className="gx-td gx-td--score">
                   <div className="gx-score">
                     <span className="gx-score__v" title={`Gap score ${fmtScore(gap.gap_score)}`}>{strength(gap.gap_score, maxScore)}</span>
