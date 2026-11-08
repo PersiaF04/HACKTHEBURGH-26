@@ -1,0 +1,149 @@
+{
+  "synthetic": true,
+  "real_run": false,
+  "data_label": "synthetic",
+  "corpus": {
+    "query": null,
+    "counts": {
+      "2010": 300,
+      "2011": 330,
+      "2012": 363,
+      "2013": 399,
+      "2014": 439,
+      "2015": 483,
+      "2016": 531,
+      "2017": 584,
+      "2018": 643,
+      "2019": 707,
+      "2020": 778
+    },
+    "retrieved_at": null,
+    "topic_assignment_vintage": null,
+    "n_works": {
+      "2010": 1392,
+      "2011": 1831,
+      "2014": 3429,
+      "2017": 5557
+    }
+  },
+  "origins": {
+    "fit": [
+      2010,
+      2011
+    ],
+    "calibration": [
+      2014
+    ],
+    "test": [
+      2017
+    ]
+  },
+  "seed": 0,
+  "config": {
+    "fit_origins": [
+      2010,
+      2011
+    ],
+    "calibration_origins": [
+      2014
+    ],
+    "test_origins": [
+      2017
+    ],
+    "seed": 0,
+    "l2": 1.0,
+    "neg_ratio": 10,
+    "n_min": 5,
+    "horizon": 3,
+    "ks": [
+      100,
+      1000
+    ],
+    "n_boot": 20
+  },
+  "config_hash": "625eddbcae89b8552aef5e252fe7dd04915cd1a314c25252bc29e923340ffe81",
+  "link_threshold": 3,
+  "code_commit": "caddcce4205ec2b8036ca9ca25da0b139a76a82b+dirty",
+  "library_versions": {
+    "python": "3.14.5",
+    "numpy": "2.5.4",
+    "pytest": "9.2.0"
+  },
+  "files": {
+    "backtest.json": "9557d3fdfa0412073a75833b53e07e0a2ad1713983a4814dfdab5b4ff88b62eb",
+    "concepts.json": "6b63e0a7a2eef066d91f8655c6a14bf83b706f188089d8c1c008bbdf99d30953",
+    "coverage-2015.json": "47f11adf7d22acf00ef8a1870922992bad522786983f4633cdd55f2958e11073",
+    "coverage-2016.json": "ad924d763a77f4a25b8c9ade0d03056319fbf347b2dcbb3a0ac61a614597b59f",
+    "coverage-2017.json": "6eb838a48af81ddbda4e32c622b8e6b5c559077b608cf7645f774fe17f7b2d46",
+    "coverage-2018.json": "a142f98c39e67f84a3872a4e5333e4493791ac87737adaf54fb6a932579a2be5",
+    "coverage-2019.json": "72db5be7b534a1b0aa7689d929fbb2ddf1c2726d84fb900fdea23efd0d72b8df",
+    "coverage-2020.json": "5cc4a835f7963a481b254c0c415929be2a7164f7c433682c91652d7295f29762",
+    "gap-details.json": "6b63e0a7a2eef066d91f8655c6a14bf83b706f188089d8c1c008bbdf99d30953",
+    "gaps.json": "538ceff5f82ce69652b5b3b18938ebc2d03b686681840e39cd1be813a3a77312",
+    "map-2015.json": "e49ae4a135b2541ee6e4a74137f3a19927e95838c9605cfa103123c5a65e533a",
+    "map-2016.json": "b4f51e3de0f78db48c999a9db1e2cd04599025e029ebeabab49c407be4b80a39",
+    "map-2017.json": "522fa3d7b506de7b4285d4fdc15953bd1f8ffe1793d15e4405d1e10c52e0d3e8",
+    "map-2018.json": "57a7de6d28ee1ea810a56a79f5af5cd32962254cae21b25b0d52d1af060b07d2",
+    "map-2019.json": "85ef2fdc78dd45763f53810c0186759ac83340c83f7a9120f62882240c3b5866",
+    "map-2020.json": "039c612f8b2d4cc629ace1982bc5956392ced4b06ac59eead34393907a6e5716",
+    "meta.json": "c2fbb0a5e8f770427a7112c824584a7f98e330b60e15ad34b79f86aadf59188e",
+    "open-problems.json": "3c14102af8a7d1d08a1e2ed71a54f375af70d12e8835e78cb19f3686a7545efb",
+    "search.json": "9d86b96f46a40dcb87481e72f47d112dd42961eb56a25b895664f61b6c842d17",
+    "routes.json": "538feb28f8f1f4123c9b83414fa0b66cf39115f60f7a115fe2552e2d29a66670"
+  },
+  "export": {
+    "synthetic": true,
+    "synthetic_reasons": [
+      "data_label is 'synthetic', not 'real' (or a generator is recorded)",
+      "run_manifest.json is not a real run (label or generator)",
+      "run_manifest.json says dry_run"
+    ],
+    "corpus_last_year": 2020,
+    "map_years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020
+    ],
+    "run_dir_config_hash": "7d2eaac73f363d44f2a8e6799d490b68d2a0d2882dfd3493843b905e0d9ab0f4",
+    "corpus_sha256": "fec9e5e2620afbc6e5d49db42ef7a00c43a235ef444c3b272abfee9a5f232fe0",
+    "production_model_equals_backtest_model": true,
+    "production_model": "frozen",
+    "production_trained_on": {
+      "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of the calibration origin",
+      "calibration_origins": [
+        2014
+      ],
+      "fit_origins": [
+        2010,
+        2011
+      ],
+      "held_out_tested": true,
+      "model": "frozen",
+      "test_origins_used": []
+    },
+    "coverage_source": null,
+    "titles_available": false,
+    "path_check": {
+      "ran": true,
+      "files_built": [
+        "concepts.json",
+        "gap-details.json",
+        "gaps.json",
+        "map-2015.json",
+        "map-2016.json",
+        "map-2017.json",
+        "map-2018.json",
+        "map-2019.json",
+        "map-2020.json",
+        "meta.json"
+      ],
+      "ranked_gaps": 4,
+      "gap_details": 4,
+      "concepts": 40,
+      "note": "counts of a synthetic dry run; structure check only, not data"
+    }
+  }
+}

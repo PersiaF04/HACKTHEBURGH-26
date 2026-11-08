@@ -1,6 +1,6 @@
 ﻿# Whitespace pipeline
 
-Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data and no results: nothing here is a measured forecast, and no claim of accuracy is made until a purged backtest has been run once, after the code freeze.
+Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data and no results: nothing here is a measured forecast, and the only real result is one purged backtest on the 2020 test origin (see Backtest runner below).
 
 ## Layout
 
@@ -50,7 +50,9 @@ Not implemented here: the PRD's embedding-based near-duplicate merge (cosine abo
 
 ## Backtest runner and `metrics.json` (issue #151)
 
-**No real result exists.** The model and runner have only ever seen synthetic corpora from `pipeline/synthetic.py` (a planted latent-topic signal, and a null version without it). The tests show the harness behaves; they say nothing about real literature or forecast quality.
+**Unit tests use synthetic corpora only** (`pipeline/synthetic.py`: a planted latent-topic signal, and a null version without it). They show the harness behaves; they say nothing about real literature or forecast quality.
+
+**One real run exists.** The 2020 test origin was scored once at frozen commit SHA 93448d2; the result is recorded on spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122). The production model (trained through 2020 by default, see the export section) has no held-out test of its own. `p_link` is Platt-scaled and its calibration is imperfect: on the 2020 test ECE was 0.143, and the top decile was predicted at 0.53 against 0.78 observed, so read `p_link` as a ranking score first and a probability only roughly. The topic filter uses OpenAlex topic assignments made after October 2026, so topics are not as they were known at each origin year.
 
 `backtest.run_backtest(works, BacktestConfig(fit_origins, calibration_origins, test_origins, ...))`:
 
@@ -113,11 +115,11 @@ python -m whitespace.pipeline.run_real --corpus ... --caches-only --origins 2010
 - Fails early (no counting) when a year from the first origin to the last test origin + horizon has no works, when `assert_purged` fails, or when an origin has too few works or an empty vocabulary; the manifest records the failure. The one-shot ledger is `<out>/one_shot.json`; `--override-one-shot` is logged and recorded.
 - Writes `metrics.json`, `run_manifest.json` (corpus sha256 and counts per year, vocabulary size per origin, config hash, seeds, code commit, library versions, stage times, peak memory). No abstract text is printed or written.
 
-**Data label.** `run_backtest(..., data_label=...)` accepts exactly `real`, `synthetic` or `unlabelled` (free text is rejected). Only `is_real_run(manifest)` (label `real` and no generator) may be treated as a real result by the run script and every exporter; synthetic and unlabelled runs stay placeholders. **Model ranking.** Model metrics rank by the calibrated logit `a*d + b`, the ordering of the deployed probability; a non-positive fitted slope adds a `warning` and the reported slope.
-
 ## Backtest export (issue #161)
 
 `pipeline/export_backtest.py` turns the runner's `metrics` dict into the frontend's `BacktestResponse` (`web/src/api.ts`) and a `manifest.json`. `to_backtest_response(metrics, hits, misses, code_link_evaluation=None, meta=None)` copies numbers from the latest test origin and invents none: `pr_auc` and the `cosine` baseline are `null` (the runner has neither), and common neighbours and Jaccard are omitted because the frontend type does not list them. NaN and infinity become `null`; no abstract text is written. Only a run with `data_label == "real"` and no synthetic generator produces `placeholder: false`; a synthetic, unlabelled or empty run returns the placeholder shape with `synthetic` set and no numbers, hits or misses. `select_hits_misses` returns the top 20 hits and top 10 misses on a test origin; the hit year comes from work dates when works are supplied, otherwise it is `null` and `hits_note` says only annual counts exist. `write_manifest` records corpus, split, seeds, config hash, code commit, library versions and file hashes. Extra top-level keys beyond the frontend type: `synthetic`, `hits_note`, `meta`. The real-run check is `backtest.is_real_run`; a non-real response carries `data_label` in `meta` (`synthetic` or `unlabelled`).
+
+**Data label.** `run_backtest(..., data_label=...)` accepts exactly `real`, `synthetic` or `unlabelled` (free text is rejected). Only `is_real_run(manifest)` (label `real` and no generator) may be treated as a real result by the run script and every exporter; synthetic and unlabelled runs stay placeholders. **Model ranking.** Model metrics rank by the calibrated logit `a*d + b`, the ordering of the deployed probability; a non-positive fitted slope adds a `warning` and the reported slope.
 
 ## Map, gaps and meta export (issue #162)
 
@@ -126,6 +128,8 @@ python -m whitespace.pipeline.run_real --corpus ... --caches-only --origins 2010
 - **Layout** is a projection, not a similarity measure: truncated SVD (numpy, fixed seed) of the positive-PMI co-occurrence matrix at the final snapshot, scaled to [-1, 1]. One layout serves every year, so each map file carries `layout_year`; counts, growth and edges use only that year's snapshot, but x/y do come from the final snapshot.
 - **Gap score** is `p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) * (1 + gap_rate_a + gap_rate_b)`. Cosine (no embeddings) and gap rate (no open-problem mining) are omitted while missing, `meta` and `gaps.json` state the formula used, and the score is not a probability. Gaps rank the top pairs by `p_link` (default pool 2000).
 - **Papers** are exported as id, year and link only. No abstract text. `meta` headline numbers are copied from a real backtest dict, otherwise null; NaN becomes null.
+
+`pipeline/export_backtest.py` turns the runner's `metrics` dict into the frontend's `BacktestResponse` (`web/src/api.ts`) and a `manifest.json`. `to_backtest_response(metrics, hits, misses, code_link_evaluation=None, meta=None)` copies numbers from the latest test origin and invents none: `pr_auc` and the `cosine` baseline are `null` (the runner has neither), and common neighbours and Jaccard are omitted because the frontend type does not list them. NaN and infinity become `null`; no abstract text is written. Only a run with `data_label == "real"` and no synthetic generator produces `placeholder: false`; a synthetic, unlabelled or empty run returns the placeholder shape with `synthetic` set and no numbers, hits or misses. `select_hits_misses` returns the top 20 hits and top 10 misses on a test origin; the hit year comes from work dates when works are supplied, otherwise it is `null` and `hits_note` says only annual counts exist. `write_manifest` records corpus, split, seeds, config hash, code commit, library versions and file hashes. Extra top-level keys beyond the frontend type: `synthetic`, `hits_note`, `meta`. The real-run check is `backtest.is_real_run`; a non-real response carries `data_label` in `meta` (`synthetic` or `unlabelled`).
 
 ## Code layer (`pipeline/code_layer.py`, issue #142)
 
@@ -159,3 +163,39 @@ Writes `papers.csv` (per work: `has_linked_code`, `has_official_code`, `match_ke
 `to_coverage_response(year, coverage_table, archive_info)` returns the frontend's `CoverageResponse` (`web/src/api.ts`): concepts, per-year cells (`paper_count`, `linked_paper_count`, `code_rate`, `state`), caveat and archive info (revision, snapshot 2025-07-28, `cc-by-sa-4.0`, row count, attribution, low-coverage cutoff year). Grey years keep their counts but have `code_rate` null (`thin` before the cutoff, `outside_archive_vintage` after 2025). Cells carry "no linked code in this archive"; non-arXiv papers stay in the denominator and are flagged `unmatchable_by_construction`. Extra keys beyond the frontend type (`row_count`, `attribution`, `low_coverage_cutoff_year`, `min_linked`, per-cell flags) are additive.
 
 `code_link_evaluation(hand_check_rows)` computes correct matches, precision, 95% Wilson interval, sample composition and protocol text from the completed 100-pair frame (`final_label`). With no table, or any row unlabelled, every field is null and `placeholder` is true.
+
+## Export for the frontend (`pipeline/export_all.py`, issue #175)
+
+```sh
+python -m whitespace.pipeline.run_real --corpus <corpus.jsonl> --out ~/whitespace-run        # the run
+python -m whitespace.pipeline.code_join_local ... --out ~/whitespace-join                    # optional (#173)
+python -m whitespace.pipeline.export_all ~/whitespace-run --out ~/whitespace-export --join-dir ~/whitespace-join
+```
+
+One flat directory: `routes.json` (every frontend route to its file, key, and `real` or `placeholder`), `manifest.json`, `meta.json`, `backtest.json` (`/api/backtest`), `map-<Y>.json` (`/api/map?year=Y`, Y from 2015 to the last corpus year), `gaps.json` (`/api/gaps`), `gap-details.json` (`/api/gap/{a}/{b}`, entry `"a|b"`, top gaps only), `concepts.json` (`/api/concept/{id}`, entry `id`), `coverage-<Y>.json` (`/api/coverage?year=Y`), `search.json` and `open-problems.json` (always placeholders). `gap-details.json` and `concepts.json` wrap their payloads in `entries`. Query parameters other than `year` are not applied. The CLI runs `validate_export` and exits 1 on any problem, 2 if the export could not run. `--out` must be new, empty, or a previous export (it holds `routes.json`); then the known export files are removed before writing so no stale `map-<Y>.json` survives, and any other non-empty directory is refused (exit 2). A synthetic export always carries `data_label: synthetic`.
+
+- **Held-out versus production.** `backtest.json` is the held-out test (metrics plus hits and misses that `run_real` picked from the runner's guarded artifacts into `backtest_examples.json`; the export never reads test labels). It scores the backtest model: fit on 2010-14, Platt-calibrated at 2017, tested once at 2020. `gaps.json` is labelled a production forecast scored at the last corpus year; its outcomes are unknown and nothing in it was evaluated. Which model produced it is chosen by `--production-model`:
+  - `through-2020` (default): fit on origins 2010-14 and 2017, Platt-calibrated (a logistic fit of the decision value) on the full pair universe at origin 2020 (purge rule: 2017 + 3 <= 2020). It is trained after the held-out test was scored and uses the 2020 outcomes (2021 to 2023) for calibration, so it has no held-out test of its own. The held-out numbers describe the backtest model, not this one, and the production probabilities are not shown to be better calibrated than the backtest's. The 2020 test is not re-scored. `manifest.json` records `production_model_equals_backtest_model: false`; `gaps.json` (`label`, `trained_on`) and `meta.json` (`production_forecast.model`) state the origins, the calibration method and `held_out_tested: false`.
+  - `frozen` (fallback): the backtest model itself, re-trained deterministically from the fit and calibration origins only and compared with the run's recorded coefficients (`production_model_equals_backtest_model: true`).
+- **No later knowledge.** Each `map-<Y>.json` uses the origin-Y vocabulary and works dated up to 31 Dec Y, and a layout of that year (points can move between years). Missing origin caches are built from the corpus (`--corpus`, sha256 checked). `meta.json` states the corpus end; later years are absent, not zero.
+- **Paper titles.** With `--corpus corpus.jsonl` the export streams the corpus once and gives every paper that appears in the outputs (gap-detail supporting papers, coverage examples) its real title and link (arXiv abstract link when the record has an arXiv id, else the OpenAlex id). Only the title is read; abstract text is never written. Without it the id is the title and `meta.json` says `titles_available: false`. Hits and misses are concept pairs and carry no paper.
+- **Coverage on the map's concepts.** With `--join-dir` (needs `papers.csv`, `coverage.json`, optional `report.json` and `handcheck_frame.csv` from `code_join_local`), each `coverage-<Y>.json` has cells per phrase concept (`concept_kind: "phrase"`, the `--coverage-top` concepts with most papers, default 200, chosen once by paper totals up to the last corpus year, so every year's file lists the same concepts and an early year can include concepts that were still small then) and year, from the final-year cache joined to the per-work `has_linked_code` flag. Cells keep denominators, grey states and the unmatchable flags; `available` cells also carry `papers_without_linked_code` (at most 10 `{id, title, year, url}`, id order). Without `--join-dir` coverage is a placeholder.
+- **`meta.json`** always carries `year_range {min, max}` equal to the `routes.json` map years, also in placeholder exports. `open-problems.json` stays a placeholder with no items; its `item_shape` documents that every future item has `concept_ids` (`[]` until mining exists).
+- **Real or placeholder.** Only `backtest.is_real_run` on the run's metrics manifest (label `real`, no generator) makes a real export; a dry run, synthetic or unlabelled run writes every file as `placeholder: true` and `synthetic: true` with no numbers except years, and the writer raises otherwise. Coverage is a placeholder without `--join-dir`.
+- **Validator.** `validate_export(dir)` checks routes resolve to files and keys, strict JSON without NaN, the key sets and value types of the frontend fixtures (copied to `pipeline/frontend_contract/` from PR #159) and `api.ts`, no abstract keys or pasted text, the production label, and placeholder/synthetic consistency.
+
+**`routes.json` shape.** `{layout_version, synthetic, data_label, corpus_last_year, map_years: [..], note, routes: [...]}`. `map_years` lists the years that have a `map-<Y>.json` and a `coverage-<Y>.json`; any year outside it (for the real corpus, everything after 2023) has no file and the frontend should show "no data for this year" (absent, not zero). Each route is `{route, file, kind, status, [year], [key], [note]}`:
+
+| route pattern | file | selection | status |
+| --- | --- | --- | --- |
+| `/api/meta` | `meta.json` | none | real or placeholder |
+| `/api/backtest` | `backtest.json` | none | real or placeholder |
+| `/api/map?year=Y` | `map-Y.json` | `year` selects the file (`kind: by_year`) | real or placeholder |
+| `/api/coverage?year=Y` | `coverage-Y.json` | `year` selects the file | real or placeholder |
+| `/api/gaps` | `gaps.json` | none; `concepts`, `min_p`, `sort`, `limit` are filtered client-side | real or placeholder |
+| `/api/gap/{a}/{b}` | `gap-details.json` | `entries["a\|b"]` (`kind: keyed`, `key` template); missing key means no detail | real or placeholder |
+| `/api/concept/{id}` | `concepts.json` | `entries[id]` (`kind: keyed`) | real or placeholder |
+| `/api/search?q=&k=` | `search.json` | none; query ignored | always placeholder |
+| `/api/open-problems` | `open-problems.json` | none; query ignored | always placeholder |
+
+**Sample export.** `whitespace/tests/fixtures/export_sample/` is a small export of the SYNTHETIC dry run (made-up words) for the frontend to copy into `whitespace/web/public/data/` and test against. Every file is `placeholder: true` and `synthetic: true`. It contains NO real results.
