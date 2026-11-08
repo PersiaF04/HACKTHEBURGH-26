@@ -11,6 +11,7 @@ import { PaperLink } from "./components/PaperLink";
 import { Onboarding } from "./components/Onboarding";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { SkeletonBlock, SkeletonText } from "./components/Skeleton";
+import { lastFullYear } from "./lib/lastFullYear";
 import { fmtYear } from "./lib/format";
 
 const PLACEHOLDER_TIP = "Placeholder data: this build shows fixtures, not results";
@@ -131,7 +132,12 @@ export default function App() {
   // Start inside the exported years: the corpus may end before the default year.
   useEffect(() => {
     const range = meta.year_range;
-    if (range && (year < range.min || year > range.max)) setYear(range.max);
+    if (!range) return undefined;
+    if (year < range.min || year > range.max) setYear(range.max);
+    // Growth statistics should stop at the last year with full data, not a thin final year.
+    let live = true;
+    lastFullYear(range, api.map).then((target) => { if (live && target < range.max && year >= target) setYear(target); }).catch(() => undefined);
+    return () => { live = false; };
   }, [meta.year_range]); // only when the data's year range changes, not on every year change
   const retryPage = () => setRetry((value) => value + 1);
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
