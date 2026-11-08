@@ -34,3 +34,11 @@
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 42rem) { .evidence-page { width: min(100% - 1.25rem, 76rem); padding-top: 1.5rem; } .evidence-tables { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .evidence-page *, .evidence-page *::before, .evidence-page *::after { scroll-behavior: auto !important; } }
+
+/* Narrow screens: keep cards inside the viewport; tables scroll within their wrapper (#258). */
+.evidence-page, .evidence-page > *, .evidence-section > *, .evidence-headline > * { min-width: 0; max-width: 100%; }
+.evidence-headline p, .evidence-caveats li { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .evidence-section, .evidence-headline { padding: 1rem .85rem; }
+  .evidence-table-scroll th, .evidence-table-scroll td { padding: .45rem .4rem; }
+}

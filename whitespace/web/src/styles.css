@@ -147,7 +147,7 @@ html, body, #root { width: 100%; min-height: 100vh; }
 .page-skeleton { display: grid; gap: 14px; align-content: start; padding: 24px 32px; }
 
 /* Page area fills everything below the header; pages own their columns. */
-.main-content { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.main-content { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .main-content > * { flex: 1 1 auto; min-height: 0; }
 .main-content--padded { overflow: auto; padding: 24px 32px 48px; display: block; }
 .main-content--padded > * { flex: none; }
