@@ -321,7 +321,7 @@ def production_label(run: Run, year: int, mode: str = "through-2020") -> str:
                  f"probabilities are not shown to be better calibrated than the backtest's")
     return (
         f"Production forecast, not the held-out test. {model} ranks pairs that have not yet co-occurred "
-        f"{LINK_THRESHOLD}+ times at the {year} snapshot, the last year in the corpus. Their outcomes "
+        f"{LINK_THRESHOLD}+ times at the {year} snapshot, the last year in this export. Their outcomes "
         f"({year + 1} to {year + pc.horizon}) are not observed, so nothing in this file was evaluated. "
         f"The held-out result is in backtest.json and describes the backtest model, not this one."
     )
@@ -369,8 +369,20 @@ def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, e
     return files
 
 
+def records_after(run: Run, final: int) -> int:
+    """Corpus records dated after ``final`` (excluded when the export is capped with ``--last-year``)."""
+    return sum(int(n) for y, n in run.manifest["corpus"]["per_year"].items() if int(y) > final)
+
+
 def build_meta(run: Run, years: list[int], counts: dict, production_model: str = "through-2020") -> dict:
     final = years[-1]
+    after = records_after(run, final)
+    note = (f"The corpus ends in {final}. Snapshot years after {final} are absent, not zero: no map, "
+            f"gap or coverage file exists for them.")
+    if after:
+        note = (f"The export ends in {final}. The corpus also holds {after} records dated {final + 1} to "
+                f"{run.last_year}; they are excluded from every file here (no map, gap or coverage file exists "
+                f"for those years, and they are absent, not zero).")
     return {
         "placeholder": False, "synthetic": False,
         "year_range": {"min": years[0], "max": final},
@@ -380,8 +392,8 @@ def build_meta(run: Run, years: list[int], counts: dict, production_model: str =
                            "forecast (gaps.json) has no result and its model may differ (see production_forecast)",
         "corpus": {
             "last_year": final,
-            "note": f"The corpus ends in {final}. Snapshot years after {final} are absent, not zero: no map, "
-                    f"gap or coverage file exists for them.",
+            "note": note,
+            "records_after_last_year_excluded": after,
         },
         "production_forecast": {"file": "gaps.json", "snapshot_year": final,
                                 "label": production_label(run, final, production_model),
@@ -688,16 +700,22 @@ def clear_previous_export(out: Path) -> None:
 def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int = FIRST_YEAR,
                edge_threshold: float = EDGE_THRESHOLD, max_edges: int = MAX_EDGES, gap_pool: int = GAP_POOL,
                gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP,
-               production_model: str = "through-2020") -> dict:
-    """Export every frontend file and validate the result. Returns ``{synthetic, files, problems, ...}``."""
+               production_model: str = "through-2020", last_year: int | None = None) -> dict:
+    """Export every frontend file and validate the result. Returns ``{synthetic, files, problems, ...}``.
+    ``last_year`` caps the exported snapshot years (default: the corpus end)."""
     run = load_run(run_dir)
     reasons = synthetic_reasons(run)
     synthetic = bool(reasons)
-    final = run.last_year
+    final = run.last_year if last_year is None else min(last_year, run.last_year)
     if first_year > final:
-        raise ExportError(f"first year {first_year} is after the corpus end {final}")
+        raise ExportError(f"first year {first_year} is after the last exported year {final}")
     if final < max(run.config.test_origins):
         raise ExportError(f"corpus ends in {final}, before the last test origin")
+    if last_year is not None and production_model == "through-2020":
+        need = min(run.config.test_origins) + run.config.horizon
+        if final < need:
+            raise ExportError(f"--last-year {last_year} is before the through-2020 calibration origin + horizon "
+                              f"({need}): its outcomes would not be in the export")
     years = list(range(first_year, final + 1))
     out = Path(out_dir)
     check_out_dir(out)
@@ -1069,6 +1087,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="model behind gaps.json: through-2020 (fit 2010-14 and 2017, calibrated at the 2020 test "
                          "origin, trained after the test was scored) or frozen (the backtest model, the fallback)")
     ap.add_argument("--first-year", type=int, default=FIRST_YEAR)
+    ap.add_argument("--last-year", type=int, default=None,
+                    help="stop the export at this year (maps, gaps snapshot, coverage); later corpus records are "
+                         "excluded and counted in meta.json. Default: the corpus end")
     ap.add_argument("--edge-threshold", type=float, default=EDGE_THRESHOLD)
     ap.add_argument("--max-edges", type=int, default=MAX_EDGES)
     ap.add_argument("--gap-pool", type=int, default=GAP_POOL)
@@ -1077,7 +1098,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     try:
         result = export_run(args.run_dir, args.out, corpus=args.corpus, join_dir=args.join_dir,
-                            first_year=args.first_year, edge_threshold=args.edge_threshold, max_edges=args.max_edges,
+                            first_year=args.first_year, last_year=args.last_year, edge_threshold=args.edge_threshold, max_edges=args.max_edges,
                             gap_pool=args.gap_pool, gap_limit=args.gap_limit, detail_limit=args.detail_limit,
                             coverage_top=args.coverage_top, production_model=args.production_model)
     except (ExportError, R.RunError, ValueError, backtest.OneShotError) as exc:
