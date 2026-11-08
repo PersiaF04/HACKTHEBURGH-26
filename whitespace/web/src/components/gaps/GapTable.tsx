@@ -49,7 +49,7 @@ const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right"
   { label: "Likelihood", cls: "gx-th--p", sort: "p_link", help: "The model's estimate that these two topics will share 3+ papers within three years. Calibration is imperfect, so read it as a ranking rather than an exact chance." },
   { label: "Momentum", cls: "gx-th--r", align: "right", sort: "momentum", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
   { label: "Novelty", cls: "gx-th--r", align: "right", sort: "novelty", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
-  { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "Display only, not part of the gap score. The share of each concept's papers whose abstract states an open problem, future work or limitation (concept A, then B)." },
+  { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "Display only, not part of the gap score. The share of each concept's papers whose abstract states an open problem (concept A, then B); this export counts open-problem statements only." },
   { label: "Strength", cls: "gx-th--score", align: "right", sort: "gap_score", help: "Strong, moderate or weak compared with the top gap in this list. It combines likelihood, momentum and novelty and is not a probability. Hover a value to see the exact score." },
 ];
 
