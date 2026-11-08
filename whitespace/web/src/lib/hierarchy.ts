@@ -18,7 +18,7 @@ export type Hierarchy = {
 };
 
 const K = 7;
-const RING = 3.6; // hub ring radius; a branch is about 3 wide, so the branches sit apart but their subtopics fan out
+const RING = 8; // hub ring radius; branches start far apart and repel from there
 export const DEFAULT_PER_BRANCH = 60;
 export const BRANCH_PREFIX = "branch:";
 export const HYPOTHESIS_PREFIX = "hyp:";
@@ -146,7 +146,7 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const members = new Map<string, string[]>();
   for (const e of structure) if (e.kind === "member") members.set(e.source, [...(members.get(e.source) ?? []), e.target]);
-  const GAP = 0.6; // clear space kept between any two branches
+  const GAP = 5; // clear space kept between any two branches
   const clusters = [...members].map(([hubId, ids]) => {
     const hub = byId.get(hubId)!, at = ring.get(hubId)!;
     hub.x = at.x; hub.y = at.y;
