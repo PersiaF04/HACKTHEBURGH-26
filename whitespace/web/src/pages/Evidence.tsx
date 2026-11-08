@@ -1,4 +1,5 @@
 import type { BacktestHit, BacktestResponse, CalibrationBin, RankingMetrics } from "../api";
+import { ModelNote } from "../components/ModelNote";
 import { PaperLink } from "../components/PaperLink";
 import { EmptyNote, SkeletonBlock } from "../components/Skeleton";
 import { NA, fmtDec, fmtInt, fmtText, fmtYear, isNum } from "../lib/format";
@@ -86,6 +87,8 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
       <header className="evidence-header">
         <p>See what was measured, which baselines were compared, and where evidence is still missing.</p>
       </header>
+
+      <ModelNote />
 
       {placeholder && (
         <p className="evidence-notice" role="status">

@@ -4,6 +4,7 @@ import type { ConceptSummary, GapDetailResponse, GapListResponse, GapSummary, Op
 import { GapDetailPanel, GapTable, GapTableSkeleton, OpenProblemsCard, OpenProblemsSkeleton, gapKey } from "../components/gaps";
 import type { CardItem, ConceptSeries, GapRow, ProblemFilter } from "../components/gaps";
 import { SERIES_COLORS } from "../components/gaps/OpenProblemsCard";
+import { ModelNote } from "../components/ModelNote";
 import { NA, fmtDec, fmtInt, fmtP, fmtPct, fmtText, isNum } from "../lib/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
@@ -234,6 +235,8 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
           <h1 id="gf-h" className="gx-h1">Gaps &amp; open problems</h1>
           <p className="gx-desc">Concept pairs not yet linked (fewer than 3 shared papers), ranked, with what authors themselves say is unsolved.{!empty && <> <span className="gx-mono gx-ink">{fmtInt(rows.length)}</span> gaps shown.</>}</p>
         </div>
+
+        <ModelNote />
 
         <div className="gx-summary">
           {summary.map(([label, v, blue, cap]) => (
