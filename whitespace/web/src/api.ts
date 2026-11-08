@@ -133,7 +133,8 @@ export type CoverageResponse = {
   /** Static data only: no file exists for this year (for example, after the corpus ends). */
   no_data?: boolean;
 };
-export type GapListResponse = { placeholder: boolean; items: GapSummary[] };
+/** label and held_out_test are set by real exports: the gap list is a production forecast, not the held-out test. */
+export type GapListResponse = { placeholder: boolean; items: GapSummary[]; label?: string; held_out_test?: boolean };
 export type ConceptResponse = {
   placeholder: boolean;
   counts_by_year: { year: number; count: number }[];
