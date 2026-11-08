@@ -20,16 +20,16 @@ LINKS = (
 )
 
 
-def _rec(i, arxiv, year, typ="preprint", topic="T1", date=None):
-    return {"id": f"W{i}", "arxiv_id": arxiv, "year": year, "date": date or f"{year}-01-01",
+def _rec(i, arxiv, year, typ="preprint", topic="T1", date=None, src="doi"):
+    return {"arxiv_id_source": src if arxiv else None, "id": f"W{i}", "arxiv_id": arxiv, "year": year, "date": date or f"{year}-01-01",
             "title": f"Title {i}", "abstract": SECRET, "cites": 1, "keywords": [], "topic_id": topic,
             "type": typ}
 
 
 CORPUS = [
     _rec(1, "1706.03762", 2017, date="2017-06-01"),           # version-less match, two PwC rows
-    _rec(2, "2101.00001", 2021, typ="article", date="2021-01-01"),  # merged record, unofficial
-    _rec(3, "hep-th/9901001", 1999, typ="article", date="1999-03-05"),  # old-style id, official
+    _rec(2, "2101.00001", 2021, typ="article", date="2021-01-01", src="location"),  # merged record, unofficial
+    _rec(3, "hep-th/9901001", 1999, typ="article", date="1999-03-05", src="both"),  # old-style id, official
     _rec(4, None, 2020, typ="article"),                          # no arXiv id
     _rec(5, "2105.00002", 2021, date="2021-05-01"),             # arXiv id, no PwC row
 ]
@@ -59,7 +59,7 @@ def test_join_flags_and_methods(files):
     with open(out / "papers.csv", newline="", encoding="utf-8") as f:
         rows = {r["id"]: r for r in csv.DictReader(f)}
     assert rows["W1"]["has_linked_code"] == "True" and rows["W1"]["has_official_code"] == "True"
-    assert rows["W1"]["match_key"] == "1706.03762" and rows["W1"]["join_method"] == cj.JOIN_OWN
+    assert rows["W1"]["match_key"] == "1706.03762" and rows["W1"]["join_method"] == "doi"
     assert rows["W1"]["date_source"] == "arxiv_id_month"
     assert rows["W2"]["has_linked_code"] == "True" and rows["W2"]["has_official_code"] == "False"
     assert rows["W2"]["join_method"] == cj.JOIN_MERGED
@@ -81,6 +81,26 @@ def test_join_flags_and_methods(files):
     assert t1_2021["papers"] == 2 and t1_2021["linked"] == 1
 
 
+def test_join_method_from_arxiv_id_source_not_type():
+    # a preprint-typed work whose id came only from a location is a merged record;
+    # an article-typed work with an arXiv DOI is an own record
+    assert cj.join_method_of(_rec(9, "2101.00001", 2021, typ="preprint", src="location"), "2101.00001") == "location"
+    assert cj.join_method_of(_rec(9, "2101.00001", 2021, typ="article", src="doi"), "2101.00001") == "doi"
+    assert cj.join_method_of(_rec(9, "2101.00001", 2021, src="both"), "2101.00001") == cj.JOIN_OWN
+    assert cj.join_method_of(_rec(9, None, 2021), None) == cj.UNMATCHABLE
+    old = {"id": "W", "arxiv_id": "2101.00001", "type": "preprint"}  # corpus without the field
+    assert cj.join_method_of(old, "2101.00001") == cj.UNKNOWN_SOURCE
+
+
+def test_frame_has_abs_url_and_no_author_columns(files):
+    corpus, links, out = files
+    cj.run(corpus, links, "rev1", out, min_linked=1)
+    with open(out / "handcheck_frame.csv", newline="", encoding="utf-8") as f:
+        frame = list(csv.DictReader(f))
+    assert not any("first_author" in c for c in frame[0])
+    assert all(r["arxiv_abs_url"] == "https://arxiv.org/abs/" + r["pwc_arxiv_id"] for r in frame)
+
+
 def test_no_abstract_text_in_any_output(files):
     corpus, links, out = files
     cj.run(corpus, links, "rev1", out, min_linked=1)
@@ -91,11 +111,11 @@ def test_no_abstract_text_in_any_output(files):
 def _big_matched(n):
     return {
         f"{1500 + i % 100:04d}.{i:05d}": {
-            "pwc_title": f"P{i}", "pwc_first_author": "", "pwc_year": 2015 + i % 11,
+            "pwc_title": f"P{i}", "pwc_year": 2015 + i % 11,
             "pwc_arxiv_id": f"{1500 + i % 100:04d}.{i:05d}", "pwc_code_url": f"https://g/{i}",
             "oa_work_id": f"W{i}", "oa_title": f"T{i}", "oa_doi": "", "oa_pub_date": "2020-01-01",
             "join_method": cj.JOIN_OWN if i % 2 else cj.JOIN_MERGED, "code_link_present": True,
-            "oa_first_author": "", "pwc_official": bool(i % 3),
+            "arxiv_abs_url": f"https://arxiv.org/abs/{i}", "pwc_official": bool(i % 3),
         }
         for i in range(n)
     }
@@ -121,7 +141,7 @@ def test_cli_files_and_frame_csv(files):
     with open(out / "handcheck_frame.csv", newline="", encoding="utf-8") as f:
         frame = list(csv.DictReader(f))
     assert len(frame) == 3  # only the three matched pairs exist
-    assert list(frame[0])[: len(cl.TEMPLATE_COLUMNS)] == list(cl.TEMPLATE_COLUMNS)
+    assert list(frame[0]) == cj.FRAME_COLUMNS
 
 
 def test_no_network(files, monkeypatch):

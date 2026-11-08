@@ -22,15 +22,37 @@ from . import code_layer as cl
 from .common import arxiv_month, normalise_arxiv_id
 
 UNMATCHABLE = "unmatchable_by_construction"
-JOIN_OWN = "corpus-arxiv-id-preprint-record"  # corpus record is typed preprint (own arXiv record)
-JOIN_MERGED = "corpus-arxiv-id-other-record"  # article / conference record carrying an arXiv location
+# From the corpus field ``arxiv_id_source`` (ingest): "doi" or "both" = the work's own arXiv DOI
+# (own record); "location" = the id came only from a location URL (merged record). Corpus files
+# written before that field existed give UNKNOWN_SOURCE, never a guess from ``type``.
+JOIN_OWN = "doi"
+JOIN_MERGED = "location"
+UNKNOWN_SOURCE = "unknown_source"
 NO_ID_NOTE = "papers with no usable arXiv id cannot be joined to the archive"
 
 PAPER_COLUMNS = (
     "id", "arxiv_id", "match_key", "join_method", "has_linked_code", "has_official_code",
     "year", "date", "date_source", "topic_id", "type",
 )
-FRAME_EXTRA = ("oa_first_author", "pwc_official")
+# First author is NOT in the frame: the download did not select authorships and re-fetching is out
+# of budget. The checker reads authors on the arXiv abstract page, so ``arxiv_abs_url`` replaces it.
+FRAME_EXTRA = ("arxiv_abs_url", "pwc_official")
+
+
+FRAME_COLUMNS = [c for c in cl.TEMPLATE_COLUMNS if c != "pwc_first_author"] + list(FRAME_EXTRA)
+
+
+def join_method_of(rec: Mapping, key: str | None) -> str:
+    """Join method from the corpus ``arxiv_id_source`` field; ``unmatchable_by_construction`` if no id."""
+    if key is None:
+        return UNMATCHABLE
+    source = rec.get("arxiv_id_source")
+    if source in ("doi", "both"):
+        return JOIN_OWN
+    if source == "location":
+        return JOIN_MERGED
+    return UNKNOWN_SOURCE
+
 
 
 def _truthy(value) -> bool:
@@ -95,22 +117,21 @@ def join_corpus(corpus_path, links_index: Mapping[str, dict], state: dict) -> It
         stats["kinds"][kind] += 1
         stats["works_by_year"][year] += 1
         link = links_index.get(key) if key else None
+        method = join_method_of(rec, key)
         if key is None:
-            method = UNMATCHABLE
             stats["unmatchable_by_year"][year] += 1
         else:
-            method = JOIN_OWN if rec.get("type") == "preprint" else JOIN_MERGED
             stats["id_by_year"][year] += 1
             corpus_keys.add(key)
         if link:
             stats["linked_by_year"][year] += 1
             stats["official_by_year"][year] += link["official"]
             matched.setdefault(key, {
-                "pwc_title": link["title"], "pwc_first_author": "", "pwc_year": year,
+                "pwc_title": link["title"], "pwc_year": year,
                 "pwc_arxiv_id": key, "pwc_code_url": link["code_url"], "oa_work_id": rec["id"],
                 "oa_title": rec.get("title") or "", "oa_doi": "", "oa_pub_date": rec.get("date"),
                 "join_method": method, "code_link_present": True,
-                "oa_first_author": rec.get("first_author") or "", "pwc_official": link["official"],
+                "arxiv_abs_url": "https://arxiv.org/abs/" + key, "pwc_official": link["official"],
             })
         row = {
             "id": rec["id"], "arxiv_id": key or "", "match_key": key or "", "join_method": method,
@@ -178,15 +199,15 @@ def _stratified(pairs: Sequence[Mapping]) -> list[dict]:
 
 def hand_check_frame(matched: Mapping[str, dict], n: int = 100, seed: int = 20261108) -> list[dict]:
     """Seeded 100-pair frame from matched pairs, stratified by year band, official or not, and
-    own-record or merged-record. Template columns plus ``oa_first_author`` and ``pwc_official``.
-    ``oa_title`` is the corpus title. No abstract text. Precision only, not recall."""
+    own-record or merged-record. Template columns plus ``arxiv_abs_url`` (replaces first author, which is not available) and
+    ``pwc_official``. Strata use ``join_method`` doi/location/unknown_source. ``oa_title`` is the corpus title. No abstract text. Precision only, not recall."""
     staged = _stratified(list(matched.values()))
     frame = cl.build_frame(staged, n=n, seed=seed)
     by_key = {p["pwc_arxiv_id"]: p for p in matched.values()}
     for row in frame:
         src = by_key[row["pwc_arxiv_id"]]
         row["join_method"] = src["join_method"]
-        row["oa_first_author"] = src["oa_first_author"]
+        row["arxiv_abs_url"] = src["arxiv_abs_url"]
         row["pwc_official"] = src["pwc_official"]
     return frame
 
@@ -223,7 +244,7 @@ def run(corpus, links, revision: str, out_dir, min_linked: int = 100, seed: int 
     rep["thin_cutoff_year"] = coverage["cutoff_year"]
     rep["min_linked"] = min_linked
     frame = hand_check_frame(result["matched"], n, seed)
-    write_csv(out / "handcheck_frame.csv", list(cl.TEMPLATE_COLUMNS) + list(FRAME_EXTRA), frame)
+    write_csv(out / "handcheck_frame.csv", FRAME_COLUMNS, frame)
     (out / "coverage.json").write_text(json.dumps(coverage, indent=1, default=str), encoding="utf-8")
     rep["frame_rows"] = len(frame)
     rep["seconds"] = round(time.monotonic() - started, 1)
