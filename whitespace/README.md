@@ -87,7 +87,6 @@ test: {"<T>": {
 
 Ranking uses the model's log-odds (Platt is monotone, so ranks are unchanged); calibration uses the Platt probabilities. Rows are permuted with a seeded permutation before ranking so exact ties (common for integer baselines) do not follow canonical pair order. Features: current weight, the six baseline scores (log1p), log paper counts, three-year paper-count growth and concept age (min/max of the two concepts). Embedding and cosine features are out of scope until the embedding model exists.
 
-
 ## OpenAlex ingest (`pipeline/ingest.py`, issue #147)
 
 ```sh
@@ -128,10 +127,7 @@ python -m whitespace.pipeline.run_real --corpus ... --caches-only --origins 2010
 - **Gap score** is `p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) * (1 + gap_rate_a + gap_rate_b)`. Cosine (no embeddings) and gap rate (no open-problem mining) are omitted while missing, `meta` and `gaps.json` state the formula used, and the score is not a probability. Gaps rank the top pairs by `p_link` (default pool 2000).
 - **Papers** are exported as id, year and link only. No abstract text. `meta` headline numbers are copied from a real backtest dict, otherwise null; NaN becomes null.
 
-
 `pipeline/export_backtest.py` turns the runner's `metrics` dict into the frontend's `BacktestResponse` (`web/src/api.ts`) and a `manifest.json`. `to_backtest_response(metrics, hits, misses, code_link_evaluation=None, meta=None)` copies numbers from the latest test origin and invents none: `pr_auc` and the `cosine` baseline are `null` (the runner has neither), and common neighbours and Jaccard are omitted because the frontend type does not list them. NaN and infinity become `null`; no abstract text is written. Only a run with `data_label == "real"` and no synthetic generator produces `placeholder: false`; a synthetic, unlabelled or empty run returns the placeholder shape with `synthetic` set and no numbers, hits or misses. `select_hits_misses` returns the top 20 hits and top 10 misses on a test origin; the hit year comes from work dates when works are supplied, otherwise it is `null` and `hits_note` says only annual counts exist. `write_manifest` records corpus, split, seeds, config hash, code commit, library versions and file hashes. Extra top-level keys beyond the frontend type: `synthetic`, `hits_note`, `meta`. The real-run check is `backtest.is_real_run`; a non-real response carries `data_label` in `meta` (`synthetic` or `unlabelled`).
-
-
 
 ## Code layer (`pipeline/code_layer.py`, issue #142)
 
@@ -174,9 +170,6 @@ One flat directory: `routes.json` (every frontend route to its file, key, and `r
 - **Real or placeholder.** Only `backtest.is_real_run` on the run's metrics manifest (label `real`, no generator) makes a real export; a dry run, synthetic or unlabelled run writes every file as `placeholder: true` and `synthetic: true` with no numbers except years, and the writer raises otherwise. Coverage is a placeholder without `--join-dir`.
 - **Validator.** `validate_export(dir)` checks routes resolve to files and keys, strict JSON without NaN, the key sets and value types of the frontend fixtures (copied to `pipeline/frontend_contract/` from PR #159) and `api.ts`, no abstract keys or pasted text, the production label, and placeholder/synthetic consistency.
 
-
-
-
 **`routes.json` shape.** `{layout_version, synthetic, data_label, corpus_last_year, map_years: [..], note, routes: [...]}`. `map_years` lists the years that have a `map-<Y>.json` and a `coverage-<Y>.json`; any year outside it (for the real corpus, everything after 2023) has no file and the frontend should show "no data for this year" (absent, not zero). Each route is `{route, file, kind, status, [year], [key], [note]}`:
 
 | route pattern | file | selection | status |
@@ -192,7 +185,4 @@ One flat directory: `routes.json` (every frontend route to its file, key, and `r
 | `/api/open-problems` | `open-problems.json` | none; query ignored | always placeholder |
 
 **Sample export.** `whitespace/tests/fixtures/export_sample/` is a small export of the SYNTHETIC dry run (made-up words) for the frontend to copy into `whitespace/web/public/data/` and test against. Every file is `placeholder: true` and `synthetic: true`. It contains NO real results.
-
-
-
 
