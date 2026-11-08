@@ -137,7 +137,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
       </dl>
 
       {counts.length > 0 && (
-        <section aria-labelledby="wc-ppy">
+        <section className="whitespace-concept__card" aria-labelledby="wc-ppy">
           <div className="whitespace-concept__head">
             <h3 id="wc-ppy">Papers per year</h3>
             {forecast.length > 0 && <span className="whitespace-concept__sub">dashed = forecast, 80% interval</span>}
@@ -168,7 +168,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
       {papers.length > 0 && (
         <section aria-labelledby="wc-papers">
           <h3 id="wc-papers">Most-cited papers</h3>
-          <ol className="whitespace-concept__papers">
+          <ol className="whitespace-concept__papers whitespace-concept__paper-cards">
             {papers.slice(0, 5).map((p) => (
               <li key={p.id}>
                 {p.url ? <a href={p.url} target="_blank" rel="noreferrer">{fmtText(p.title)}</a> : <span className="whitespace-concept__ptitle">{fmtText(p.title)}</span>}

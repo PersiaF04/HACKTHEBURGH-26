@@ -42,7 +42,10 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
     <div className={disabled ? "whitespace-filters is-disabled" : "whitespace-filters"}>
       {areas && areas.length > 0 && (
         <section aria-labelledby={`${uid}-areas`} className="whitespace-filters__section whitespace-filters__areas">
-          <h2 id={`${uid}-areas`}>Research areas</h2>
+          <div className="whitespace-filters__heading">
+            <h2 id={`${uid}-areas`}>Topic areas</h2>
+            <p>Choose the parts of the map to keep visible.</p>
+          </div>
           {areas.map((area) => (
             <label key={area.id} className="whitespace-check">
               <input
@@ -57,8 +60,11 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
         </section>
       )}
 
-      <section aria-labelledby={`${uid}-filters`} className="whitespace-filters__section">
-        <h2 id={`${uid}-filters`}>Filters</h2>
+      <section aria-labelledby={`${uid}-filters`} className="whitespace-filters__section whitespace-filters__signal">
+        <div className="whitespace-filters__heading">
+          <h2 id={`${uid}-filters`}>Refine the signal</h2>
+          <p>Start broad, then reduce noise by scale or momentum.</p>
+        </div>
         <div className="whitespace-filters__row">
           <div className="whitespace-filters__label">
             <label htmlFor={`${uid}-min`} title={MIN_PAPERS_HELP}>Minimum papers</label>
@@ -95,14 +101,14 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
           </div>
           <p className="whitespace-help" id={`${uid}-growth-help`}>Change in papers over the last 3 years.</p>
         </div>
-        <label className="whitespace-check">
+        <label className="whitespace-check whitespace-check--switch">
           <input
             type="checkbox"
             disabled={disabled}
             checked={filters.showPredicted}
             onChange={(event) => set({ showPredicted: event.currentTarget.checked })}
           />
-          <span>Show predicted links</span>
+          <span><strong>Predicted links</strong><small>Show the model's possible next connections.</small></span>
         </label>
         <button type="button" className="whitespace-filters__reset" disabled={disabled} onClick={onReset}>
           Reset filters
