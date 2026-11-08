@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Whitespace — Explore</title>
+<script src="3265f1e1-76e1-4e3d-93b3-8fa791ea69e9"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#15171C;text-decoration-color:#B9BCC4;text-underline-offset:3px}a:hover{color:#15171C;text-decoration-color:#15171C}
+</style>
+</helmet>
+<div style="min-height: 980px; background: #F6F6F3; color: #15171C; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 14px; display: flex; flex-direction: column">
+
+<header style="min-height: 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 8px 20px; background: #FFFFFF; border-bottom: 1px solid #E6E6E1">
+<a href="Main.dc.html" aria-label="Whitespace home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #15171C">
+<svg width="28" height="28" sc-camel-view-box="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" fill="#15171C"></circle><circle cx="21" cy="8" r="4" fill="none" stroke="#15171C" stroke-width="2"></circle><line x1="10.5" y1="17" x2="17.5" y2="11" stroke="#2952E3" stroke-width="2" stroke-dasharray="2.5 2.5"></line></svg>
+<span style="font-weight: 600; font-size: 18px; letter-spacing: -0.01em">Whitespace</span>
+</a>
+<nav aria-label="Breadcrumb" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: #5B606B">
+<span aria-hidden="true" style="color: #B9BCC4">/</span>
+<a href="Main.dc.html" style="color: #5B606B; text-decoration: none">Thesis topic search</a>
+<span aria-hidden="true" style="color: #B9BCC4">/</span>
+<span aria-current="location" style="color: #15171C; font-weight: 500">Generative models for molecules</span>
+</nav>
+<div style="flex: 1"></div>
+<nav aria-label="Thread views" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="Explore.dc.html" aria-current="page" style="padding: 8px 12px; border-radius: 6px; background: #ECECE7; color: #15171C; font-weight: 600; text-decoration: none">Explore</a>
+<a href="Gaps.dc.html" style="padding: 8px 12px; border-radius: 6px; color: #3F444D; font-weight: 500; text-decoration: none">Gaps &amp; open problems</a>
+</nav>
+<span style="font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #FFFFFF; color: #5B606B; border: 1px solid #D1D1CB">Sample data</span>
+</header>
+
+<main style="flex: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<aside aria-label="Search and filters" style="flex: 1 1 280px; box-sizing: border-box; padding: 20px; background: #FFFFFF; border-right: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 28px">
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; padding: 3px; background: #F0F0EC; border-radius: 8px; gap: 2px">
+<button type="button" aria-pressed="{{searchOn}}" sc-camel-on-click="{{toSearch}}" style="flex: 1; min-height: 36px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: {{segA.bg}}; color: {{segA.fg}}; box-shadow: {{segA.sh}}">Search</button>
+<button type="button" aria-pressed="{{paperOn}}" sc-camel-on-click="{{toPaper}}" style="flex: 1; min-height: 36px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: {{segB.bg}}; color: {{segB.fg}}; box-shadow: {{segB.sh}}">From my paper</button>
+</div>
+
+<sc-if value="{{searchOn}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="ws-q" style="font-size: 12px; font-weight: 600; color: #3F444D">Find a concept or paper</label>
+<div style="position: relative">
+<svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true" style="position: absolute; left: 11px; top: 12px"><circle cx="7" cy="7" r="5" fill="none" stroke="#5B606B" stroke-width="1.6"></circle><line x1="11" y1="11" x2="14.5" y2="14.5" stroke="#5B606B" stroke-width="1.6" stroke-linecap="round"></line></svg>
+<input id="ws-q" type="search" value="{{q}}" sc-camel-on-input="{{onQ}}" placeholder="e.g. diffusion, offline RL" style="width: 100%; box-sizing: border-box; height: 40px; padding: 0 12px 0 34px; border: 1px solid #CFCFC8; border-radius: 8px; font: inherit; font-size: 14px; background: #FFFFFF; color: #15171C">
+</div>
+<sc-if value="{{hasResults}}">
+<ul style="list-style: none; margin: 0; padding: 0; border: 1px solid #E6E6E1; border-radius: 8px; overflow: hidden">
+<sc-for list="{{results}}" as="r" hint-placeholder-count="3">
+<li><button type="button" sc-camel-on-click="{{r.pick}}" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-bottom: 1px solid #EFEFEA; background: #FFFFFF; font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: #15171C"><span>{{r.label}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B606B">{{r.n}}</span></button></li>
+</sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{noResults}}">
+<p style="margin: 0; font-size: 13px; color: #5B606B">No concept matches “{{q}}”.</p>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{paperOn}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="ws-abs" style="font-size: 12px; font-weight: 600; color: #3F444D">Paste your abstract</label>
+<textarea id="ws-abs" rows="6" value="{{abstract}}" sc-camel-on-input="{{onAbs}}" placeholder="We find its nearest concepts and the unexplored pairs next to them." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #CFCFC8; border-radius: 8px; font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; color: #15171C"></textarea>
+<button type="button" sc-camel-on-click="{{runAbs}}" style="min-height: 40px; border: 0; border-radius: 8px; background: #15171C; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Find nearest concepts</button>
+<sc-if value="{{absDone}}">
+<ul style="list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{nearest}}" as="m" hint-placeholder-count="4">
+<li><button type="button" sc-camel-on-click="{{m.pick}}" style="width: 100%; display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 1px solid #E6E6E1; border-radius: 8px; background: #FFFFFF; font: inherit; text-align: left; cursor: pointer; color: #15171C">
+<span style="display: flex; justify-content: space-between; font-size: 13px"><span>{{m.label}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B606B">cos {{m.sim}}</span></span>
+<span style="display: block; height: 4px; background: #EFEFEA; border-radius: 2px"><span style="display: block; height: 4px; width: {{m.w}}%; background: #15171C; border-radius: 2px"></span></span>
+</button></li>
+</sc-for>
+</ul>
+<a href="Gaps.dc.html" style="font-size: 13px; font-weight: 500">See the 4 gaps next to your paper →</a>
+</sc-if>
+</div>
+</sc-if>
+</section>
+
+<section aria-labelledby="ws-areas" style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="ws-areas" style="margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #3F444D">Research areas</h2>
+<sc-for list="{{areas}}" as="a" hint-placeholder-count="7">
+<label style="display: flex; align-items: center; gap: 10px; min-height: 34px; font-size: 13px; cursor: pointer">
+<input type="checkbox" checked="{{a.on}}" sc-camel-on-change="{{a.toggle}}" style="width: 16px; height: 16px; margin: 0; accent-color: #15171C">
+<span style="flex: 1">{{a.name}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B606B">{{a.count}}</span>
+</label>
+</sc-for>
+</section>
+
+<section aria-labelledby="ws-filters" style="display: flex; flex-direction: column; gap: 14px">
+<h2 id="ws-filters" style="margin: 0; font-size: 12px; font-weight: 600; color: #3F444D">Filters</h2>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between"><label for="ws-minn" style="font-size: 13px; color: #15171C">Minimum papers</label><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{minN}}</span></div>
+<input id="ws-minn" type="range" min="0" max="3000" step="100" value="{{minN}}" sc-camel-on-input="{{onMinN}}" style="width: 100%; margin: 0; accent-color: #15171C">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span id="ws-growth-l" style="font-size: 13px; color: #15171C">Growth</span>
+<div role="group" aria-labelledby="ws-growth-l" style="display: flex; padding: 3px; background: #F0F0EC; border-radius: 6px; gap: 2px">
+<sc-for list="{{growthOpts}}" as="go" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{go.on}}" sc-camel-on-click="{{go.pick}}" style="flex: 1; min-height: 32px; border: 0; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: {{go.bg}}; color: {{go.fg}}; box-shadow: {{go.sh}}">{{go.label}}</button>
+</sc-for>
+</div>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 32px; font-size: 13px; cursor: pointer">
+<input type="checkbox" checked="{{showPred}}" sc-camel-on-change="{{togglePred}}" style="width: 16px; height: 16px; margin: 0; accent-color: #15171C">
+<span>Show predicted links</span>
+</label>
+<button type="button" sc-camel-on-click="{{resetFilters}}" style="align-self: flex-start; min-height: 32px; padding: 0 2px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: #15171C; text-decoration: underline; text-decoration-color: #B9BCC4; text-underline-offset: 3px; cursor: pointer">Reset filters</button>
+</section>
+</aside>
+
+<section aria-label="Research map" style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.01em">Research map</h1>
+<span style="font-size: 13px; color: #5B606B">Click a concept for its details</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px">
+<sc-for list="{{stats}}" as="st" hint-placeholder-count="4">
+<div style="padding: 10px 16px; border-left: {{st.bl}}; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 12px; color: #5B606B">{{st.label}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; color: {{st.c}}; font-variant-numeric: tabular-nums">{{st.v}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="position: relative; height: 640px; background-color: #FFFFFF; background-image: radial-gradient(#E4E4DF 1px, transparent 1px); background-size: 20px 20px; border: 1px solid #E6E6E1; border-radius: 8px; overflow: hidden">
+<div style="position: absolute; left: 50%; top: 50%; width: 900px; height: 640px; margin-left: -450px; margin-top: -320px; transform: scale({{zoom}}); transform-origin: 50% 50%; transition: transform 200ms ease">
+<sc-for list="{{areaLabels}}" as="al" hint-placeholder-count="7">
+<span aria-hidden="true" style="position: absolute; left: {{al.x}}px; top: {{al.y}}px; transform: translateX(-50%); font-size: 12px; font-weight: 500; color: #5B606B; white-space: nowrap">{{al.name}}</span>
+</sc-for>
+<sc-for list="{{edges}}" as="e" hint-placeholder-count="10">
+<span aria-hidden="true" style="position: absolute; left: {{e.x}}px; top: {{e.y}}px; width: {{e.len}}px; height: {{e.h}}px; background: {{e.c}}; transform: rotate({{e.ang}}deg); transform-origin: 0 50%"></span>
+</sc-for>
+<sc-for list="{{pred}}" as="p" hint-placeholder-count="2">
+<span aria-hidden="true" style="position: absolute; left: {{p.x}}px; top: {{p.y}}px; width: {{p.len}}px; height: 0; border-top: 2px dashed {{accent}}; transform: rotate({{p.ang}}deg); transform-origin: 0 50%"></span>
+</sc-for>
+<sc-for list="{{nodes}}" as="n" hint-placeholder-count="20">
+<sc-if value="{{n.named}}">
+<button type="button" aria-label="{{n.aria}}" aria-pressed="{{n.sel}}" sc-camel-on-click="{{n.pick}}" style="position: absolute; left: {{n.hl}}px; top: {{n.ht}}px; width: {{n.hs}}px; height: {{n.hs}}px; padding: 0; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<span style="display: block; width: {{n.d}}px; height: {{n.d}}px; border-radius: 50%; background: {{n.color}}; box-shadow: {{n.ring}}"></span>
+</button>
+</sc-if>
+<sc-if value="{{n.dot}}">
+<span aria-hidden="true" style="position: absolute; left: {{n.dl}}px; top: {{n.dt}}px; width: {{n.d}}px; height: {{n.d}}px; border-radius: 50%; background: {{n.color}}; opacity: 0.8"></span>
+</sc-if>
+</sc-for>
+<sc-for list="{{labels}}" as="l" hint-placeholder-count="10">
+<span aria-hidden="true" style="position: absolute; left: {{l.x}}px; top: {{l.y}}px; transform: {{l.tf}}; font-size: 11px; font-weight: {{l.w}}; color: #15171C; white-space: nowrap; pointer-events: none; text-shadow: 0 0 3px #FFFFFF, 0 0 3px #FFFFFF, 0 0 3px #FFFFFF">{{l.text}}</span>
+</sc-for>
+<sc-for list="{{pred}}" as="p" hint-placeholder-count="2">
+<span aria-hidden="true" style="position: absolute; left: {{p.mx}}px; top: {{p.my}}px; transform: translate(-50%, -50%); padding: 2px 6px; border-radius: 4px; background: {{accent}}; color: #FFFFFF; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 500; white-space: nowrap">P {{p.pl}}</span>
+</sc-for>
+</div>
+
+<div style="position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px; overflow: hidden">
+<button type="button" aria-label="Zoom in" sc-camel-on-click="{{zoomIn}}" style="width: 40px; height: 40px; border: 0; border-bottom: 1px solid #E6E6E1; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" sc-camel-view-box="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="#15171C" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+<button type="button" aria-label="Zoom out" sc-camel-on-click="{{zoomOut}}" style="width: 40px; height: 40px; border: 0; border-bottom: 1px solid #E6E6E1; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" sc-camel-view-box="0 0 14 14" aria-hidden="true"><path d="M2 7h10" stroke="#15171C" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+<button type="button" aria-label="Reset view" sc-camel-on-click="{{zoomReset}}" style="width: 40px; height: 40px; border: 0; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" sc-camel-view-box="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" rx="1.5" fill="none" stroke="#15171C" stroke-width="1.5"></rect></svg></button>
+</div>
+</div>
+
+<div aria-label="Legend" role="group" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px; font-size: 12px; color: #3F444D">
+<span style="display: flex; align-items: center; gap: 8px"><span>Shrinking</span><span style="display: flex; gap: 2px"><span style="width: 18px; height: 10px; border-radius: 2px; background: #C3C7CF"></span><span style="width: 18px; height: 10px; border-radius: 2px; background: #F0C9A0"></span><span style="width: 18px; height: 10px; border-radius: 2px; background: #EDA060"></span><span style="width: 18px; height: 10px; border-radius: 2px; background: #E07432"></span><span style="width: 18px; height: 10px; border-radius: 2px; background: #BF4A0E"></span></span><span>Fast-growing</span><span style="color: #5B606B">· colour = 3-yr paper growth</span></span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="display: flex; align-items: center; gap: 3px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #9AA0AA"></span><span style="width: 11px; height: 11px; border-radius: 50%; background: #9AA0AA"></span><span style="width: 17px; height: 17px; border-radius: 50%; background: #9AA0AA"></span></span>Size = papers</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 26px; height: 0; border-top: 1.5px solid #B9BCC4"></span>Linked · 3+ shared papers</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 26px; height: 0; border-top: 2px dashed {{accent}}"></span>Predicted link · next 3 years</span>
+</div>
+</section>
+
+<aside aria-label="Concept details" style="flex: 1 1 380px; box-sizing: border-box; padding: 20px; background: #FFFFFF; border-left: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 600; color: #5B606B">{{c.area}}</span>
+<h2 style="margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2">{{c.label}}</h2>
+<span style="font-size: 13px; color: #5B606B">First appears {{c.fy}}</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid #E6E6E1; border-radius: 8px">
+<div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5B606B">Papers</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums">{{c.nNow}}</span></div>
+<div style="padding: 10px 12px; border-left: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5B606B">3-yr growth</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; color: {{c.gColor}}">{{c.growth}}</span></div>
+<div style="padding: 10px 12px; border-left: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #5B606B">Stated-gap rate</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500">{{c.gr}}</span></div>
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Papers per year</h3>
+<span style="font-size: 11px; color: #5B606B">dashed = forecast, 80% interval</span>
+</div>
+<div style="display: flex; align-items: flex-end; gap: 2px">
+<sc-for list="{{c.bars}}" as="b" hint-placeholder-count="14">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<div style="position: relative; width: 100%; height: 80px">
+<div style="position: absolute; left: 12%; right: 12%; bottom: 0; height: {{b.h}}px; background: {{b.bg}}; border: {{b.border}}; box-sizing: border-box; border-radius: 2px 2px 0 0"></div>
+<sc-if value="{{b.fc}}"><div style="position: absolute; left: 50%; margin-left: -0.75px; width: 1.5px; bottom: {{b.lo}}px; height: {{b.span}}px; background: #15171C"></div></sc-if>
+</div>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B606B; height: 14px">{{b.yl}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Predicted gaps</h3>
+<a href="Gaps.dc.html" style="font-size: 12px; font-weight: 500">All gaps →</a>
+</div>
+<sc-if value="{{c.hasGaps}}">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{c.gaps}}" as="g" hint-placeholder-count="2">
+<li style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #E6E6E1; border-radius: 8px">
+<svg width="18" height="10" sc-camel-view-box="0 0 18 10" aria-hidden="true"><line x1="1" y1="5" x2="17" y2="5" stroke="{{accent}}" stroke-width="2" stroke-dasharray="3 2"></line></svg>
+<span style="flex: 1; font-size: 13px">{{g.other}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #15171C">P {{g.p}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B606B">[{{g.lo}}, {{g.hi}}]</span>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{c.noGaps}}"><p style="margin: 0; font-size: 13px; color: #5B606B">No unlinked partner above P 0.35.</p></sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Most-cited papers</h3>
+<sc-if value="{{c.hasPapers}}">
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{c.papers}}" as="pp" hint-placeholder-count="3">
+<li style="display: flex; flex-direction: column; gap: 2px"><a href="#" style="font-size: 13px; line-height: 1.4; text-decoration: none; color: #15171C; font-weight: 500">{{pp.t}}</a><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B606B">{{pp.y}}</span></li>
+</sc-for>
+</ol>
+</sc-if>
+<sc-if value="{{c.noPapers}}"><p style="margin: 0; font-size: 13px; color: #5B606B">Top papers load from /api/concept/{id}.</p></sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Stated open problems</h3>
+<a href="Gaps.dc.html" style="font-size: 12px; font-weight: 500">All →</a>
+</div>
+<sc-if value="{{c.hasProblems}}">
+<sc-for list="{{c.problems}}" as="op" hint-placeholder-count="2">
+<blockquote style="margin: 0; padding: 10px 12px; background: #F6F6F3; border-radius: 8px; display: flex; flex-direction: column; gap: 6px">
+<span style="align-self: flex-start; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: {{op.bg}}; color: {{op.fg}}">{{op.type}}</span>
+<span style="font-size: 13px; line-height: 1.45; color: #15171C">{{op.s}}</span>
+</blockquote>
+</sc-for>
+</sc-if>
+<sc-if value="{{c.noProblems}}"><p style="margin: 0; font-size: 13px; color: #5B606B">Sentences load from /api/open-problems.</p></sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Linked concepts</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{c.neigh}}" as="nb" hint-placeholder-count="4">
+<button type="button" sc-camel-on-click="{{nb.pick}}" style="min-height: 32px; padding: 0 10px; border: 1px solid #D5D5CF; border-radius: 4px; background: #FFFFFF; font: inherit; font-size: 12px; color: #15171C; cursor: pointer">{{nb.label}}</button>
+</sc-for>
+</div>
+</section>
+</aside>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#2952E3&quot;,&quot;options&quot;:[&quot;#2952E3&quot;,&quot;#0F766E&quot;,&quot;#B4410C&quot;]},&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:980}}">
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = { sel: 'Diffusion models', q: '', mode: 'search', abstract: '', absDone: false, off: {}, zoom: 1, minN: 0, growth: 'all', showPred: true };
+  }
+
+  graph() {
+    if (this._g) return this._g;
+    const AREAS = [
+      { id: 'saf', name: 'Safety & reliability', cx: 470, cy: 110 },
+      { id: 'lm', name: 'Language models', cx: 215, cy: 185 },
+      { id: 'cv', name: 'Computer vision', cx: 715, cy: 190 },
+      { id: 'gen', name: 'Generative models', cx: 465, cy: 325 },
+      { id: 'gr', name: 'Graphs & molecules', cx: 190, cy: 465 },
+      { id: 'rl', name: 'Reinforcement learning', cx: 725, cy: 455 },
+      { id: 'opt', name: 'Efficient & federated ML', cx: 465, cy: 515 }
+    ];
+    const NAMED = [
+      ['lm', 'Large language models', 9800, 0.9, 2018, 0.12], ['lm', 'In-context learning', 2100, 0.8, 2020, 0.15], ['lm', 'Instruction tuning', 1500, 0.85, 2021, 0.11], ['lm', 'Retrieval-augmented generation', 2600, 0.95, 2020, 0.14], ['lm', 'Chain-of-thought', 1200, 0.9, 2022, 0.15], ['lm', 'Tokenization', 700, 0.3, 2015, 0.08],
+      ['cv', 'Object detection', 5200, 0.1, 2015, 0.06], ['cv', 'Vision transformers', 3100, 0.6, 2020, 0.09], ['cv', 'Semantic segmentation', 3900, 0.1, 2015, 0.07], ['cv', 'Self-supervised learning', 2800, 0.4, 2016, 0.10], ['cv', 'Open-vocabulary detection', 600, 0.8, 2021, 0.10],
+      ['gen', 'Diffusion models', 4300, 0.85, 2020, 0.08], ['gen', 'GANs', 3800, -0.3, 2015, 0.07], ['gen', 'Variational autoencoders', 2100, 0.0, 2015, 0.06], ['gen', 'Text-to-image', 1900, 0.7, 2016, 0.09], ['gen', 'Flow matching', 450, 0.95, 2022, 0.09],
+      ['rl', 'Deep RL', 4100, 0.0, 2015, 0.10], ['rl', 'Multi-agent RL', 1400, 0.3, 2016, 0.12], ['rl', 'Offline RL', 1100, 0.4, 2019, 0.11], ['rl', 'Model-based RL', 1000, 0.2, 2016, 0.10], ['rl', 'RLHF', 900, 0.95, 2017, 0.12],
+      ['gr', 'Graph neural networks', 4600, 0.3, 2016, 0.06], ['gr', 'Knowledge graphs', 2900, 0.1, 2015, 0.08], ['gr', 'Molecular property prediction', 800, 0.5, 2017, 0.16], ['gr', 'Link prediction', 1200, 0.2, 2015, 0.07],
+      ['opt', 'Federated learning', 3300, 0.2, 2017, 0.13], ['opt', 'Model compression', 1700, 0.2, 2015, 0.07], ['opt', 'Neural architecture search', 1500, -0.4, 2017, 0.06], ['opt', 'Continual learning', 1300, 0.3, 2016, 0.18], ['opt', 'Mixture of experts', 650, 0.9, 2017, 0.07],
+      ['saf', 'Adversarial robustness', 2500, -0.1, 2016, 0.11], ['saf', 'Uncertainty quantification', 1600, 0.3, 2015, 0.19], ['saf', 'Fairness', 1400, 0.1, 2016, 0.14], ['saf', 'Mechanistic interpretability', 400, 0.95, 2022, 0.21]
+    ];
+    const CROSS = [
+      ['Large language models', 'RLHF'], ['Text-to-image', 'Vision transformers'], ['Large language models', 'Mixture of experts'],
+      ['Large language models', 'Mechanistic interpretability'], ['Adversarial robustness', 'Object detection'], ['Chain-of-thought', 'RLHF'],
+      ['Diffusion models', 'Offline RL'], ['Vision transformers', 'Self-supervised learning'], ['Diffusion models', 'Text-to-image'],
+      ['Graph neural networks', 'Molecular property prediction'], ['Large language models', 'Retrieval-augmented generation'], ['Knowledge graphs', 'Retrieval-augmented generation']
+    ];
+    let seed = 20260;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const nodes = [];
+    AREAS.forEach((a, ai) => {
+      const list = NAMED.filter((n) => n[0] === a.id);
+      list.forEach((n, i) => {
+        const ang = i * 2.39996 + ai;
+        const rad = i === 0 ? 0 : 26 + 17 * i;
+        nodes.push({ id: nodes.length, area: a.id, label: n[1], n: n[2], g: n[3], fy: n[4], gr: n[5], x: a.cx + Math.cos(ang) * rad, y: a.cy + Math.sin(ang) * rad * 0.8, named: true });
+      });
+      for (let k = 0; k < 16; k++) {
+        const ang = rnd() * Math.PI * 2;
+        const rad = 26 + rnd() * 98;
+        nodes.push({ id: nodes.length, area: a.id, label: '', n: Math.round(40 + rnd() * 380), g: rnd() * 1.3 - 0.35, fy: 2015 + Math.floor(rnd() * 11), gr: 0.1, x: a.cx + Math.cos(ang) * rad, y: a.cy + Math.sin(ang) * rad * 0.72, named: false });
+      }
+    });
+    nodes.forEach((n) => { n.x = Math.max(18, Math.min(882, n.x)); n.y = Math.max(18, Math.min(622, n.y)); });
+    const byLabel = {};
+    nodes.forEach((n) => { if (n.named) byLabel[n.label] = n; });
+    const seen = {};
+    const edges = [];
+    const add = (a, b) => {
+      const k = Math.min(a.id, b.id) + '-' + Math.max(a.id, b.id);
+      if (seen[k]) return;
+      seen[k] = 1;
+      edges.push({ a: a, b: b, fy: Math.min(2026, Math.max(a.fy, b.fy) + 1) });
+    };
+    nodes.forEach((n) => {
+      nodes.filter((m) => m !== n && m.area === n.area)
+        .map((m) => ({ m: m, d: Math.hypot(m.x - n.x, m.y - n.y) }))
+        .sort((p, q) => p.d - q.d).slice(0, 2)
+        .forEach((o) => add(n, o.m));
+    });
+    CROSS.forEach((c) => { if (byLabel[c[0]] && byLabel[c[1]]) add(byLabel[c[0]], byLabel[c[1]]); });
+    const GAPS = [
+      ['Flow matching', 'Molecular property prediction', 0.71, 0.62, 0.79], ['Mechanistic interpretability', 'RLHF', 0.68, 0.58, 0.77],
+      ['Diffusion models', 'Multi-agent RL', 0.64, 0.55, 0.72], ['Mixture of experts', 'Knowledge graphs', 0.59, 0.48, 0.69],
+      ['In-context learning', 'Model-based RL', 0.55, 0.44, 0.65], ['Open-vocabulary detection', 'Uncertainty quantification', 0.52, 0.41, 0.62],
+      ['Chain-of-thought', 'Graph neural networks', 0.49, 0.37, 0.60], ['Diffusion models', 'Continual learning', 0.44, 0.33, 0.55],
+      ['Flow matching', 'Offline RL', 0.41, 0.29, 0.53], ['Federated learning', 'RLHF', 0.38, 0.27, 0.50]
+    ];
+    const DETAILS = {
+      'Diffusion models': {
+        papers: [{ t: 'Denoising Diffusion Probabilistic Models', y: '2020' }, { t: 'Score-Based Generative Modeling through Stochastic Differential Equations', y: '2021' }, { t: 'High-Resolution Image Synthesis with Latent Diffusion Models', y: '2022' }],
+        problems: [{ type: 'Open problem', s: 'Sampling still needs many network evaluations; reaching one-step quality without distillation remains open.' }, { type: 'Limitation', s: 'Guidance strength trades diversity for fidelity, and no principled way to choose it is known.' }]
+      },
+      'Large language models': {
+        papers: [{ t: 'Language Models are Few-Shot Learners', y: '2020' }, { t: 'Training language models to follow instructions with human feedback', y: '2022' }, { t: 'LLaMA: Open and Efficient Foundation Language Models', y: '2023' }],
+        problems: [{ type: 'Limitation', s: 'Models remain sensitive to prompt phrasing, and it is unclear how to measure that robustness reliably.' }, { type: 'Future work', s: 'Grounding generations in verifiable sources at scale is left for future work.' }]
+      },
+      'RLHF': {
+        papers: [{ t: 'Deep reinforcement learning from human preferences', y: '2017' }, { t: 'Training language models to follow instructions with human feedback', y: '2022' }, { t: 'Direct Preference Optimization: Your Language Model is Secretly a Reward Model', y: '2023' }],
+        problems: [{ type: 'Open problem', s: 'Little is known about how reward-model errors propagate into the final policy.' }, { type: 'Limitation', s: 'Preference data from a small pool of annotators may not reflect the wider population of users.' }]
+      }
+    };
+    this._g = { AREAS: AREAS, nodes: nodes, edges: edges, byLabel: byLabel, GAPS: GAPS, DETAILS: DETAILS };
+    return this._g;
+  }
+
+  pick(label) {
+    this.setState({ sel: label });
+  }
+
+  renderVals() {
+    const G = this.graph();
+    const s = this.state;
+    const accent = this.props.accent ?? '#2952E3';
+    const year = 2026;
+    const fmt = (v) => Math.round(v).toLocaleString('en-GB');
+    const color = (g) => (g < 0 ? '#C3C7CF' : g < 0.25 ? '#F0C9A0' : g < 0.5 ? '#EDA060' : g < 0.75 ? '#E07432' : '#BF4A0E');
+    const ql = s.q.trim().toLowerCase();
+    const selNode = G.byLabel[s.sel];
+
+    const vis = G.nodes.filter((n) => n.fy <= year && !s.off[n.area] && n.n >= s.minN && (s.growth === 'all' || (s.growth === 'up' ? n.g >= 0.25 : n.g < 0)));
+    const visIds = {};
+    vis.forEach((n) => { visIds[n.id] = 1; });
+    const radius = (n) => {
+      const f = Math.pow(Math.min(1, (year - n.fy + 1) / (2027 - n.fy)), 0.8);
+      return 2.5 + (1.5 + Math.sqrt(n.n) / 6.5) * f;
+    };
+
+    const edges = G.edges.filter((e) => e.fy <= year && visIds[e.a.id] && visIds[e.b.id]).map((e) => {
+      const dx = e.b.x - e.a.x;
+      const dy = e.b.y - e.a.y;
+      const inc = e.a === selNode || e.b === selNode;
+      return { x: e.a.x, y: e.a.y, len: Math.hypot(dx, dy), ang: Math.atan2(dy, dx) * 180 / Math.PI, c: inc ? '#15171C' : '#D3D5DA', h: inc ? 1.5 : 1 };
+    });
+
+    const linked = {};
+    G.edges.forEach((e) => { linked[e.a.label + '|' + e.b.label] = 1; linked[e.b.label + '|' + e.a.label] = 1; });
+    const selGaps = G.GAPS.filter((g) => (g[0] === s.sel || g[1] === s.sel) && !linked[g[0] + '|' + g[1]]);
+    const pred = [];
+    if (s.showPred && selNode && visIds[selNode.id]) {
+      selGaps.forEach((g) => {
+        const other = G.byLabel[g[0] === s.sel ? g[1] : g[0]];
+        if (!other || !visIds[other.id]) return;
+        const dx = other.x - selNode.x;
+        const dy = other.y - selNode.y;
+        pred.push({ x: selNode.x, y: selNode.y, len: Math.hypot(dx, dy), ang: Math.atan2(dy, dx) * 180 / Math.PI, mx: selNode.x + dx / 2, my: selNode.y + dy / 2, pl: g[2].toFixed(2) });
+      });
+    }
+
+    const ordered = vis.slice().sort((a, b) => b.n - a.n);
+    const nodes = ordered.map((n) => {
+      const R = radius(n);
+      const d = R * 2;
+      const hs = Math.max(d + 4, 24);
+      const isSel = n === selNode;
+      const isMatch = ql.length > 1 && n.named && n.label.toLowerCase().indexOf(ql) >= 0;
+      let ring = '0 0 0 1.5px #FFFFFF';
+      if (isMatch) ring = '0 0 0 2px #FFFFFF, 0 0 0 4px #8A8F99';
+      if (isSel) ring = '0 0 0 2px #FFFFFF, 0 0 0 4.5px #15171C';
+      return {
+        named: n.named, dot: !n.named, sel: isSel, d: d, color: color(n.g), ring: ring,
+        hl: n.x - hs / 2, ht: n.y - hs / 2, hs: hs, dl: n.x - R, dt: n.y - R,
+        aria: n.label + ', ' + fmt(n.n) + ' papers',
+        pick: () => this.pick(n.label)
+      };
+    });
+
+    const labels = vis.filter((n) => n.named && (n.n >= 1500 || n === selNode || (ql.length > 1 && n.label.toLowerCase().indexOf(ql) >= 0) || selGaps.some((g) => g[0] === n.label || g[1] === n.label))).map((n) => {
+      const R = radius(n);
+      const flip = n.x > 700;
+      return { text: n.label, x: flip ? n.x - R - 5 : n.x + R + 5, y: n.y - 8, tf: flip ? 'translateX(-100%)' : 'none', w: n === selNode ? 700 : 500 };
+    });
+
+    const areaLabels = G.AREAS.filter((a) => !s.off[a.id]).map((a) => ({ name: a.name, x: a.cx, y: Math.min(612, a.cy + 104) }));
+
+    const areas = G.AREAS.map((a) => ({
+      name: a.name, on: !s.off[a.id], count: vis.filter((n) => n.area === a.id).length,
+      toggle: () => { const off = Object.assign({}, this.state.off); off[a.id] = !off[a.id]; this.setState({ off: off }); }
+    }));
+
+    const named = G.nodes.filter((n) => n.named);
+    const matches = ql.length > 0 ? named.filter((n) => n.label.toLowerCase().indexOf(ql) >= 0).slice(0, 6) : [];
+    const results = matches.map((n) => ({ label: n.label, n: fmt(n.n), pick: () => this.pick(n.label) }));
+
+    const nearest = [['Diffusion models', 0.82], ['Flow matching', 0.77], ['Text-to-image', 0.71], ['Variational autoencoders', 0.64]].map((m) => ({ label: m[0], sim: m[1].toFixed(2), w: Math.round(m[1] * 100), pick: () => this.pick(m[0]) }));
+
+
+    // concept panel
+    const n = selNode;
+    const k = 0.05 + 0.4 * n.g;
+    const raw = [];
+    let sum = 0;
+    for (let y = 2015; y <= 2026; y++) { const w = y >= n.fy ? Math.exp(k * (y - n.fy)) : 0; raw.push(w); sum += w; }
+    const counts = raw.map((w) => (w / sum) * n.n);
+    const last = counts[counts.length - 1];
+    const fc = [1, 2].map((i) => { const yhat = last * Math.pow(1 + Math.max(-0.4, k), i); return { yhat: yhat, lo: yhat * (1 - 0.14 * i), hi: yhat * (1 + 0.18 * i) }; });
+    const maxV = Math.max.apply(null, counts.concat(fc.map((f) => f.hi))) || 1;
+    const sc = (v) => (v / maxV) * 76;
+    const bars = counts.map((v, i) => {
+      const y = 2015 + i;
+      const future = y > year;
+      return { h: sc(v), bg: future ? '#E4E4DF' : '#15171C', border: 'none', fc: false, lo: 0, span: 0, yl: i % 2 === 1 ? '' : "'" + String(y).slice(2) };
+    }).concat(fc.map((f, i) => ({ h: sc(f.yhat), bg: 'transparent', border: '1.5px dashed #15171C', fc: true, lo: sc(f.lo), span: sc(f.hi) - sc(f.lo), yl: i === 0 ? "'27" : '' })));
+    let nNow = 0;
+    counts.forEach((v, i) => { if (2015 + i <= year) nNow += v; });
+    const det = G.DETAILS[n.label];
+    const tone = { 'Open problem': ['#ECECE7', '#3F444D'], 'Limitation': ['#ECECE7', '#3F444D'], 'Future work': ['#ECECE7', '#3F444D'] };
+    const neigh = [];
+    G.edges.forEach((e) => {
+      if (e.a === n && e.b.named) neigh.push(e.b.label);
+      if (e.b === n && e.a.named) neigh.push(e.a.label);
+    });
+    const gp = Math.round(n.g * 60);
+    const c = {
+      label: n.label, area: G.AREAS.filter((a) => a.id === n.area)[0].name, fy: n.fy,
+      absent: n.fy > year, nNow: fmt(nNow), growth: (gp >= 0 ? '+' : '') + gp + '%', gColor: gp >= 0 ? '#9A3412' : '#5B606B',
+      gr: Math.round(n.gr * 100) + '%', bars: bars,
+      gaps: selGaps.map((g) => ({ other: g[0] === n.label ? g[1] : g[0], p: g[2].toFixed(2), lo: g[3].toFixed(2), hi: g[4].toFixed(2) })),
+      hasGaps: selGaps.length > 0, noGaps: selGaps.length === 0,
+      papers: det ? det.papers : [], hasPapers: !!det, noPapers: !det,
+      problems: det ? det.problems.map((p) => ({ type: p.type, s: p.s, bg: tone[p.type][0], fg: tone[p.type][1] })) : [], hasProblems: !!det, noProblems: !det,
+      neigh: neigh.slice(0, 8).map((l) => ({ label: l, pick: () => this.pick(l) }))
+    };
+
+    const on = { bg: '#FFFFFF', fg: '#15171C', sh: '0 1px 2px rgba(20,20,20,0.12)' };
+    const offSeg = { bg: 'transparent', fg: '#5B606B', sh: 'none' };
+
+    return {
+      accent: accent, year: year, zoom: s.zoom, selLabel: s.sel,
+      nVis: vis.length, eVis: edges.length, pVis: pred.length,
+      stats: [
+        { label: 'Concepts shown', v: fmt(vis.length), bl: 'none', c: '#15171C' },
+        { label: 'Links', v: fmt(edges.length), bl: '1px solid #E6E6E1', c: '#15171C' },
+        { label: 'Papers covered', v: fmt(vis.reduce((a, n) => a + n.n, 0)), bl: '1px solid #E6E6E1', c: '#15171C' },
+        { label: 'Predicted from selection', v: String(pred.length), bl: '1px solid #E6E6E1', c: accent }
+      ],
+      minN: s.minN, onMinN: (e) => this.setState({ minN: Number(e.target.value) }),
+      growthOpts: [['all', 'All'], ['up', 'Growing'], ['down', 'Shrinking']].map((o) => ({ label: o[1], on: s.growth === o[0], bg: s.growth === o[0] ? '#FFFFFF' : 'transparent', fg: s.growth === o[0] ? '#15171C' : '#5B606B', sh: s.growth === o[0] ? '0 1px 2px rgba(20,20,20,0.12)' : 'none', pick: () => this.setState({ growth: o[0] }) })),
+      showPred: s.showPred, togglePred: () => this.setState({ showPred: !this.state.showPred }),
+      resetFilters: () => this.setState({ off: {}, minN: 0, growth: 'all', showPred: true }),
+      edges: edges, pred: pred, nodes: nodes, labels: labels, areaLabels: areaLabels, areas: areas, c: c,
+      searchOn: s.mode === 'search', paperOn: s.mode === 'paper', segA: s.mode === 'search' ? on : offSeg, segB: s.mode === 'paper' ? on : offSeg,
+      toSearch: () => this.setState({ mode: 'search' }), toPaper: () => this.setState({ mode: 'paper' }),
+      q: s.q, onQ: (e) => this.setState({ q: e.target.value }), results: results,
+      hasResults: results.length > 0, noResults: ql.length > 0 && results.length === 0,
+      abstract: s.abstract, onAbs: (e) => this.setState({ abstract: e.target.value }), runAbs: () => this.setState({ absDone: true }), absDone: s.absDone, nearest: nearest,
+      zoomIn: () => this.setState({ zoom: Math.min(2, this.state.zoom + 0.25) }), zoomOut: () => this.setState({ zoom: Math.max(0.5, this.state.zoom - 0.25) }), zoomReset: () => this.setState({ zoom: 1 })
+    };
+  }
+}
+</script>
+
+
+</body></html>
