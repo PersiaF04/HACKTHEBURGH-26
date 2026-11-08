@@ -1,6 +1,7 @@
 import type { GapDetail, GapSummary, PaperSummary } from "../../api";
 import { NA, fmtDec, fmtInt, fmtPct, fmtText, fmtYear, isNum } from "../../lib/format";
-import { statedGapsText } from "./GapTable";
+import { ratePair } from "./GapTable";
+import { LinkedProblems } from "./LinkedProblems";
 
 export function safeExternalUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -39,7 +40,7 @@ function Papers({ label, papers }: { label: string; papers: PaperSummary[] }) {
 }
 
 const SECTIONS: Array<[string, string]> = [
-  ["How the score is made", "The four numbers multiplied together to rank this pair."],
+  ["How the score is made", "Likelihood, momentum and novelty multiplied together to rank this pair."],
   ["Closest papers on each side", "The papers that best represent each concept, so you can judge the pair yourself."],
   ["Shared neighbouring concepts", "Concepts both sides already connect to, which hint at a bridge."],
 ];
@@ -84,17 +85,17 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
 export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty = false }: GapDetailPanelProps) {
   if (!gap) return <DetailSkeleton empty={empty} />;
   const g = gap;
+  const rates = ratePair(g);
   const validated = g.interval_validation?.validated === true && isNum(g.p_lo) && isNum(g.p_hi);
   const factors: Array<{ name: string; v: string; why: string; op?: string; strong?: boolean; blue?: boolean }> = [
     { name: "Likelihood", v: fmtPct(g.p_link), why: "model estimate it connects", blue: true },
-    { name: "Momentum", v: fmtDec(g.momentum), why: isNum(g.growth_a) && isNum(g.growth_b) ? `weaker topic's growth ${fmtDec(Math.min(g.growth_a, g.growth_b))}` : "", op: "×" },
+    { name: "Momentum", v: fmtDec(g.momentum), why: isNum(g.growth_a) && isNum(g.growth_b) ? `weaker topic growth ${fmtDec(Math.min(g.growth_a, g.growth_b))}` : "", op: "×" },
     { name: "Novelty", v: fmtDec(g.novelty), why: isNum(g.neighbour_overlap) ? `1 − ${fmtDec(g.neighbour_overlap)} overlap` : "", op: "×" },
     { name: "Gap score", v: fmtDec(g.gap_score), why: rank != null ? `rank ${fmtInt(rank)} of ${fmtInt(total)}` : "", op: "=", strong: true },
   ];
   const papersA = detail?.closest_a ?? [];
   const papersB = detail?.closest_b ?? [];
   const shared = detail?.shared_neighbours ?? [];
-  const problems = detail?.open_problems ?? [];
   const labelA = fmtText(g.a_label);
   const labelB = fmtText(g.b_label);
   return (
@@ -124,7 +125,18 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
             </div>
           ))}
         </div>
-        <p className="gx-note">Stated gaps, shown for context and <strong>not part of the score</strong>: {statedGapsText(g)} of papers on {fmtText(g.a_label)} · {fmtText(g.b_label)} state an open problem.</p>
+      </section>
+
+      <section className="gx-sec">
+        <h3 className="gx-h3">Stated gaps <span className="gx-tag">display only, not in the score</span></h3>
+        {rates ? (
+          <>
+            <p className="gx-desc gx-mono gx-ink">{labelA}: {isNum(g.gap_rate_a) ? `${(g.gap_rate_a * 100).toFixed(1)}%` : NA} · {labelB}: {isNum(g.gap_rate_b) ? `${(g.gap_rate_b * 100).toFixed(1)}%` : NA}</p>
+            <p className="gx-desc">Share of each concept's papers whose abstract states an open problem (this export counts open-problem statements only). Shown for context; it does not change the gap score or the ranking.</p>
+          </>
+        ) : (
+          <p className="gx-desc">Not yet: author-stated open problems are not available for this pair in the export. When they are, they appear here as context only, never in the score.</p>
+        )}
       </section>
 
       {loading && <p className="gx-note" role="status">Loading gap evidence…</p>}
@@ -140,41 +152,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
         </section>
       )}
 
-      {detail && (
-        <section className="gx-sec gx-sec--tight">
-          <details className="gx-problems">
-            <summary>
-              <span className="gx-h3">Author-stated open problems</span>
-              <span className="gx-mono gx-problems__n">{problems.length > 0 ? fmtInt(problems.length) : NA}</span>
-            </summary>
-            {problems.length > 0 ? (
-              <ul className="gx-problems__list">
-                {problems.slice(0, 5).map((o, i) => {
-                  const href = safeExternalUrl(o.paper?.url);
-                  return (
-                    <li key={`${o.paper?.id ?? i}-${i}`}>
-                      <span className="gx-problems__s">{fmtText(o.sentence)}</span>
-                      <span className="gx-problems__m">{href ? <a href={href} target="_blank" rel="noreferrer">{fmtText(o.paper?.title)}</a> : fmtText(o.paper?.title)} · {fmtYear(o.paper?.year)}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="gx-note">Author-stated open problems are not available in this export yet.</p>
-            )}
-            <a
-              className="gx-problems__more"
-              href="/open-problems"
-              onClick={(event) => {
-                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                event.preventDefault();
-                window.history.pushState({}, "", "/open-problems");
-                window.dispatchEvent(new PopStateEvent("popstate"));
-              }}
-            >Browse all open problems</a>
-          </details>
-        </section>
-      )}
+      <LinkedProblems gap={g} attached={detail?.open_problems} loadingGap={loading} />
 
       <section className="gx-sec gx-sec--tight">
         {shared.length > 0 && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { GapDetail, GapSummary } from "../api";
 import { fmtDec, fmtGrowth, fmtP, fmtText } from "../lib/format";
+import { LinkedProblems } from "./gaps/LinkedProblems";
 
 type Props = { gap: GapSummary; onSelectConcept: (id: string) => void };
 
@@ -82,6 +83,10 @@ export function HypothesisPanel({ gap, onSelectConcept }: Props) {
           </>
         )}
       </section>
+
+      <div className="whitespace-concept__card whitespace-hyp__linked">
+        <LinkedProblems gap={gap} attached={detail?.open_problems} loadingGap={state === "loading"} />
+      </div>
 
       <section className="whitespace-concept__card">
         <h3>Explore each side</h3>

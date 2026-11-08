@@ -371,7 +371,9 @@ async function staticOpenProblems(concept: string, type: string): Promise<OpenPr
     ?? placeholderFixture(openProblemsFixture as OpenProblemResponse);
   const items = file.items.filter((item) =>
     (!type || item.type === type) && (!concept || (item.concept_ids ?? []).includes(concept)));
-  return { ...file, items };
+  // Per-concept lines when the export has them; otherwise the overall series.
+  const own = concept ? (file as { rates_by_concept?: Record<string, OpenProblemRatePoint[]> }).rates_by_concept?.[concept] : undefined;
+  return { ...file, items, ...(own ? { rates_by_year: own } : {}) };
 }
 
 async function staticOrFixture<T extends object>(name: string, fixture: T): Promise<T> {
