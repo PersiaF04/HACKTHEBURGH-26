@@ -311,6 +311,8 @@ export function MapCanvas3D({
     let rafId = 0;
     let dirty = true;
     let flight: Flight | null = null;
+    const lockPrev = new THREE.Vector3();
+    let lockIdx = -1; // node the camera is locked onto; it keeps following it as its branch drifts
     const v = new THREE.Vector3();
     const proj = new THREE.Matrix4();
 
@@ -501,7 +503,7 @@ export function MapCanvas3D({
       }
       const dist = camera.position.distanceTo(controls.target);
       const off = v.copy(controls.target).sub(d.center);
-      const limit = boundsR * 0.85;
+      const limit = boundsR * 1.05;
       let shift = 0;
       const len = off.length();
       if (dist > prevDist * 1.0005 && len > 0.01) shift = Math.min(len, len * Math.min(0.5, ((dist - prevDist) / dist) * 3)); // zooming out: slide back to the centre
@@ -588,6 +590,7 @@ export function MapCanvas3D({
       const wasMulti = pointers.size > 1;
       down = { x: e.clientX, y: e.clientY, moved: wasMulti };
       flight = null; // the user takes over from any camera flight
+      lockIdx = -1;
       if (hoverRef.current >= 0) { hoverRef.current = -1; canvas.style.cursor = ""; setHoverText(""); requestRender(); }
     };
     const onMove = (e: PointerEvent) => {
@@ -650,6 +653,7 @@ export function MapCanvas3D({
     };
     const resetView = () => {
       flight = null;
+      lockIdx = -1;
       const center = live.current.data.center;
       camera.position.copy(center).add(HOME);
       controls.target.copy(center);
@@ -657,6 +661,7 @@ export function MapCanvas3D({
       requestRender();
     };
     const setCameraView = (view: CameraView) => {
+      lockIdx = -1;
       if (view === "overview") { resetView(); return; }
       const center = live.current.data.center;
       const direction = (view === "top" ? TOP_DOWN : FRONT_ON).clone().normalize();
@@ -793,6 +798,16 @@ export function MapCanvas3D({
           d.pos[i * 3 + k] = d.base[i * 3 + k] + o;
         }
       }
+      if (lockIdx >= 0 && lockIdx < d.n) {
+        // Follow the node's own movement (not its absolute position), so zooming and orbiting still feel free.
+        const nx = d.pos[lockIdx * 3], ny = d.pos[lockIdx * 3 + 1], nz = d.pos[lockIdx * 3 + 2];
+        if (!flight) {
+          const dx = nx - lockPrev.x, dy = ny - lockPrev.y, dz = nz - lockPrev.z;
+          controls.target.x += dx; controls.target.y += dy; controls.target.z += dz;
+          camera.position.x += dx; camera.position.y += dy; camera.position.z += dz;
+        }
+        lockPrev.set(nx, ny, nz);
+      }
       if (points) (points.geometry.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
       for (const set of lineSets) {
         set.pairs.forEach(([a, b], k) => {
@@ -813,10 +828,15 @@ export function MapCanvas3D({
     const flyTo = (index: number, instant: boolean) => {
       const d = live.current.data;
       if (index < 0 || index >= d.n) return;
-      const toT = d.center.clone();
+      // Lock onto the node: the orbit point moves to it and the camera closes in along its current line of sight,
+      // so the node ends up dead centre and orbiting spins around it.
+      const toT = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]);
       const fromO = camera.position.clone().sub(controls.target);
-      const relative = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]).sub(toT);
-      const toO = new THREE.Vector3(-relative.x, -relative.y, Math.max(18, relative.z + 28)).normalize().multiplyScalar(Math.max(controls.minDistance, Math.min(fromO.length(), 90)));
+      const isHub = live.current.concepts[index]?.kind === "branch";
+      const dist = Math.max(controls.minDistance, Math.min(fromO.length(), isHub ? 70 : 45));
+      const toO = fromO.clone().setLength(dist);
+      lockIdx = index;
+      lockPrev.copy(toT);
       if (instant || reduced) {
         flight = null;
         controls.target.copy(toT);
@@ -825,7 +845,7 @@ export function MapCanvas3D({
         requestRender();
         return;
       }
-      flight = { t0: performance.now(), dur: 450, fromT: controls.target.clone(), toT, fromO, toO };
+      flight = { t0: performance.now(), dur: 650, fromT: controls.target.clone(), toT, fromO, toO };
       requestRender();
     };
 
