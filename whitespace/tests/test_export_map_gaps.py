@@ -178,9 +178,9 @@ def test_meta_headline_null_without_backtest(export):
     assert export["meta.json"]["backtest_available"] is False
 
 
-def test_meta_headline_copied_from_backtest_only(works, predictor):
-    backtest = {
-        "manifest": {"data_label": "synthetic"},
+def _backtest(manifest):
+    return {
+        "manifest": manifest,
         "test": {"2020": {"headline": {
             "verdict": "inconclusive", "best_baseline": "adamic_adar",
             "paired_difference": {
@@ -188,12 +188,35 @@ def test_meta_headline_copied_from_backtest_only(works, predictor):
                 "precision_at_100": {"observed": float("nan"), "ci_low": 0.0, "ci_high": 0.1},
             }}}},
     }
-    meta = build_export(works, YEARS, predictor, backtest=backtest, **KW)["meta.json"]
+
+
+def test_meta_headline_copied_from_real_backtest(works, predictor):
+    meta = build_export(works, YEARS, predictor, backtest=_backtest({"data_label": "real"}), **KW)["meta.json"]
     h = meta["headline_metrics"]
     assert h["average_precision_difference"] == 0.01 and h["verdict"] == "inconclusive"
     assert h["precision_at_100_difference"] is None  # NaN to null
-    assert h["backtest_data_label"] == "synthetic" and h["test_origin"] == 2020
-    assert headline_from_backtest({"test": {"2020": {"headline": {"undefined": "x"}}}})["verdict"] is None
+    assert h["backtest_data_label"] == "real" and h["test_origin"] == 2020
+    assert meta["backtest_available"] is True and meta["backtest_data_label"] == "real"
+    assert headline_from_backtest({"manifest": {"data_label": "real"},
+                                   "test": {"2020": {"headline": {"undefined": "x"}}}})["verdict"] is None
+
+
+@pytest.mark.parametrize("manifest,label", [
+    ({"data_label": "synthetic"}, "synthetic"),
+    ({"data_label": "unlabelled"}, "unlabelled"),
+    (None, "unlabelled"),
+    ({}, "unlabelled"),
+    ({"data_label": "real", "generator": {"n_works": 5}}, "real"),
+])
+def test_meta_headline_null_unless_real(works, predictor, manifest, label):
+    bt = _backtest(manifest)
+    if manifest is None:
+        del bt["manifest"]
+    meta = build_export(works, YEARS, predictor, backtest=bt, **KW)["meta.json"]
+    h = meta["headline_metrics"]
+    assert all(v is None for k, v in h.items() if k != "backtest_data_label")
+    assert h["backtest_data_label"] == label
+    assert meta["backtest_available"] is False and meta["backtest_data_label"] == label
 
 
 def test_nan_to_null_and_writer(tmp_path, export):
