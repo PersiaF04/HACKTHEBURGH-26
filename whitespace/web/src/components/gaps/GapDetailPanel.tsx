@@ -161,9 +161,18 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
                 })}
               </ul>
             ) : (
-              <p className="gx-note">Not available in this export. Sentences where authors say something is unsolved are only shown when the pipeline has extracted them from real abstracts.</p>
+              <p className="gx-note">Author-stated open problems are not available in this export yet.</p>
             )}
-            <a className="gx-problems__more" href="/open-problems">Browse all open problems</a>
+            <a
+              className="gx-problems__more"
+              href="/open-problems"
+              onClick={(event) => {
+                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                window.history.pushState({}, "", "/open-problems");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+            >Browse all open problems</a>
           </details>
         </section>
       )}
