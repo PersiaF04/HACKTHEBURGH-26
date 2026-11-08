@@ -1,0 +1,1002 @@
+[
+ {
+  "i": 1,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4366958760",
+  "year": 2022,
+  "title": "Contourlet Transformed Nakagami Image-based Breast Tumor Classification Using Deep CNN",
+  "url": "https://openalex.org/W4366958760",
+  "sentence": "It is still unexplored territory to automate the distinction of breast tumors using breast ultrasound (US) images."
+ },
+ {
+  "i": 2,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W1973645211",
+  "year": 2013,
+  "title": "Measuring sentiments in online social networks",
+  "url": "https://openalex.org/W1973645211",
+  "sentence": "Despite the wide use and popularity of some those methods, it is unclear which method is better for identifying the polarity (i.e. positive or negative) of a message, as the current literature does not provide a comparison among existing methods."
+ },
+ {
+  "i": 3,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4317384008",
+  "year": 2022,
+  "title": "Application of Artificial Intelligence in Playing Cards",
+  "url": "https://openalex.org/W4317384008",
+  "sentence": "However, the problem whether artificial intelligence could qualify for the incomplete information system such as playing cards is still open."
+ },
+ {
+  "i": 4,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3216656735",
+  "year": 2019,
+  "title": "Reinforcement Learning in Healthcare: A Survey",
+  "url": "https://openalex.org/W3216656735",
+  "sentence": "In addition, we discuss the challenges and open issues in the current research and highlight some potential solutions and directions for future research."
+ },
+ {
+  "i": 5,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2399952684",
+  "year": 2011,
+  "title": "Extending the Applications of Recent Real-Time Heuristic Search",
+  "url": "https://openalex.org/W2399952684",
+  "sentence": "We present our initial progress in characterizing the performance of current algorithms based on the features of a search space, and discuss future directions of this research."
+ },
+ {
+  "i": 6,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2890047470",
+  "year": 2018,
+  "title": "An Off-policy Policy Gradient Theorem Using Emphatic Weightings",
+  "url": "https://openalex.org/W2890047470",
+  "sentence": "In this work, we solve this open problem by providing the first off-policy policy gradient theorem."
+ },
+ {
+  "i": 7,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3032362768",
+  "year": 2020,
+  "title": "The Importance of Suppressing Domain Style in Authorship Analysis",
+  "url": "https://openalex.org/W3032362768",
+  "sentence": "But despite decades of research, it still remains unclear to what extent commonly used and widely accepted representations like character trigram frequencies actually represent an author's writing style, in contrast to more domain-specific style components or even topic."
+ },
+ {
+  "i": 8,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4384263489",
+  "year": 2023,
+  "title": "Towards Robust and Efficient Continual Language Learning",
+  "url": "https://openalex.org/W4384263489",
+  "sentence": "Still, limitations remain, and we hope this benchmark can help the community to further build and analyze such learners."
+ },
+ {
+  "i": 9,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2986914442",
+  "year": 2019,
+  "title": "Wearable Affective Life-Log System for Understanding Emotion Dynamics in Daily Life",
+  "url": "https://openalex.org/W2986914442",
+  "sentence": "Nonetheless, how affective dynamics are influenced in the context of human daily life has not yet been explored."
+ },
+ {
+  "i": 10,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W1511867968",
+  "year": 2010,
+  "title": "On the Convergence Properties of Contrastive Divergence",
+  "url": "https://openalex.org/W1511867968",
+  "sentence": "Despite CD’s empirical success, little is known about its theoretical convergence properties."
+ },
+ {
+  "i": 11,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3156247519",
+  "year": 2021,
+  "title": "Hybrid method of conventional neural network training",
+  "url": "https://openalex.org/W3156247519",
+  "sentence": "The main limitations of these methods that arise when training a convolutional neural network are analyzed."
+ },
+ {
+  "i": 12,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2891399254",
+  "year": 2018,
+  "title": "RNNs as psycholinguistic subjects: Syntactic state and grammatical dependency",
+  "url": "https://openalex.org/W2891399254",
+  "sentence": "However, it remains poorly understood what grammatical characteristics of natural language they implicitly learn and represent as a consequence of optimizing the language modeling objective."
+ },
+ {
+  "i": 13,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4283034593",
+  "year": 2022,
+  "title": "Training Discrete Deep Generative Models via Gapped Straight-Through Estimator",
+  "url": "https://openalex.org/W4283034593",
+  "sentence": "While deep generative models have succeeded in image processing, natural language processing, and reinforcement learning, training that involves discrete random variables remains challenging due to the high variance of its gradient estimation process."
+ },
+ {
+  "i": 14,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4285192675",
+  "year": 2022,
+  "title": "Ask2Mask: Guided Data Selection for Masked Speech Modeling",
+  "url": "https://openalex.org/W4285192675",
+  "sentence": "While these methods improve performance of Automatic Speech Recognition (ASR) systems, they have one major limitation."
+ },
+ {
+  "i": 15,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4412254512",
+  "year": 2020,
+  "title": "The Reverse Turing Test for Evaluating Interpretability Methods on Unknown Tasks",
+  "url": "https://openalex.org/W4412254512",
+  "sentence": "Additionally, we demonstrate a fundamental limitation of LIME and show how this limitation is detrimental for human forward prediction in some NLP tasks."
+ },
+ {
+  "i": 16,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4387486564",
+  "year": 2023,
+  "title": "Sentiment and Context-Aware Recurrent Convolutional Neural Network for Sentiment Analysis",
+  "url": "https://openalex.org/W4387486564",
+  "sentence": "However, CNNs require fixed-sized inputs, which can be a limitation when dealing with sequences of different lengths."
+ },
+ {
+  "i": 17,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4306814514",
+  "year": 2022,
+  "title": "Knowledge acquisition via interactive Distributed Cognitive skill Modules",
+  "url": "https://openalex.org/W4306814514",
+  "sentence": "Nowadays this sort of personal cognitive limitations are overcome at some extend by the computational utilities (e.g. program packages, internet, etc.) where each one provides a specific background skill to the individual to solve a particular problem."
+ },
+ {
+  "i": 18,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4367361053",
+  "year": 2022,
+  "title": "Evaluating the usage of Text-To-Speech in K12 education",
+  "url": "https://openalex.org/W4367361053",
+  "sentence": "Next to that, it is unclear how much training material is needed for high quality speech synthesis."
+ },
+ {
+  "i": 19,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2101525714",
+  "year": 2010,
+  "title": "Computer-aided diagnostic models in breast cancer screening",
+  "url": "https://openalex.org/W2101525714",
+  "sentence": "We also list the limitations of the existing CADx models and provide several possible future research directions."
+ },
+ {
+  "i": 20,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3002369146",
+  "year": 2020,
+  "title": "EdgeNets: Edge Varying Graph Neural Networks",
+  "url": "https://openalex.org/W3002369146",
+  "sentence": "This can be an advantage or a limitation, depending on the application."
+ },
+ {
+  "i": 21,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4226505391",
+  "year": 2022,
+  "title": "Do Differentiable Simulators Give Better Policy Gradients?",
+  "url": "https://openalex.org/W4226505391",
+  "sentence": "However, it is yet unclear what factors decide the performance of the two estimators on complex landscapes that involve long-horizon planning and control on physical systems, despite the crucial relevance of this question for the utility of differentiable simulators."
+ },
+ {
+  "i": 22,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3216087895",
+  "year": 2021,
+  "title": "How to evaluate classifier performance in the presence of additional effects: A new POD-based approach allowing certification of machine learning approaches",
+  "url": "https://openalex.org/W3216087895",
+  "sentence": "In this contribution, this limitation is discussed and addressed by adapting the Probability of Detection (POD) measure."
+ },
+ {
+  "i": 23,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2972494671",
+  "year": 2019,
+  "title": "Generalization of Spectrum Differential based Direct Waveform Modification for Voice Conversion",
+  "url": "https://openalex.org/W2972494671",
+  "sentence": "This requirement imposes several constraints, including a limitation on the estimation model to parallel training and the need of extra training on each conversion pair, which make DIFFVC inflexible."
+ },
+ {
+  "i": 24,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4379474291",
+  "year": 2023,
+  "title": "On Knowledge Editing in Federated Learning: Perspectives, Challenges, and Future Directions",
+  "url": "https://openalex.org/W4379474291",
+  "sentence": "Lastly, we explore potential avenues for future research and identify unresolved issues."
+ },
+ {
+  "i": 25,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4392188177",
+  "year": 2023,
+  "title": "AI-Assisted Breast Cancer Diagnosis: Deep Learning on RSNA Mammogram Images for Improved Classification",
+  "url": "https://openalex.org/W4392188177",
+  "sentence": "Early detection improves survival rates, but primary prevention remains challenging due to unclear causes."
+ },
+ {
+  "i": 26,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2729999050",
+  "year": 2017,
+  "title": "Towards the Analysis of the simulated annealing method in the multiextremal case",
+  "url": "https://openalex.org/W2729999050",
+  "sentence": "The continuous case has not been investigated yet."
+ },
+ {
+  "i": 27,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4210982478",
+  "year": 2021,
+  "title": "The Effect of Discounting Actor-loss in Actor-Critic Algorithm",
+  "url": "https://openalex.org/W4210982478",
+  "sentence": "The limitation is done by reducing the loss value of an actor to the factor of an epsilon$\\epsilon$constant."
+ },
+ {
+  "i": 28,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W75140964",
+  "year": 2011,
+  "title": "Agnostic KWIK learning and efficient approximate reinforcement learning",
+  "url": "https://openalex.org/W75140964",
+  "sentence": "A major limitation of the standard KWIK framework is that, by its very denition, it covers only the case when the (model) learner can represent the actual environment with no errors."
+ },
+ {
+  "i": 29,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2306535405",
+  "year": 2013,
+  "title": "Design of an algorithm to track targets using bistatic radar data",
+  "url": "https://openalex.org/W2306535405",
+  "sentence": "Finally this paper provides suggestions for future work with this system in order to develop a fully functional radar tracking algorithm that can work with real data, in real time."
+ },
+ {
+  "i": 30,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3089028909",
+  "year": 2020,
+  "title": "A Unifying Review of Deep and Shallow Anomaly Detection",
+  "url": "https://openalex.org/W3089028909",
+  "sentence": "Finally, we outline critical open challenges and identify specific paths for future research in AD."
+ },
+ {
+  "i": 31,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4389363395",
+  "year": 2023,
+  "title": "Towards leveraging LLMs for Conditional QA",
+  "url": "https://openalex.org/W4389363395",
+  "sentence": "The complexity of the task, the observed performance discrepancies, and the need for effective evidence retrieval underline the ongoing challenges in this field and underscore the need for future work focusing on refining training tasks and exploring prompt-based techniques to enhance LLM performance in conditional question-answering tasks."
+ },
+ {
+  "i": 32,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4200165104",
+  "year": 2021,
+  "title": "Actor-Critic Traction Control Based on Reinforcement Learning with Open-Loop Training",
+  "url": "https://openalex.org/W4200165104",
+  "sentence": "This limitation is given by trial and error methods implemented for the training process, which generates considerable risks in case the controller directly acts on the real plant."
+ },
+ {
+  "i": 33,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4206458088",
+  "year": 2020,
+  "title": "Score Matching for Compositional Distributions",
+  "url": "https://openalex.org/W4206458088",
+  "sentence": "Major limitations of currently available models for compositional data include one or more of the following: insufficient flexibility in terms of distributional shape; difficulty in accommodating zeros in the data in estimation; and lack of computational viability in moderate to high dimensions."
+ },
+ {
+  "i": 34,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4206258453",
+  "year": 2022,
+  "title": "Wave Function Adapted Hamiltonians for Quantum Computing",
+  "url": "https://openalex.org/W4206258453",
+  "sentence": "A major limitation is represented by the need to build compact and shallow circuit ansatzes having the variational flexibility to catch the complexity of the electronic structure problem."
+ },
+ {
+  "i": 35,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2962247021",
+  "year": 2019,
+  "title": "Pakistan's Internet Voting Experiment",
+  "url": "https://openalex.org/W2962247021",
+  "sentence": "Our goal in this paper, therefore, is to provide comprehensive insight into Pakistan's experiment with Internet voting, emphasize outstanding challenges, and identify directions for future research."
+ },
+ {
+  "i": 36,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4387947646",
+  "year": 2023,
+  "title": "Ensemble-Instruct: Generating Instruction-Tuning Data with a Heterogeneous Mixture of LMs",
+  "url": "https://openalex.org/W4387947646",
+  "sentence": "One limitation of these approaches is that they resort to very large language models (around 175B parameters) that are also proprietary and non-public."
+ },
+ {
+  "i": 37,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4388430441",
+  "year": 2023,
+  "title": "An Empirical Study of DDPG and PPO-Based Reinforcement Learning Algorithms for Autonomous Driving",
+  "url": "https://openalex.org/W4388430441",
+  "sentence": "The detailed state-of-the-art work in autonomous vehicles using DRL algorithms along with future research directions is discussed."
+ },
+ {
+  "i": 38,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3036998151",
+  "year": 2020,
+  "title": "On the Empirical Neural Tangent Kernel of Standard Finite-Width Convolutional Neural Network Architectures",
+  "url": "https://openalex.org/W3036998151",
+  "sentence": "It remains an open question how well NTK theory models standard neural network architectures of widths common in practice, trained on complex datasets such as ImageNet."
+ },
+ {
+  "i": 39,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4388918751",
+  "year": 2023,
+  "title": "A Theoretical Analysis of Using Gradient Data for Sobolev Training in RKHS",
+  "url": "https://openalex.org/W4388918751",
+  "sentence": "Despite the successful application of gradient data in the learning process, very little is understood theoretically about their performance guarantee."
+ },
+ {
+  "i": 40,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4378531308",
+  "year": 2023,
+  "title": "Academic Performance Prediction Using Imbalance Classification Methods: A Study",
+  "url": "https://openalex.org/W4378531308",
+  "sentence": "In this paper, most important methods used to solve the class imbalance problem i.e. data-level, algorithm-level, hybrid, cost-sensitive learning, deep learning etc. including their advantages and limitations are discussed in detail."
+ },
+ {
+  "i": 41,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W7133199876",
+  "year": 2023,
+  "title": "Lift Yourself Up: Retrieval-augmented Text Generation with Self-Memory",
+  "url": "https://openalex.org/W7133199876",
+  "sentence": "Furthermore, we conduct thorough analyses of each component in the selfmem framework to identify bottlenecks and provide insights for future research."
+ },
+ {
+  "i": 42,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4391583884",
+  "year": 2023,
+  "title": "Exploring Large Language Models for Low-Resource IT Information Extraction",
+  "url": "https://openalex.org/W4391583884",
+  "sentence": "Finally, we also suggest directions for future research on the new STSE task, including developing better evaluation metrics.1"
+ },
+ {
+  "i": 43,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3145450063",
+  "year": 2021,
+  "title": "An Empirical Study of Training Self-Supervised Vision Transformers",
+  "url": "https://openalex.org/W3145450063",
+  "sentence": "We hope that this work will provide useful data points and experience for future research."
+ },
+ {
+  "i": 44,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2991097512",
+  "year": 2019,
+  "title": "Improving Singing Aid System for Laryngectomees With Statistical Voice Conversion and VAE-SPACE",
+  "url": "https://openalex.org/W2991097512",
+  "sentence": "Although the previously proposed system employing a noise suppression process and a rule-based pitch control approach has achieved preliminary success in converting EL speech into a singing voice, there are still two major limitations."
+ },
+ {
+  "i": 45,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4388890003",
+  "year": 2020,
+  "title": "Role Taxonomy of Units in Deep Neural Networks",
+  "url": "https://openalex.org/W4388890003",
+  "sentence": "However, there remains unclear on which roles the units in DNNs with different generalization ability could present."
+ },
+ {
+  "i": 46,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3215746499",
+  "year": 2021,
+  "title": "The Limiting Dynamics of SGD: Modified Loss, Phase-Space Oscillations, and Anomalous Diffusion",
+  "url": "https://openalex.org/W3215746499",
+  "sentence": "Understanding the limiting dynamics of SGD, and its dependence on various important hyperparameters like batch size, learning rate, and momentum, can serve as a basis for future work that can turn these insights into algorithmic gains."
+ },
+ {
+  "i": 47,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3093454165",
+  "year": 2020,
+  "title": "PAST-AI: Physical-Layer Authentication of Satellite Transmitters via Deep Learning",
+  "url": "https://openalex.org/W3093454165",
+  "sentence": "In this paper, we investigate the effectiveness and main limitations of AI-based solutions to the physical-layer authentication of LEO satellites."
+ },
+ {
+  "i": 48,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2997789497",
+  "year": 2020,
+  "title": "Probing Natural Language Inference Models through Semantic Fragments",
+  "url": "https://openalex.org/W2997789497",
+  "sentence": "While such phenomena are involved in natural language inference (NLI) and go beyond basic linguistic understanding, it is unclear the extent to which they are captured in existing NLI benchmarks and effectively learned by models."
+ },
+ {
+  "i": 49,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3131763134",
+  "year": 2021,
+  "title": "Robust Multi-view Representation Learning",
+  "url": "https://openalex.org/W3131763134",
+  "sentence": "During training, we leave out views as input to our model while forcing it to reconstruct all of them."
+ },
+ {
+  "i": 50,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4387635672",
+  "year": 2023,
+  "title": "MCU: An Evaluation Framework for Open-Ended Game Agents",
+  "url": "https://openalex.org/W4387635672",
+  "sentence": "However, evaluating such open-ended agents remains difficult, with current benchmarks facing scalability limitations."
+ },
+ {
+  "i": 51,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2953505488",
+  "year": 2018,
+  "title": "Towards better data efficiency in deep reinforcement learning",
+  "url": "https://openalex.org/W2953505488",
+  "sentence": "Finally, the thesis is concluded with reviews over related works in the field and suggests future directions that could help refine a solution to the data-inefficiency problem in DRL."
+ },
+ {
+  "i": 52,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4317425179",
+  "year": 2023,
+  "title": "Federated Learning to Safeguard Patients Data: A Medical Image Retrieval Case",
+  "url": "https://openalex.org/W4317425179",
+  "sentence": "In this article, we discuss the particular qualities and difficulties of federated learning, provide a comprehensive overview of current approaches, and outline several directions for future work that are relevant to a variety of research communities."
+ },
+ {
+  "i": 53,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4281685334",
+  "year": 2022,
+  "title": "Few-Shot Image Classification: Current Status and Research Trends",
+  "url": "https://openalex.org/W4281685334",
+  "sentence": "Finally, a few future research directions are identified."
+ },
+ {
+  "i": 54,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2913802809",
+  "year": 2018,
+  "title": "Querying Depression Vlogs",
+  "url": "https://openalex.org/W2913802809",
+  "sentence": "The limited availability of training data poses a limitation to the quality that these systems can achieve."
+ },
+ {
+  "i": 55,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2979720094",
+  "year": 2019,
+  "title": "Deep Reinforcement Learning. Studiu de caz: Deep Q-Network",
+  "url": "https://openalex.org/W2979720094",
+  "sentence": "However, classical RL methods have important limitations in scalability to higher-dimensionality problems."
+ },
+ {
+  "i": 56,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2035836571",
+  "year": 2010,
+  "title": "AUTOMATIC COMPLEXITY REDUCTION IN REINFORCEMENT LEARNING",
+  "url": "https://openalex.org/W2035836571",
+  "sentence": "High dimensionality of state representation is a major limitation for scale‐up in reinforcement learning (RL)."
+ },
+ {
+  "i": 57,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4304701424",
+  "year": 2022,
+  "title": "Toward Understanding and Boosting Adversarial Transferability From a Distribution Perspective",
+  "url": "https://openalex.org/W4304701424",
+  "sentence": "In summary, our work provides new insight into studying adversarial transferability and provides a strong counterpart for future research on adversarial defense."
+ },
+ {
+  "i": 58,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W1985382798",
+  "year": 2010,
+  "title": "Facial emotion detection using GPSO and Lucas-Kanade algorithms",
+  "url": "https://openalex.org/W1985382798",
+  "sentence": "One limitation to our earlier system was that the AUs must be physically specified on the subject before the video clips are recorded."
+ },
+ {
+  "i": 59,
+  "type": "future_work",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2954902138",
+  "year": 2019,
+  "title": "A study on the Interpretability of Neural Retrieval Models using DeepSHAP",
+  "url": "https://openalex.org/W2954902138",
+  "sentence": "While DeepSHAP has been well studied for image classification tasks, it remains to be seen how we can adapt it to explain the output of Neural Retrieval Models (NRMs)."
+ },
+ {
+  "i": 60,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3102113045",
+  "year": 2020,
+  "title": "SENTENCE COMPRESSION FOR RUSSIAN: DATASET AND BASELINES",
+  "url": "https://openalex.org/W3102113045",
+  "sentence": "We provide the data and baseline results for future studies."
+ },
+ {
+  "i": 61,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2054381762",
+  "year": 2011,
+  "title": "Are online mood labels a true reflection of our experiences?",
+  "url": "https://openalex.org/W2054381762",
+  "sentence": "However, it is still unknown whether the mood labels on line are consistent with the readers who seldom label any news on the web."
+ },
+ {
+  "i": 62,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2247989958",
+  "year": 2015,
+  "title": "Scalable and Reactive Programming for Semantic Web Developers",
+  "url": "https://openalex.org/W2247989958",
+  "sentence": "That is why the broad notion of programming the Semantic Web is important, even if it remains challenging to provide the appropriate tools for developers to implement these ideas."
+ },
+ {
+  "i": 63,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2988601489",
+  "year": 2019,
+  "title": "Using Dynamic Embeddings to Improve Static Embeddings.",
+  "url": "https://openalex.org/W2988601489",
+  "sentence": "One limitation of dynamic embeddings, however, is that they cannot be used without a sentence-level context."
+ },
+ {
+  "i": 64,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4288052670",
+  "year": 2022,
+  "title": "Classification of breast lesions on DCE-MRI Data Using Fine-tuned MobileNet",
+  "url": "https://openalex.org/W4288052670",
+  "sentence": "Future work is necessary to improve the generalization capability of the proposed method."
+ },
+ {
+  "i": 65,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4211178164",
+  "year": 2021,
+  "title": "Multi-Turn Response Selection Using Business Sequential Relations in Traffic Field",
+  "url": "https://openalex.org/W4211178164",
+  "sentence": "However, there is a limitation of BERT to handle long dialogs."
+ },
+ {
+  "i": 66,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3211876713",
+  "year": 2021,
+  "title": "Review and comparison of works on heterogeneous data and semantic analysis in Big Data",
+  "url": "https://openalex.org/W3211876713",
+  "sentence": "At the end of each section, the interrelationships and possible areas for future work were shown."
+ },
+ {
+  "i": 67,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W331791764",
+  "year": 2012,
+  "title": "An Integrated Architecture and Feature Selection Algorithm for Radial Basis Neural Networks",
+  "url": "https://openalex.org/W331791764",
+  "sentence": "Finally, the conclusions and recommendations for future research are provided."
+ },
+ {
+  "i": 68,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W7215664476",
+  "year": 2023,
+  "title": "The Global and local attention for automatic Arabic text diacritization",
+  "url": "https://openalex.org/W7215664476",
+  "sentence": "Nevertheless, the models need improvements in future work."
+ },
+ {
+  "i": 69,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2910996500",
+  "year": 2018,
+  "title": "Investigating a Method for Automatic Construction and Population of Ontologies for Services: Performances and Limitations",
+  "url": "https://openalex.org/W2910996500",
+  "sentence": "It is tested on a set of more than 10,000 services for 106,000 different measures to classify in an ontology, performances and limitations are exposed."
+ },
+ {
+  "i": 70,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W1965607119",
+  "year": 2013,
+  "title": "STAG: Semantic Image Annotation Using Relationships between Tags",
+  "url": "https://openalex.org/W1965607119",
+  "sentence": "The state-of-art image tagging system has a limitation in that it allows users to annotate image tags in noun form that cannot fully express the semantics of image."
+ },
+ {
+  "i": 71,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4378212086",
+  "year": 2023,
+  "title": "Prospects for Machine Learning Activity within the United States National Weather Service",
+  "url": "https://openalex.org/W4378212086",
+  "sentence": "Abstract The National Weather Service (NWS) Office of Science and Technology Integration commissioned a report to assess the status of artificial intelligence (AI) and machine learning (ML) activity within the agency with a view toward identifying existing obstacles and recommending future directions."
+ },
+ {
+  "i": 72,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3089829004",
+  "year": 2020,
+  "title": "On the Role of Reward Functions for Reinforcement Learning in the Traffic Assignment Problem",
+  "url": "https://openalex.org/W3089829004",
+  "sentence": "However, MARL approaches usually require a long training period in order to compute the optimal routes, which could be a major limitation in more realistic traffic scenarios."
+ },
+ {
+  "i": 73,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2974699464",
+  "year": 2019,
+  "title": "Auto Tuning of RNN Hyper-parameters using Cuckoo Search Algorithm",
+  "url": "https://openalex.org/W2974699464",
+  "sentence": "The comprehensive studies conducted on selecting the network hyper-parameters have tried limited number of combinations and mark this as a limitation."
+ },
+ {
+  "i": 74,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4382464480",
+  "year": 2022,
+  "title": "Training-Time Attacks against K-nearest Neighbors",
+  "url": "https://openalex.org/W4382464480",
+  "sentence": "We conclude with a discussion of open problems illuminated by our analysis."
+ },
+ {
+  "i": 75,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W1932269785",
+  "year": 2015,
+  "title": "Got Many Labels?",
+  "url": "https://openalex.org/W1932269785",
+  "sentence": "Topic labeling for social media posts is therefore an important open problem for supporting effective social media search and recommendation."
+ },
+ {
+  "i": 76,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4308669897",
+  "year": 2022,
+  "title": "Pretraining in Deep Reinforcement Learning: A Survey",
+  "url": "https://openalex.org/W4308669897",
+  "sentence": "In this survey, we seek to systematically review existing works in pretraining for deep reinforcement learning, provide a taxonomy of these methods, discuss each sub-field, and bring attention to open problems and future directions."
+ },
+ {
+  "i": 77,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2980231952",
+  "year": 2019,
+  "title": "Improving Unsupervised Learning With Exemplar CNNS",
+  "url": "https://openalex.org/W2980231952",
+  "sentence": "We also explore several issues with the unlabeled set from STL-10 that should be considered in future research using this dataset."
+ },
+ {
+  "i": 78,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4384157306",
+  "year": 2021,
+  "title": "Robust sequential online prediction with dynamic ensemble of multiple models: A review",
+  "url": "https://openalex.org/W4384157306",
+  "sentence": "The use of time series for sequential online prediction (SOP) has long been a research topic, but achieving robust and computationally efficient SOP with non-stationary time series remains a challenge."
+ },
+ {
+  "i": 79,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W816855285",
+  "year": 2011,
+  "title": "Semantic Search : A Survey",
+  "url": "https://openalex.org/W816855285",
+  "sentence": "Last, we apply our proposed framework to prior studies and suggest future research directions."
+ },
+ {
+  "i": 80,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4382323487",
+  "year": 2023,
+  "title": "Experiments with Detecting and Mitigating AI Deception",
+  "url": "https://openalex.org/W4382323487",
+  "sentence": "How to detect and mitigate deceptive AI systems is an open problem for the field of safe and trustworthy AI."
+ },
+ {
+  "i": 81,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2755124548",
+  "year": 2018,
+  "title": "A Deep Generative Framework for Paraphrase Generation",
+  "url": "https://openalex.org/W2755124548",
+  "sentence": "Furthermore, we evaluate our method on a newly released question paraphrase dataset, and establish a new baseline for future research."
+ },
+ {
+  "i": 82,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W3133928169",
+  "year": 2020,
+  "title": "Computational cognitive requirements of random decision problems.",
+  "url": "https://openalex.org/W3133928169",
+  "sentence": "However, it remains an open questionwhether IC applies to humans."
+ },
+ {
+  "i": 83,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4296708919",
+  "year": 2022,
+  "title": "Explainable Convolutional Neural Networks: A Taxonomy, Review, and Future Directions",
+  "url": "https://openalex.org/W4296708919",
+  "sentence": "Our taxonomy can be a reference to motivate future research in interpreting neural networks."
+ },
+ {
+  "i": 84,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W1609945647",
+  "year": 2011,
+  "title": "DALI, RASP, mnemosine: Computational Logic at work",
+  "url": "https://openalex.org/W1609945647",
+  "sentence": "We particularly emphasize recent and future work directions."
+ },
+ {
+  "i": 85,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4206631086",
+  "year": 2021,
+  "title": "Method of construction of protected data transmission channels using modified neural network",
+  "url": "https://openalex.org/W4206631086",
+  "sentence": "Future research will include the development of a Sigma-Pi-Sigma network without using the direct production procedure for hidden layer input vectors."
+ },
+ {
+  "i": 86,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4393172016",
+  "year": 2023,
+  "title": "Designing Incentive Mechanisms for Fair Participation in Federated Learning",
+  "url": "https://openalex.org/W4393172016",
+  "sentence": "The study offers insights into cultivating environments that prioritise fairness and broad participation while suggesting avenues for future research."
+ },
+ {
+  "i": 87,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4283449890",
+  "year": 2022,
+  "title": "OPTIMIZATION OF BEARING STRUCTURES SUBJECT TO MECHANICAL SAFETY: AN EVOLUTIONARY APPROACH AND SOFTWARE",
+  "url": "https://openalex.org/W4283449890",
+  "sentence": "A limitation is formed on the resistance to progressive collapse of the structure, which is interpreted as preventing large displacements and limiting deformations of certain parts or the structure as a whole."
+ },
+ {
+  "i": 88,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4375869092",
+  "year": 2023,
+  "title": "Towards Adversarially Robust Continual Learning",
+  "url": "https://openalex.org/W4375869092",
+  "sentence": "Though there are many studies on the model robustness in the context of standard supervised learning, protecting continual learning from adversarial attacks has not yet been investigated."
+ },
+ {
+  "i": 89,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4387838117",
+  "year": 2023,
+  "title": "Plan-Guided Reinforcement Learning for Whole-Body Manipulation",
+  "url": "https://openalex.org/W4387838117",
+  "sentence": "Our preliminary results indicate that the proposed methodology is promising to address challenges that remain difficult for either model- or learning-based strategies alone."
+ },
+ {
+  "i": 90,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4400034331",
+  "year": 2023,
+  "title": "Adaptive and Efficient Participant Selection in Vertical Federated Learning",
+  "url": "https://openalex.org/W4400034331",
+  "sentence": "Therefore, in the context of VFL, participant selection emerges as a crucial strategy to mitigate communication cost, though it remains a relatively unexplored domain."
+ },
+ {
+  "i": 91,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4385661291",
+  "year": 2023,
+  "title": "Eight years of AutoML: categorisation, review and trends",
+  "url": "https://openalex.org/W4385661291",
+  "sentence": "This review performs an extensive and rigorous analysis of the AutoML field, scrutinising how the primary studies have addressed the dimensions of the taxonomy, and identifying any gaps that remain unexplored as well as potential future trends."
+ },
+ {
+  "i": 92,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2796042556",
+  "year": 2018,
+  "title": "EFFECTIVE ALGORITHM FOR PARSING SENTENCES USING SEMANTICALLY ATTRIBUTED WEIGHTED AFFIX CONTEXT FREE",
+  "url": "https://openalex.org/W2796042556",
+  "sentence": "The future research can be focused on the development of grammatically attributed ontologies for wider set of topics that should improve results of semantical sentence parsing."
+ },
+ {
+  "i": 93,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2703543743",
+  "year": 2015,
+  "title": "Towards Tractable Inference for Resource-Bounded Agents",
+  "url": "https://openalex.org/W2703543743",
+  "sentence": "We discuss the advantages and limitations of this approach and suggest that the ideas used in it could also find a role in autoepistemic reasoning."
+ },
+ {
+  "i": 94,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3080114912",
+  "year": 2020,
+  "title": "Deep Learning Based Abstractive Text Summarization: Approaches, Datasets, Evaluation Measures, and Challenges",
+  "url": "https://openalex.org/W3080114912",
+  "sentence": "In addition, existing datasets for training and validating these approaches are reviewed, and their features and limitations are presented."
+ },
+ {
+  "i": 95,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W4206113533",
+  "year": 2022,
+  "title": "Beyond full‐bit secure authenticated encryption without input‐length limitation",
+  "url": "https://openalex.org/W4206113533",
+  "sentence": "The downside of is that there is a limitation on each input size; it can process only up to 2 b − 2 blocks for each input in spite of its high security bound."
+ },
+ {
+  "i": 96,
+  "type": "open_problem",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W3119187483",
+  "year": 2021,
+  "title": "SChISM: Semantic Clustering via Image Sequence Merging for Images of Human-Decomposition",
+  "url": "https://openalex.org/W3119187483",
+  "sentence": "In many domains, large image collections are key ways in which information about relevant phenomena is retained and analyzed, yet it remains challenging to use such data in research and practice."
+ },
+ {
+  "i": 97,
+  "type": "limitation",
+  "confidence": 0.5,
+  "paper_id": "https://openalex.org/W2760445261",
+  "year": 2017,
+  "title": "keybin: Key-Based Binning for Distributed Clustering",
+  "url": "https://openalex.org/W2760445261",
+  "sentence": "We present an implementation and a case study on the capabilities and limitations of this approach, showing that this algorithm can learn a global clustering structure with limited communication and can scale with the dimensionality and size of data sets."
+ },
+ {
+  "i": 98,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4361009338",
+  "year": 2023,
+  "title": "EEG-Based Emotion Classification in Financial Trading Using Deep Learning: Effects of Risk Control Measures",
+  "url": "https://openalex.org/W4361009338",
+  "sentence": "Further, we present the limitations of the current work and directions for future research."
+ },
+ {
+  "i": 99,
+  "type": "open_problem",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W2100877271",
+  "year": 2012,
+  "title": "Probabilistic relational reasoning for differential privacy",
+  "url": "https://openalex.org/W2100877271",
+  "sentence": "Providing support for reasoning about the privacy of such programs has been an open problem."
+ },
+ {
+  "i": 100,
+  "type": "future_work",
+  "confidence": 0.8,
+  "paper_id": "https://openalex.org/W4321598216",
+  "year": 2022,
+  "title": "NP-hard but no longer hard to solve? Using quantum computing to tackle optimization problems",
+  "url": "https://openalex.org/W4321598216",
+  "sentence": "All observations are incorporated in a discussion on some recent quantum optimization breakthroughs, current status, and future directions."
+ }
+]
