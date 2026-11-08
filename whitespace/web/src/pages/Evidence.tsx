@@ -253,7 +253,7 @@ function formatMetric(value: unknown): string {
   return fmtText(typeof value === "string" ? value : null);
 }
 
-function near(value: number | null | undefined, target: number): boolean {
+function near(value: unknown, target: number): boolean {
   return typeof value === "number" && Math.abs(value - target) < 5e-5;
 }
 
