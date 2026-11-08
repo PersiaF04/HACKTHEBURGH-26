@@ -5,6 +5,7 @@ import { ConceptPanel } from "../components/ConceptPanel";
 import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
 import { MapCanvas } from "../components/MapCanvas";
+import MapCanvas3DLazy from "../components/MapCanvas3DLazy";
 import { SearchBar } from "../components/SearchBar";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
@@ -25,6 +26,8 @@ const fmt = (value: number) => Math.round(value).toLocaleString("en-GB");
 const DASH = "—";
 
 export function Explore({ map, selectedYear, loading, selectedConceptId, onSelectConcept, onSearch }: ExploreProps) {
+  const [view, setView] = useState<"3d" | "2d">("3d");
+  const [webglFailed, setWebglFailed] = useState(false);
   const [searchFocus, setSearchFocus] = useState<FocusPoint>(null);
   const [searchFocusSet, setSearchFocusSet] = useState(false);
   const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
@@ -126,15 +129,35 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           ))}
         </dl>
         {showMap && !map.no_data ? (
-          <MapCanvas
-            concepts={visible}
-            edges={edges}
-            linkedEdges={linkedEdges}
-            selectedConceptId={selectedId}
-            focus={searchFocusSet ? searchFocus : map.focus}
-            showPredicted={filters.showPredicted}
-            onSelectConcept={selectConcept}
-          />
+          <div className="ex__mapwrap">
+            <div className="ex__viewtoggle" role="group" aria-label="Map view">
+              <button type="button" aria-pressed={view === "3d" && !webglFailed} onClick={() => setView("3d")}>3D</button>
+              <button type="button" aria-pressed={view === "2d" || webglFailed} onClick={() => setView("2d")}>2D</button>
+            </div>
+            {view === "3d" && !webglFailed ? (
+              <MapCanvas3DLazy
+                concepts={visible}
+                edges={edges}
+                linkedEdges={linkedEdges}
+                selectedConceptId={selectedId}
+                focus={searchFocusSet ? searchFocus : map.focus}
+                showPredicted={filters.showPredicted}
+                onSelectConcept={selectConcept}
+                placeholder={map.placeholder}
+                onUnsupported={() => setWebglFailed(true)}
+              />
+            ) : (
+              <MapCanvas
+                concepts={visible}
+                edges={edges}
+                linkedEdges={linkedEdges}
+                selectedConceptId={selectedId}
+                focus={searchFocusSet ? searchFocus : map.focus}
+                showPredicted={filters.showPredicted}
+                onSelectConcept={selectConcept}
+              />
+            )}
+          </div>
         ) : (
           <div className="ex__loading" role="status" aria-live="polite">
             {loading || !showMap ? `Loading ${selectedYear}…` : `No data for ${selectedYear}`}

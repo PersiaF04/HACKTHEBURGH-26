@@ -22,3 +22,10 @@
   .ex__loading { min-height: 240px; }
 }
 @media (max-width: 640px) { .ex-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ex-stats > div:nth-child(3) { border-left: 0; } .ex-stats > div:nth-child(n+3) { border-top: 1px solid var(--ws-border); } }
+
+.ex__mapwrap { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.ex__mapwrap > :not(.ex__viewtoggle) { flex: 1 1 0; min-height: 0; }
+.ex__viewtoggle { position: absolute; top: 12px; left: 12px; z-index: 5; display: inline-flex; background: var(--ws-surface); border: 1px solid var(--ws-border); border-radius: 8px; padding: 2px; gap: 2px; }
+.ex__viewtoggle button { font: 500 12px/1 var(--ws-sans, "IBM Plex Sans", system-ui, sans-serif); color: var(--ws-muted); background: transparent; border: 0; border-radius: 6px; padding: 7px 10px; min-width: 40px; cursor: pointer; }
+.ex__viewtoggle button[aria-pressed="true"] { background: #ECECE7; color: var(--ws-ink, #15171C); }
+.ex__viewtoggle button:focus-visible { outline: 2px solid #2952E3; outline-offset: 1px; }
