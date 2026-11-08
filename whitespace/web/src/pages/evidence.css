@@ -1,6 +1,10 @@
 .evidence-page { width: 100%; margin: 0; padding: 0 0 3rem; color: var(--ws-ink); }
 .evidence-header { max-width: 52rem; margin-bottom: 1.5rem; }
 .evidence-header h1 { margin: .25rem 0 .5rem; font-size: clamp(2rem, 4vw, 2.7rem); }
+.evidence-headline { max-width: 64rem; margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid var(--ws-border); border-radius: .9rem; background: var(--ws-surface); }
+.evidence-headline h2 { margin: 0 0 .75rem; font-size: 1.3rem; }
+.evidence-headline p { margin: .5rem 0; line-height: 1.6; }
+.evidence-caveats { margin: .8rem 0 0; padding-left: 1.25rem; line-height: 1.6; }
 .evidence-header p:last-child, .evidence-muted { color: var(--ws-muted); line-height: 1.6; }
 .evidence-eyebrow { color: var(--ws-accent); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .evidence-notice { padding: .8rem 1rem; border: 1px solid var(--ws-growth-1); border-radius: .75rem; background: var(--ws-warn-bg); color: var(--ws-warn-ink); }

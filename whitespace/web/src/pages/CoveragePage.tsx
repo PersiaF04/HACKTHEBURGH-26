@@ -93,7 +93,10 @@ export function CoveragePage({
         >
           {years.map((year) => <option key={year} value={year}>{fmtYear(year)}</option>)}
         </select>
-        <span>The full matrix remains visible; the focus year is highlighted.</span>
+        <span>
+          The full matrix remains visible; the focus year is highlighted.
+          {years.length > 0 && ` Columns are publication years ${fmtYear(Math.min(...years))}–${fmtYear(Math.max(...years))}, which can differ from the map's snapshot years.`}
+        </span>
       </div>
 
       {status === 'error' && (

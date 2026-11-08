@@ -79,7 +79,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     }
     return [...map.values()];
   }, [response.items]);
-  const growing = useMemo(() => concepts.filter((c) => c.growth != null).sort((x, y) => (y.growth as number) - (x.growth as number)), [concepts]);
+  const growing = useMemo(() => concepts.filter((c) => c.growth != null && c.growth > 0).sort((x, y) => (y.growth as number) - (x.growth as number)), [concepts]);
   const maxGrowth = growing[0]?.growth || 1;
   const shownGrowing = showAll ? growing : growing.slice(0, 8);
   const fastest = growing[0];
@@ -109,11 +109,13 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
 
   const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
   const topScore = rows.reduce<number | null>((m, r) => isNum(r.gap.gap_score) && (m == null || r.gap.gap_score > m) ? r.gap.gap_score : m, null);
+  const hasMomentum = response.items.some((g) => isNum(g.momentum) && g.momentum !== 0);
+  const topProbability = rows.reduce<number | null>((m, r) => isNum(r.gap.p_link) && (m == null || r.gap.p_link > m) ? r.gap.p_link : m, null);
   const maxScore = Math.max(0, ...response.items.map((g) => g.gap_score ?? 0));
   const summary: Array<[string, string, boolean, string]> = [
     ["Gaps shown", empty ? NA : fmtInt(rows.length), false, "Pairs that pass the filters"],
     ["Median P(link)", empty ? NA : fmtP(medianP), true, "Typical chance of linking among them"],
-    ["Top gap score", empty ? NA : fmtDec(topScore), false, "Highest score among them"],
+    [hasMomentum ? "Top gap score" : "Top P(link)", empty ? NA : hasMomentum ? fmtScore(topScore) : fmtP(topProbability), false, hasMomentum ? "Highest score among them" : "Gap score unavailable; highest predicted link probability"],
     ["Focused area", focusLabel ? fmtText(focusLabel) : "All concepts", false, "Use the left rail to narrow the list"],
   ];
   const stats: Array<[string, string]> = [
@@ -213,4 +215,8 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
       <div data-tour="gap-detail"><GapDetailPanel gap={selGap} rank={selected?.rank ?? null} total={response.items.length} detail={detail} loading={detailLoading} error={detailError} empty={empty} /></div>
     </div>
   );
+}
+
+function fmtScore(value: number | null): string {
+  return value == null ? NA : new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(value);
 }
