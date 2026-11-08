@@ -31,10 +31,10 @@ export type GraphControls = {
   gapCount: number; onGapCount: (n: number) => void;
 };
 
-const GROWTH: { id: GrowthFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "up", label: "Growing" },
-  { id: "down", label: "Shrinking" },
+const GROWTH: { id: GrowthFilter; label: string; mark: string; help: string }[] = [
+  { id: "all", label: "All", mark: "●", help: "Showing every concept, whether growing or shrinking." },
+  { id: "up", label: "Growing", mark: "▲", help: "Only concepts with more papers than 3 years ago." },
+  { id: "down", label: "Shrinking", mark: "▼", help: "Only concepts with fewer papers than 3 years ago." },
 ];
 
 export const GROWTH_HELP = "Growth is the change in a concept's yearly paper count over the last 3 years. Growing: more papers than 3 years ago. Shrinking: fewer.";
@@ -68,6 +68,27 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
         </section>
       )}
 
+      <section className="whitespace-filters__section" aria-labelledby={`${uid}-growth`}>
+        <span id={`${uid}-growth`} className="whitespace-filters__title" title={GROWTH_HELP}>Growth</span>
+        <div className="whitespace-tabs" role="radiogroup" aria-labelledby={`${uid}-growth`} aria-describedby={`${uid}-growth-help`}>
+          {GROWTH.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              disabled={disabled}
+              aria-checked={filters.growth === option.id}
+              className={filters.growth === option.id ? "is-on" : undefined}
+              onClick={() => set({ growth: option.id })}
+            >
+              <span aria-hidden="true" className="whitespace-tabs__mark">{option.mark}</span>
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="whitespace-help" id={`${uid}-growth-help`}>{GROWTH.find((option) => option.id === filters.growth)?.help}</p>
+      </section>
+
       <section className="whitespace-filters__section" aria-labelledby={`${uid}-min-l`}>
         <div className="whitespace-filters__label">
           <label id={`${uid}-min-l`} htmlFor={`${uid}-min`} title={MIN_PAPERS_HELP}>Minimum papers</label>
@@ -86,24 +107,6 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
           onChange={(event) => set({ minPapers: Number(event.currentTarget.value) })}
         />
         <p className="whitespace-help" id={`${uid}-min-help`}>Hide concepts with fewer papers than this.</p>
-      </section>
-
-      <section className="whitespace-filters__section" aria-labelledby={`${uid}-growth`}>
-        <span id={`${uid}-growth`} className="whitespace-filters__title" title={GROWTH_HELP}>Growth</span>
-        <div className="whitespace-seg" role="group" aria-labelledby={`${uid}-growth`} aria-describedby={`${uid}-growth-help`} title={GROWTH_HELP}>
-          {GROWTH.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              disabled={disabled}
-              aria-pressed={filters.growth === option.id}
-              onClick={() => set({ growth: option.id })}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <p className="whitespace-help" id={`${uid}-growth-help`}>Change in papers over the last 3 years.</p>
       </section>
 
       {graph && (

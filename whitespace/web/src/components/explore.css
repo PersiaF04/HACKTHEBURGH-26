@@ -125,3 +125,12 @@
 .whitespace-filters__label label { font-size: 13px; font-weight: 650; color: var(--ws-ink); }
 .whitespace-filters__section { background: var(--ws-surface); gap: 10px; }
 .whitespace-filters__reset { align-self: stretch; }
+
+/* Growth selector: a clear three-way choice with a filled selected state. */
+.whitespace-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.whitespace-tabs button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; border: 1px solid var(--ws-border-strong); border-radius: 8px; background: var(--ws-surface); color: var(--ws-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.whitespace-tabs button:hover:not(:disabled):not(.is-on) { background: var(--ws-selected); }
+.whitespace-tabs button.is-on { background: var(--ws-ink); border-color: var(--ws-ink); color: var(--ws-on-ink); }
+.whitespace-tabs button:disabled { cursor: not-allowed; opacity: .55; }
+.whitespace-tabs button:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
+.whitespace-tabs__mark { font-size: 10px; }

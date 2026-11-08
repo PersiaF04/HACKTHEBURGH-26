@@ -29,7 +29,7 @@ const SKELETON_CAPTION = "The map shows one dot per research concept. Size = pap
 
 const STAT_HELP = {
   shown: "Research concepts currently on the map, after filters.",
-  papers: "Papers tagged with the concepts shown. A paper with several concepts is counted for each.",
+  papers: "Distinct papers in the exported corpus. A paper with several concepts is counted once.",
   predicted: "Predicted new links that involve the selected concept.",
 } as const;
 
@@ -43,6 +43,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [perBranch, setPerBranch] = useState(DEFAULT_PER_BRANCH);
   const [showGaps, setShowGaps] = useState(false);
   const [gapCount, setGapCount] = useState(8);
+  const [works, setWorks] = useState<number | null>(null);
   const [synth, setSynth] = useState<string | null>(null);
   const [ranked, setRanked] = useState<GapSummary[]>([]);
 
@@ -82,6 +83,11 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
     return () => { current = false; };
   }, [selectedYear]);
+  useEffect(() => {
+    let current = true;
+    api.meta().then((m) => { if (current) setWorks(typeof m.counts?.works === "number" ? m.counts.works : null); }).catch(() => undefined);
+    return () => { current = false; };
+  }, []);
   const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, showGaps ? ranked.slice(0, gapCount) : [], perBranch) : null), [live, map.concepts, ranked, perBranch, showGaps, gapCount]);
 
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
@@ -128,8 +134,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     return own;
   }, [edges, selectedId]);
   const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
-  const hasCounts = visible.some((c) => typeof c.paper_count === "number");
-  const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
   const hasLinked = (map.linked_edges?.length ?? 0) > 0;
 
   // Search result with only a map position: bring the nearest concept into view.
@@ -145,10 +149,10 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
   const nothing = skeleton || !live;
   const kindCount = (kind: string) => shownNodes.filter((n) => (n as { kind?: string }).kind === kind).length;
-  const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts, ${fmtInt(kindCount("branch"))} branches, ${fmtInt(kindCount("hypothesis"))} hypotheses` : "";
+  const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts in ${fmtInt(kindCount("branch"))} branches${showGaps ? ` and ${fmtInt(kindCount("hypothesis"))} gaps` : ""}` : "";
   const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
     { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
-    { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
+    { label: "Papers in the corpus", value: nothing || works === null ? fmtInt(null) : fmtInt(works), help: STAT_HELP.papers, caption: "Distinct papers in the export" },
     { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
   ];
   return (
