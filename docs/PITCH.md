@@ -6,82 +6,82 @@
 
 ## 30-second elevator pitch
 
-Choosing a research direction is often guesswork: papers show what has been studied, while the gaps between fields stay hard to see. Whitespace maps AI research concepts and ranks pairs that may become connected in the next three years. At frozen SHA `93448d2`, its aggregate average precision beat the pre-registered baseline (chosen on 2017) over all eligible pairs in a purged temporal test, though it does not beat the stronger structural baselines within strata. It also shows where the Papers with Code archive has no linked implementation, as a lower bound. It is a decision aid, not a measure of which ideas matter.
+Choosing a research direction is often guesswork: papers show what has been studied, while the gaps between fields stay hard to see. Whitespace maps AI research concepts using the 2023 snapshot of 730,671 works, and ranks unlinked pairs. Its live gap scores come from a production model trained through the 2020 origin, which has no held-out test of its own; likelihoods are rankings, not real chances. The held-out backtest's unchanged aggregate headline is AP 0.6876 versus 0.5984, +0.0892 [0.0845, 0.0945], but performance is below structural baselines within strata and P@100 is not distinctive. Whitespace is a decision aid, not a measure of which ideas matter.
 
 ## Narrative arc
 
 1. **Problem:** Choosing a research direction is guesswork. Search finds existing work, while gaps between concepts and missing code are hard to see.
 2. **Insight:** Historical connections can be tested as forecasts, and an operational map can help people explore areas the literature has not yet connected.
-3. **Product:** Whitespace maps AI research concepts, ranks unlinked pairs by the chance they will meet the three-paper co-occurrence rule within three years, and shows linked-code coverage from the Papers with Code archive. Search and Open problems are MVP placeholders today.
-4. **Proof:** At frozen SHA `93448d2`, the model beat the pre-registered baseline on aggregate average precision over 3,943,852 eligible concept pairs. Within each starting-weight stratum it is below the five structural baselines, so this is an aggregate-only result. The result comes from a purged temporal backtest, not a claim that every predicted pair is meaningful.
+3. **Product:** Whitespace offers a 3D-only research map and ranks unlinked pairs with a gap finder. The header tabs are Research map, Gap finder and Open problems; Evidence and Code coverage are in the footer and at `/evidence` and `/coverage`. The live map is the 2023 snapshot of 730,671 works, and the header badge reads “Real data · 731k papers · 2023.” Open problems shows short attributed excerpts quoted from OpenAlex-indexed abstracts; they are AI-labelled, not human-validated, and display only.
+4. **Proof:** The held-out headline is unchanged: aggregate AP 0.6876 versus 0.5984, +0.0892 [0.0845, 0.0945]. It is aggregate-only; within each starting-weight stratum, the model is below the structural baselines on AP and AUC. ECE is 0.143 and P@100 is not distinctive.
 5. **Why it matters:** Students, researchers and supervisors can use evidence to shortlist directions for human investigation. The code view can show where an archive has no linked implementation, without implying none exists.
-6. **Ask:** Try a map area, inspect one ranked pair, then check the evaluation and archive caveats. Use the tool to decide what to investigate, not what to believe.
+6. **Ask:** Explore the map, pick a non-covid gap from the live top list, then check the evaluation and archive caveats. Use the tool to decide what to investigate, not what to believe.
 
 ## Three-minute spoken script
 
-The script is timed for a live walkthrough of [the Whitespace site](https://whitespace-hacktheburgh-26.vercel.app). If a screen still shows fixtures, say so; use the phrase “if real data is live” before describing its data. Do not read mock values as results.
+The script is timed for a live walkthrough of [the Whitespace site](https://whitespace-hacktheburgh-26.vercel.app). The live export is real data; its header badge reads “Real data · 731k papers · 2023.” Do not describe rankings as verified chances.
 
 ### 0:00–0:20 — Opening and problem
 
-**Stage direction:** Open the Research map.
+**Stage direction:** Open the Research map from the header's Research map tab.
 
 “Choosing a research direction is still a lot of guesswork. A search engine can find papers that already connect two fields, but the gaps between fields are harder to see. Whitespace is a way to explore those gaps and inspect the evidence behind them.”
 
 ### 0:20–0:50 — Research map
 
-**Stage direction:** Use the 3D-only map; select a concept if the interaction is available. The header tabs are Research map, Gap finder and Open problems.
+**Stage direction:** Use the 3D-only map; orbit or zoom, then select a concept to show its branch → concept → hypothesis graph. Point out the 2021–2023 range and 730,671 works in the header badge. The three header tabs are Research map, Gap finder and Open problems.
 
-“This is the 3D Research map: concepts drawn from the OpenAlex AI subfield 1702 corpus, with 731,511 works. The map gives a view of the research landscape. If real data is live, each point reflects a concept’s publication footprint; the layout is a navigation aid, not evidence about historical distance.”
+“This is the 3D Research map, built from the 2023 snapshot of OpenAlex AI research, with 730,671 works. The map lets us move from a branch to a concept and its hypotheses. The layout helps navigate the landscape; it is not evidence about historical distance.”
 
 ### 0:50–1:15 — Gap finder
 
-**Stage direction:** Open Gap finder and select a ranked pair, if real data is live.
+**Stage direction:** Open Gap finder, pick a non-covid gap from the live top list, and point out Likelihood (%), Strength (Strong/Moderate/Weak), and the “How this is measured” toggle.
 
-“The Gap finder ranks pairs that are not yet linked by our rule: three or more joint papers. The forecast asks whether a pair will cross that threshold within three years. It is a ranked guess from past publication patterns, not a claim that the combination is important, true or fundable.”
+“The Gap finder ranks pairs that are not yet linked by our rule: three or more joint papers. Its momentum term is sigmoid of twice the smaller topic growth, so both topics need to be growing. A generic-phrase stoplist hides filler phrases from this displayed list only. The live scores come from a production model trained through the 2020 origin, with no held-out test of its own. Likelihoods are rankings, not real chances, and the combined gap score is a ranking heuristic.”
 
 ### 1:15–1:35 — Open problems
 
-**Stage direction:** Open Open problems and identify it as a placeholder.
+**Stage direction:** Open Open problems from the header; show a short attributed excerpt and its source attribution. Keep it clear that this is display-only AI labelling, not human validation.
 
-“This page is an MVP placeholder. We have not built reliable extraction of authors’ stated open problems, so I won’t present this screen as a working feature. That is an important distinction: the current ranking does not judge whether a gap is worth pursuing.”
+“This page shows short attributed excerpts, up to 400 characters, quoted from abstracts indexed by OpenAlex. Copyright remains with the publishers. The AI-labelled precision is 36 out of 100: 58 were wrong and 6 unsure. It is not human-validated; roughly a third are genuine open problems. Treat these as prompts to check the source paper, not verified labels.”
 
 ### 1:35–2:20 — Evidence
 
-**Stage direction:** Open Evidence from the footer link or directly at `/evidence`. Show the headline comparison and protocol if displayed; otherwise speak to the result.
+**Stage direction:** Open Evidence from the footer link or directly at `/evidence`. Show the headline comparison and its protocol.
 
-“Here is the result from the frozen run at SHA `93448d2`, under our pre-registered rule in issue 122. On all 3,943,852 eligible concept pairs, with a base rate of 0.281, average precision is 0.6876 for the model and 0.5984 for the pre-registered baseline, current weight, chosen on 2017: a paired difference of plus 0.0892. The concept-block 95% interval is 0.0845 to 0.0945. ROC AUC is 0.867 versus 0.818.
+“Here is the result from the frozen run at SHA `93448d2`, under our pre-registered rule in issue 122. The held-out headline is unchanged: aggregate average precision is 0.6876 versus 0.5984 for `current_weight`, chosen on 2017, a difference of +0.0892 with a concept-block 95% interval from 0.0845 to 0.0945.
 
-“The live gap scores use a production model trained through the 2020 origin; the headline numbers above are from the frozen backtest model.”
+“The live gap scores use a production model trained through the 2020 origin. It has no held-out test of its own. Those live likelihoods are rankings, not real chances; the held-out numbers describe the backtest model, not the production model.
 
-“The test was purged and temporal: fit through 2014, calibrate on 2017, and test once on 2020 against outcomes from 2021 to 2023. The baseline was selected on 2017. That is an aggregate result. Within each starting-weight stratum, the model is below the five structural baselines, such as common neighbours and Adamic–Adar, on AP and AUC, so much of the gain comes from the strata mix. Calibration is imperfect: ECE is 0.143, and the model under-predicts at the top end. P at 100 is 1.00 versus 0.66, but its interval is wide, 0.11 to 0.62, and other baselines also reach 0.91 to 1.00, so it is not distinctive.”
+“The backtest was purged and temporal: fit through 2014, calibrate on 2017, and test once on 2020 against outcomes from 2021 to 2023. The result is aggregate-only. Within each starting-weight stratum, the model is below the structural baselines on AP and AUC. Calibration is imperfect: ECE is 0.143. P@100 is not distinctive.”
 
 ### 2:20–2:45 — Code coverage
 
-**Stage direction:** Open Code coverage from the footer link or directly at `/coverage`; point to a cell and its denominator if real data is live.
+**Stage direction:** Open Code coverage from the footer link or directly at `/coverage`; point to a cell and its denominator.
 
 “This view uses the Papers with Code archive. A cell without a linked paper means no link was found in that archive, not that no implementation exists. Coverage is a lower bound: the archive is incomplete and frozen, so missing links need human interpretation.”
 
 ### 2:45–3:00 — Why it matters and ask
 
-**Stage direction:** Return to the map or leave Code coverage visible.
+**Stage direction:** Return to the Research map tab or leave Code coverage visible.
 
-“Concept forecasting has prior art, including Krenn and colleagues, arXiv 2210.00881, and ERLA from IC Hack 26 is a related project. Our contribution is purged temporal evaluation and turning the forecast into a decision tool. Concepts are deterministic phrases with unmeasured quality, and the result does not tell you what to work on. Use Whitespace to find a lead, then investigate it.”
+“Concept forecasting has prior art, including Krenn and colleagues, arXiv 2210.00881, and ERLA from IC Hack 26 is a related project. We do not claim to be first. Our contribution is purged temporal evaluation and turning the forecast into a decision tool. Concepts are deterministic phrases with unmeasured quality, and the result does not tell you what to work on. Use Whitespace to find a lead, then investigate it.”
 
 ## 60-second fallback
 
-“Choosing a research direction is often guesswork, and gaps between fields are invisible in ordinary search. Whitespace maps AI research concepts and ranks unlinked pairs that may become connected within three years. At frozen SHA `93448d2`, over 3,943,852 eligible pairs with a 0.281 base rate, average precision was 0.6876 versus 0.5984 for the pre-registered baseline, current weight. The purged test fit through 2014, calibrated on 2017 and tested once on 2020 for 2021–2023 outcomes. It is aggregate-only: within strata the model is below the structural baselines. Calibration is imperfect, and P at 100 is not distinctive. Code coverage uses the Papers with Code archive and is a lower bound. Search and Open problems remain placeholders. Krenn et al. is prior art; our contribution is purged temporal evaluation and turning the forecast into a decision tool.”
+“Choosing a research direction is often guesswork, and gaps between fields are invisible in ordinary search. Whitespace maps AI research concepts using the 2023 snapshot of 730,671 works, and ranks unlinked pairs. The live gap scores come from a production model trained through the 2020 origin with no held-out test of its own, so likelihoods are rankings, not real chances. The held-out headline is unchanged: aggregate AP 0.6876 versus 0.5984, +0.0892 [0.0845, 0.0945]. It is aggregate-only: within strata the model is below structural baselines. ECE is 0.143 and P@100 is not distinctive. Open problems are attributed excerpts with AI labels that are not human-validated; roughly a third are genuine and display only. Code coverage uses the Papers with Code archive and is a lower bound. Krenn et al. is prior art and ERLA is related; our contribution is purged temporal evaluation and a decision tool.”
 
 ## Track framing
 
-These are the team’s own framings; the official prompts are unconfirmed.
+These are the team's own framings; the official prompts are unconfirmed.
 
-- **HRT:** A rigorous forecast of which gap to pursue, evaluated with a purged temporal backtest. We test a historical ranking against a held-out future period, compare it with a baseline selected on calibration data, and report uncertainty and calibration limits. This is research decision support, not a trading claim.
-- **G-Research:** Making the invisible visible: the gaps between research concepts and the missing code links in a paper-to-code archive. The archive view is explicitly a lower bound, and Open problems is still a placeholder.
+- **HRT:** A research decision aid grounded in a purged temporal backtest. Its aggregate result and limits are visible; this is not a trading claim, and the production likelihoods are rankings without a held-out test of their own.
+- **G-Research:** Making research directions and recorded code coverage easier to see, while treating the archive view as a lower bound.
 
 ## Five judge questions
 
-1. **How do you know the forecast is useful?** At frozen SHA `93448d2`, the model’s average precision was 0.6876 versus 0.5984 for the pre-registered baseline on all 3,943,852 eligible pairs; the paired difference was 0.0892, with a concept-block 95% interval of 0.0845–0.0945. It is aggregate-only: within each stratum the model is below the five structural baselines on AP and AUC. This is one purged temporal test, not proof of general performance.
-2. **Could there be leakage, and is it calibrated?** The test protocol fits through 2014, calibrates on 2017, and tests once on 2020 for 2021–2023 outcomes; the baseline was chosen on 2017. Calibration remains imperfect: ECE 0.143, with under-prediction at the top end. We disclose that limitation.
-3. **What does a “gap” mean?** A concept pair with fewer than three joint papers under our operational co-occurrence rule. Crossing that threshold is not proof that the ideas are important or that the research is good. Our deterministic phrases have unmeasured quality.
-4. **Does missing code mean no one implemented the paper?** No. It means no linked implementation was found in the Papers with Code archive. That archive is incomplete, so the coverage is a lower bound.
-5. **What is actually usable in the demo, and what is new here?** If real data is live, the Research map, Gap finder, Evidence and Code coverage show the exported corpus and results. Research map, Gap finder and Open problems are the three header tabs; Evidence and Code coverage are linked in the footer and available at `/evidence` and `/coverage`. Search and Open problems are MVP placeholders. The live gap scores use a production model trained through the 2020 origin; the headline numbers are from the frozen backtest model. Krenn et al. (arXiv:2210.00881) is prior art, and ERLA (IC Hack 26) is a related project; our contribution is purged temporal evaluation and turning the forecast into a decision tool.
+1. **How do you know the forecast is useful?** The held-out headline is aggregate AP 0.6876 versus 0.5984, +0.0892 [0.0845, 0.0945]. It is aggregate-only: within each starting-weight stratum, the model is below the structural baselines on AP and AUC. ECE is 0.143 and P@100 is not distinctive. This is one purged temporal test, not proof of general performance. The production model supplying live gap scores has no held-out test of its own.
+2. **Could there be leakage, and is it calibrated?** The backtest protocol fits through 2014, calibrates on 2017, and tests once on 2020 for 2021–2023 outcomes; the baseline was chosen on 2017. Calibration remains imperfect, with ECE 0.143. Topic assignments come from a post-October-2026 snapshot, a residual limitation.
+3. **What does a “gap” mean?** A concept pair with fewer than three joint papers under our operational co-occurrence rule. Its momentum is `sigmoid(2·min(growth_a, growth_b))`, so both topics must be growing. The gap score is a ranking heuristic, not a probability; crossing the threshold is not proof that the ideas are important or the research is good. Our deterministic phrases have unmeasured quality.
+4. **Does missing code mean no one implemented the paper?** No. It means no linked implementation was found in the Papers with Code archive. That archive is incomplete, so coverage is a lower bound.
+5. **What is actually usable in the demo, and what is new here?** The 3D-only Research map, Gap finder and Open problems are the three header tabs. Evidence and Code coverage are in the footer and at `/evidence` and `/coverage`. The Gap finder has Likelihood (%), Strength (Strong/Moderate/Weak), and “How this is measured”; its displayed gap list hides generic filler phrases. Open Problems shows attributed excerpts of at most 400 characters quoted from OpenAlex-indexed abstracts, with copyright remaining with publishers. AI-labelled precision is 36/100 (58 wrong, 6 unsure), not human-validated; roughly a third are genuine, and excerpts are display only. Krenn et al. (arXiv:2210.00881) is prior art, and ERLA (IC Hack 26) is related; we do not claim to be first.

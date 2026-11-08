@@ -6,9 +6,13 @@ Research moves faster than people can read it. Search finds work that already ex
 
 ## What it does
 
-Whitespace maps AI research concepts from OpenAlex and ranks concept pairs that have not yet met the project's three-paper co-occurrence rule. A research map supports exploration, while Gap Finder presents ranked pairs and their supporting evidence. Evidence exposes a purged temporal backtest, declared baselines and calibration. Code Coverage shows links found in the Papers with Code archive; this is a lower bound, and a missing archive link does not establish that no implementation exists.
+Whitespace maps AI research concepts from OpenAlex and ranks concept pairs that have not yet met the project's three-paper co-occurrence rule. The 3D-only map shows the 2023 snapshot of 730,671 works; its header badge reads **Real data · 731k papers · 2023**. The header has three tabs: Research map, Gap finder and Open problems. Evidence and Code coverage are in the footer and at `/evidence` and `/coverage`.
 
-Search and Open Problems are MVP placeholders. The current export contains no author-stated open-problem sentences, so the product does not claim to extract or assess them.
+Gap Finder presents ranked pairs and supporting evidence. Its labels are Likelihood (%), Strength (Strong/Moderate/Weak), and a “How this is measured” toggle. The gap score's momentum is `sigmoid(2·min(growth_a, growth_b))`, so both topics must be growing. A generic-phrase stoplist hides filler phrases from the displayed gap list only; it does not change the underlying scores or evaluation. A production model trained through the 2020 origin supplies the live gap scores. It has no held-out test of its own, and its likelihoods should be read as rankings, not real chances. The combined gap score is a ranking heuristic, not a probability.
+
+Open problems displays short attributed excerpts (at most 400 characters) quoted from abstracts indexed by OpenAlex. Copyright remains with the publishers. The displayed AI-labelled precision was 36/100 (58 wrong, 6 unsure); it is not human-validated. These excerpts are for display only. Roughly a third are genuine open problems, so they should be checked against their source papers and not treated as verified labels.
+
+Evidence exposes the held-out temporal backtest, declared baselines and calibration. The unchanged headline is aggregate average precision 0.6876 versus 0.5984, a difference of +0.0892 with 95% concept-block bootstrap interval [0.0845, 0.0945]. This is aggregate-only: within each starting-weight stratum, the model is below the structural baselines on AP and AUC. ECE is 0.143, and P@100 is not distinctive. This held-out result describes the backtest model, not the live production model. Code Coverage shows links found in the Papers with Code archive; this is a lower bound, and a missing archive link does not establish that no implementation exists.
 
 ## How we built it
 
@@ -18,21 +22,21 @@ The frontend is a static Vite, React and TypeScript app. The results are precomp
 
 ## Challenges we ran into
 
-The central challenge was evaluating a forecast without letting later information leak into its historical inputs. We used a purged temporal split and report that topic assignments come from a post-October-2026 snapshot, a residual limitation. We also had to keep the aggregate result in perspective: stronger structural baselines outperform the model within every starting-weight stratum. Deterministic phrase concepts have unmeasured quality, calibration is imperfect, and the code archive is incomplete and historical. Time also meant Search and Open Problems remain placeholders.
+The central challenge was evaluating a forecast without letting later information leak into its historical inputs. We used a purged temporal split and report that topic assignments come from a post-October-2026 snapshot, a residual limitation. We also had to keep the aggregate result in perspective: stronger structural baselines outperform the model within every starting-weight stratum. Deterministic phrase concepts have unmeasured quality, calibration is imperfect, and the code archive is incomplete and historical. Open-problem excerpts are AI-labelled rather than human-validated, and roughly a third are genuine.
 
 ## Accomplishments that we're proud of
 
-We completed the real backtest once at the 2020 test origin (outcomes 2021–2023) on frozen commit `93448d2`. Under the pre-registered rule, the model beats the `current_weight` baseline (selected on the 2017 calibration origin) on aggregate average precision: 0.6876 versus 0.5984, difference +0.0892 (95% concept-block bootstrap interval [0.0845, 0.0945]). P@100 is not distinctive (model 1.00; baseline 0.66; wide interval [0.11, 0.62], while other baselines reach 0.91–1.00). Calibration is imperfect: ECE 0.143. The aggregate AP gain is partly driven by the strata mix: within each starting-weight stratum, the model is below the five structural baselines (common neighbours, Adamic–Adar, Jaccard, degree product and preferential attachment) on AP and AUC. Coverage is a lower bound. Search and Open Problems are MVP placeholders. We report the result with its limits, without treating it as proof that the model is generally useful or that any predicted pairing is important.
+We completed the real backtest once at the 2020 test origin (outcomes 2021–2023) on frozen commit `93448d2`. Under the pre-registered rule, the model beats the `current_weight` baseline (selected on the 2017 calibration origin) on aggregate average precision: 0.6876 versus 0.5984, difference +0.0892 (95% concept-block bootstrap interval [0.0845, 0.0945]). This result is aggregate-only; within every starting-weight stratum, the model is below the five structural baselines (common neighbours, Adamic–Adar, Jaccard, degree product and preferential attachment) on AP and AUC. ECE is 0.143. P@100 is not distinctive. The result does not establish that the production model's likelihoods are real chances or that any predicted pairing is important.
 
 Forecasting concept pairs has prior art: Krenn et al. (arXiv:2210.00881) frame AI research directions as link prediction on a semantic network. ERLA (IC Hack 26) is related. We do not claim to be first.
 
 ## What we learned
 
-A single aggregate metric can hide weaker performance in the groups that make it up. The comparison needs its baseline, strata, uncertainty and calibration reported alongside it. We also learned to describe a missing code link as “not found in this archive,” rather than implying that no implementation exists. A forecast can help someone find a lead to investigate; co-occurrence is not a measure of importance or truth.
+A single aggregate metric can hide weaker performance in the groups that make it up. The comparison needs its baseline, strata, uncertainty and calibration reported alongside it. We also learned to describe a missing code link as “not found in this archive,” rather than implying that no implementation exists. A forecast can help someone find a lead to investigate; co-occurrence is not a measure of importance or truth. AI-labelled open-problem excerpts need verification against their source papers.
 
 ## What's next
 
-Build and evaluate search and author-stated open-problem extraction before presenting them as working features. Improve concept quality and calibration, and assess the forecast against the structural baselines within each stratum. Validate paper-to-code matching with the planned hand-check and continue to present archive coverage as a lower bound.
+Improve concept quality and calibration, and assess the forecast against the structural baselines within each stratum. Validate paper-to-code matching with the planned hand-check and continue to present archive coverage as a lower bound. Improve open-problem extraction and validation before treating its labels as reliable.
 
 ## Built with
 
