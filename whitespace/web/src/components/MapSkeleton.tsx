@@ -21,9 +21,9 @@ export function MapSkeleton({ caption }: MapSkeletonProps) {
       <div className="whitespace-map__stage">
         <svg className="whitespace-map__ghosts" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           {GHOST_LINKS.map(([a, b]) => (
-            <line key={`${a}-${b}`} x1={GHOSTS[a].x} y1={GHOSTS[a].y} x2={GHOSTS[b].x} y2={GHOSTS[b].y} stroke="#D9D9D4" strokeWidth="2" strokeDasharray="7 6" />
+            <line key={`${a}-${b}`} x1={GHOSTS[a].x} y1={GHOSTS[a].y} x2={GHOSTS[b].x} y2={GHOSTS[b].y} style={{ stroke: "var(--ws-skel-line)" }} strokeWidth="2" strokeDasharray="7 6" />
           ))}
-          {GHOSTS.map((g, i) => <circle key={i} cx={g.x} cy={g.y} r={g.r} fill="#E4E4DF" />)}
+          {GHOSTS.map((g, i) => <circle key={i} cx={g.x} cy={g.y} r={g.r} style={{ fill: "var(--ws-skel)" }} />)}
         </svg>
         <p className="whitespace-map__caption" role="status">{caption}</p>
       </div>

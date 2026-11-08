@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { ConceptPoint, PredictedEdge } from "../api";
 import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import { readMapTheme } from "../lib/mapTheme";
+import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
@@ -25,8 +27,6 @@ export type MapCanvas3DProps = {
   onUnsupported?: () => void;
 };
 
-const GROWTH_COLORS = ["#C3C7CF", "#F0C9A0", "#EDA060", "#E07432", "#BF4A0E"] as const;
-const UNKNOWN_COLOR = "#9AA0AA";
 const SPAN_XY = 100; // x,y mapped into [-50, 50]
 const SPAN_Z = 50; // z mapped into [-25, 25]
 const FOV = 45;
@@ -61,12 +61,13 @@ void main() {
 }`;
 const FRAG = /* glsl */ `
 varying vec3 vColor;
+uniform vec3 uRim;
 void main() {
   vec2 p = gl_PointCoord - 0.5;
   float d = length(p);
   if (d > 0.5) discard;
   float rim = smoothstep(0.40, 0.48, d);
-  gl_FragColor = vec4(mix(vColor, vec3(1.0), rim * 0.85), 1.0);
+  gl_FragColor = vec4(mix(vColor, uRim, rim * 0.85), 1.0);
 }`;
 
 type Scene3D = {
@@ -79,6 +80,7 @@ type Scene3D = {
   zoom: (factor: number) => void;
   rotate: (dAzimuth: number, dPolar: number) => void;
   setData: () => void;
+  applyTheme: () => void;
   setLines: () => void;
   /** Move the orbit target to a concept; animated unless `instant` or reduced motion. */
   flyTo: (index: number, instant: boolean) => void;
@@ -99,6 +101,7 @@ export function MapCanvas3D({
   const [unsupported, setUnsupported] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [hoverText, setHoverText] = useState("");
+  const { theme } = useTheme();
 
   // Geometry-level derived data: world positions, sizes, colour buckets.
   const data = useMemo(() => {
@@ -118,6 +121,7 @@ export function MapCanvas3D({
     const color = new Float32Array(n * 3);
     const bucket = new Uint8Array(n);
     const tmp = new THREE.Color();
+    const palette = readMapTheme().growth;
     concepts.forEach((c, i) => {
       pos[i * 3] = ((c.x - xc) / range) * SPAN_XY;
       pos[i * 3 + 1] = ((c.y - yc) / range) * SPAN_XY;
@@ -126,7 +130,7 @@ export function MapCanvas3D({
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
-      tmp.set(b === 5 ? UNKNOWN_COLOR : GROWTH_COLORS[b]).convertLinearToSRGB(); // shader writes raw values
+      tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
@@ -140,7 +144,8 @@ export function MapCanvas3D({
     });
     const areas = [...sums].map(([name, s]) => ({ name, v: new THREE.Vector3(s.x / s.n, s.y / s.n, s.z / s.n) }));
     return { n, pos, size, color, bucket, indexById, labelOrder, areas };
-  }, [concepts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [concepts, theme]);
 
   // Latest props for the render loop (no re-creation of the engine).
   const live = useRef({ data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
@@ -169,7 +174,7 @@ export function MapCanvas3D({
       return undefined;
     }
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    renderer.setClearColor(0xfbfbf9, 1);
+    renderer.setClearColor(new THREE.Color(readMapTheme().mapBg), 1);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 1000);
@@ -202,13 +207,13 @@ export function MapCanvas3D({
     // Persistent point cloud, rebuilt when data changes.
     const pointsMat = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG,
-      uniforms: { uScale: { value: 1 } },
+      uniforms: { uScale: { value: 1 }, uRim: { value: new THREE.Vector3(1, 1, 1) } },
     });
     let points: THREE.Points | null = null;
     let edgeLines: THREE.LineSegments | null = null;
     let linkLines: THREE.LineSegments | null = null;
-    const edgeMat = new THREE.LineDashedMaterial({ color: 0x2952e3, dashSize: 1.6, gapSize: 1.0, transparent: true, opacity: 0.85 });
-    const linkMat = new THREE.LineBasicMaterial({ color: 0xb9bcc4, transparent: true, opacity: 0.6 });
+    const edgeMat = new THREE.LineDashedMaterial({ color: 0x6b8cff, dashSize: 1.6, gapSize: 1.0, transparent: true, opacity: 0.85 });
+    const linkMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.6 });
 
     let width = 0, height = 0;
     let screen = new Float32Array(0); // projected x,y,depth per node (CSS px)
@@ -483,6 +488,15 @@ export function MapCanvas3D({
     };
     stage.addEventListener("keydown", onKey);
 
+    const applyTheme = () => {
+      const T = readMapTheme();
+      renderer.setClearColor(new THREE.Color(T.mapBg), 1);
+      edgeMat.color.set(T.accent);
+      linkMat.color.set(T.rule);
+      const rim = new THREE.Color(T.surface).convertLinearToSRGB(); // shader writes raw values
+      (pointsMat.uniforms.uRim.value as THREE.Vector3).set(rim.r, rim.g, rim.b);
+      requestRender();
+    };
     const setData = () => {
       const d = live.current.data;
       if (points) { scene.remove(points); points.geometry.dispose(); points = null; }
@@ -561,8 +575,9 @@ export function MapCanvas3D({
     canvas.addEventListener("webglcontextrestored", onContextRestored);
 
     engineRef.current = {
-      renderer, scene, camera, controls, requestRender, resetView, zoom, rotate, setData, setLines, flyTo, focused: false,
+      renderer, scene, camera, controls, requestRender, resetView, zoom, rotate, setData, applyTheme, setLines, flyTo, focused: false,
     };
+    applyTheme();
     setData();
     setLines();
     resize();
@@ -594,7 +609,8 @@ export function MapCanvas3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
+  useEffect(() => { engineRef.current?.applyTheme(); engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
+  useEffect(() => { engineRef.current?.applyTheme(); }, [theme]);
   useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, showPredicted, data]);
   useEffect(() => { engineRef.current?.requestRender(); }, [selectedConceptId, showAreaLabels]);
 

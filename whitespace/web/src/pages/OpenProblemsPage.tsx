@@ -10,7 +10,7 @@ function OpenProblemsSkeleton({ loading }: { loading: boolean }) {
   return (
     <div className="ws-op-skeleton" aria-label="Open problems layout, no data yet">
       <svg className="ws-skel-chart" viewBox="0 0 220 120" role="img" aria-label="Empty rate-over-time chart frame">
-        <rect x="30" y="8" width="180" height="84" fill="#F0F0EC" stroke="#CFCFC8" />
+        <rect x="30" y="8" width="180" height="84" style={{ fill: "var(--ws-track)", stroke: "var(--ws-border-strong)" }} />
         <text x="120" y="112" textAnchor="middle">Year</text>
         <text x="10" y="50" textAnchor="middle" transform="rotate(-90 10 50)">Share of papers</text>
       </svg>

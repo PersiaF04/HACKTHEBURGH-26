@@ -52,7 +52,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
       <form className="whitespace-search__form" onSubmit={submit} role="search">
         <label htmlFor={`${uid}-q`}>Find a concept or paper</label>
         <div className="whitespace-search__field">
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="#5B606B" strokeWidth="1.6" /><line x1="11" y1="11" x2="14.5" y2="14.5" stroke="#5B606B" strokeWidth="1.6" strokeLinecap="round" /></svg>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" style={{ stroke: "var(--ws-muted)" }} strokeWidth="1.6" /><line x1="11" y1="11" x2="14.5" y2="14.5" style={{ stroke: "var(--ws-muted)" }} strokeWidth="1.6" strokeLinecap="round" /></svg>
           <input
             id={`${uid}-q`}
             type="search"

@@ -37,8 +37,8 @@ function EvidenceSkeleton({ loading }: { loading: boolean }) {
       <div className="ws-skel-pair">
         <section className="ws-skel-panel" aria-labelledby="skel-cal"><h2 id="skel-cal">Calibration</h2>
           <svg className="ws-skel-chart" viewBox="0 0 220 220" role="img" aria-label="Empty calibration chart frame">
-            <rect x="30" y="10" width="180" height="170" fill="#F0F0EC" stroke="#CFCFC8" />
-            <line x1="30" y1="180" x2="210" y2="10" stroke="#CFCFC8" strokeDasharray="4 4" />
+            <rect x="30" y="10" width="180" height="170" style={{ fill: "var(--ws-track)", stroke: "var(--ws-border-strong)" }} />
+            <line x1="30" y1="180" x2="210" y2="10" style={{ stroke: "var(--ws-border-strong)" }} strokeDasharray="4 4" />
             <text x="120" y="204" textAnchor="middle">Predicted probability</text>
             <text x="12" y="95" textAnchor="middle" transform="rotate(-90 12 95)">Observed rate</text>
           </svg></section>
@@ -149,13 +149,13 @@ function CalibrationPlot({ bins }: { bins: CalibrationBin[] }) {
   return (
     <figure className="evidence-plot">
       <svg viewBox="0 0 200 210" role="img" aria-label="Calibration plot comparing predicted and observed probabilities">
-        <line x1="12" y1="188" x2="188" y2="12" stroke="#84948a" strokeDasharray="4 4" />
-        <line x1="12" y1="188" x2="188" y2="188" stroke="#60736a" />
-        <line x1="12" y1="12" x2="12" y2="188" stroke="#60736a" />
+        <line x1="12" y1="188" x2="188" y2="12" style={{ stroke: "var(--ws-rule)" }} strokeDasharray="4 4" />
+        <line x1="12" y1="188" x2="188" y2="188" style={{ stroke: "var(--ws-muted)" }} />
+        <line x1="12" y1="12" x2="12" y2="188" style={{ stroke: "var(--ws-muted)" }} />
         {bins.map((bin, index) => {
           const cx = 12 + Math.max(0, Math.min(1, bin.predicted)) * 176;
           const cy = 188 - Math.max(0, Math.min(1, bin.observed)) * 176;
-          return <circle key={`${bin.predicted}-${index}`} cx={cx} cy={cy} r={Math.max(3, Math.min(8, 2 + Math.sqrt(bin.count)))} fill="#34775d" />;
+          return <circle key={`${bin.predicted}-${index}`} cx={cx} cy={cy} r={Math.max(3, Math.min(8, 2 + Math.sqrt(bin.count)))} style={{ fill: "var(--ws-ok-chart)" }} />;
         })}
       </svg>
       <figcaption>Predicted probability (horizontal) and observed rate (vertical). Dashed line: perfect calibration.</figcaption>

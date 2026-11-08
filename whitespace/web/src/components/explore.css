@@ -1,16 +1,16 @@
 /* Explore components, sized to the design (docs/design/Explore.dc.html). */
 .whitespace-mono { font-family: var(--ws-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
 .whitespace-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.whitespace-primary { min-height: 40px; border: 0; border-radius: 8px; background: var(--ws-ink); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.whitespace-primary { min-height: 40px; border: 0; border-radius: 8px; background: var(--ws-ink); color: var(--ws-on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .whitespace-primary:disabled { opacity: .5; cursor: not-allowed; }
 .whitespace-search button:focus-visible, .whitespace-filters button:focus-visible, .whitespace-concept button:focus-visible,
 .whitespace-filters input:focus-visible, .whitespace-search textarea:focus-visible, .whitespace-search input:focus-visible, .whitespace-concept a:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
 
 
 /* segmented control (growth filter) */
-.whitespace-seg { display: flex; gap: 2px; padding: 3px; border-radius: 6px; background: #F0F0EC; }
+.whitespace-seg { display: flex; gap: 2px; padding: 3px; border-radius: 6px; background: var(--ws-track); }
 .whitespace-seg button { flex: 1; min-height: 32px; border: 0; border-radius: 4px; background: transparent; color: var(--ws-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
-.whitespace-seg button[aria-pressed="true"] { background: #fff; color: var(--ws-ink); box-shadow: 0 1px 2px rgba(20, 20, 20, .12); }
+.whitespace-seg button[aria-pressed="true"] { background: var(--ws-surface); color: var(--ws-ink); box-shadow: 0 1px 2px var(--ws-shadow); }
 .whitespace-seg button:disabled { cursor: not-allowed; opacity: .55; }
 
 /* search */
@@ -19,12 +19,12 @@
 .whitespace-search__form label { font-size: 12px; font-weight: 600; color: var(--ws-ink-2); }
 .whitespace-search__field { position: relative; }
 .whitespace-search__field svg { position: absolute; left: 11px; top: 12px; }
-.whitespace-search__field input { width: 100%; height: 40px; padding: 0 12px 0 34px; border: 1px solid #CFCFC8; border-radius: 8px; font: inherit; font-size: 14px; background: #fff; color: var(--ws-ink); }
+.whitespace-search__field input { width: 100%; height: 40px; padding: 0 12px 0 34px; border: 1px solid var(--ws-border-strong); border-radius: 8px; font: inherit; font-size: 14px; background: var(--ws-surface); color: var(--ws-ink); }
 .whitespace-search__results { list-style: none; margin: 0; padding: 0; border: 1px solid var(--ws-border); border-radius: 8px; overflow: hidden; }
-.whitespace-search__results button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-bottom: 1px solid #EFEFEA; background: #fff; font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--ws-ink); }
+.whitespace-search__results button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--ws-soft); background: var(--ws-surface); font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--ws-ink); }
 .whitespace-search__results li:last-child button { border-bottom: 0; }
 .whitespace-search__results .whitespace-mono { color: var(--ws-muted); }
-.whitespace-search__results a { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border-bottom: 1px solid #EFEFEA; background: #fff; font-size: 13px; line-height: 1.35; color: var(--ws-ink); text-decoration: none; }
+.whitespace-search__results a { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border-bottom: 1px solid var(--ws-soft); background: var(--ws-surface); font-size: 13px; line-height: 1.35; color: var(--ws-ink); text-decoration: none; }
 .whitespace-search__results a:hover { background: var(--ws-page); }
 .whitespace-search__results li:last-child a { border-bottom: 0; }
 .whitespace-search__papers { margin-top: -2px; }
@@ -45,7 +45,7 @@
 .whitespace-check > span:nth-child(2) { flex: 1; }
 .whitespace-check .whitespace-mono { color: var(--ws-muted); }
 .whitespace-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--ws-ink); }
-.whitespace-filters__reset { align-self: flex-start; min-height: 32px; padding: 0 2px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: var(--ws-ink); text-decoration: underline; text-decoration-color: #B9BCC4; text-underline-offset: 3px; cursor: pointer; }
+.whitespace-filters__reset { align-self: flex-start; min-height: 32px; padding: 0 2px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: var(--ws-ink); text-decoration: underline; text-decoration-color: var(--ws-rule); text-underline-offset: 3px; cursor: pointer; }
 
 /* concept panel */
 .whitespace-concept { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
@@ -57,13 +57,13 @@
 .whitespace-concept__first { font-size: 13px; color: var(--ws-muted); }
 .whitespace-concept__sub { font-size: 11px; color: var(--ws-muted); }
 .whitespace-concept__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.whitespace-concept__head a { font-size: 12px; font-weight: 500; color: var(--ws-ink); text-decoration-color: #B9BCC4; text-underline-offset: 3px; }
+.whitespace-concept__head a { font-size: 12px; font-weight: 500; color: var(--ws-ink); text-decoration-color: var(--ws-rule); text-underline-offset: 3px; }
 .whitespace-concept__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border: 1px solid var(--ws-border); border-radius: 8px; }
 .whitespace-concept__stats > div { padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .whitespace-concept__stats > div + div { border-left: 1px solid var(--ws-border); }
 .whitespace-concept__stats dt { font-size: 12px; color: var(--ws-muted); }
 .whitespace-concept__stats dd { margin: 0; font-family: var(--ws-mono); font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
-.whitespace-concept__stats dd.is-up { color: #9A3412; }
+.whitespace-concept__stats dd.is-up { color: var(--ws-up); }
 .whitespace-concept__stats dd.is-down { color: var(--ws-muted); }
 .whitespace-bars { display: flex; align-items: flex-end; gap: 2px; }
 .whitespace-bars__col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -85,7 +85,7 @@
 .whitespace-concept__problem { margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; border-radius: 8px; background: var(--ws-page); font-size: 13px; line-height: 1.45; }
 .whitespace-concept__tag { align-self: flex-start; padding: 2px 6px; border-radius: 4px; background: var(--ws-selected); color: var(--ws-ink-2); font-size: 11px; font-weight: 600; }
 .whitespace-concept__chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.whitespace-concept__chips button { min-height: 32px; padding: 0 10px; border: 1px solid #D5D5CF; border-radius: 4px; background: #fff; color: var(--ws-ink); font: inherit; font-size: 12px; cursor: pointer; }
+.whitespace-concept__chips button { min-height: 32px; padding: 0 10px; border: 1px solid var(--ws-border-strong); border-radius: 4px; background: var(--ws-surface); color: var(--ws-ink); font: inherit; font-size: 12px; cursor: pointer; }
 
 /* helper text + disabled state (filters, skeleton) */
 .whitespace-help { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ws-muted); }
@@ -93,7 +93,7 @@
 .whitespace-filters__row > label, .whitespace-filters__row > span[id] { cursor: help; }
 
 /* skeleton concept panel */
-.whitespace-ghost { display: block; border-radius: 4px; background: #E9E9E4; }
+.whitespace-ghost { display: block; border-radius: 4px; background: var(--ws-skel); }
 .whitespace-ghost--title { width: 60%; height: 22px; }
 .whitespace-concept--skeleton .whitespace-concept__stats dd { color: var(--ws-muted); }
 .whitespace-concept__preview { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
