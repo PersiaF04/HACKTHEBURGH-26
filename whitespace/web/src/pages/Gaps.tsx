@@ -3,7 +3,7 @@ import type { GapDetailResponse, GapListResponse, GapSummary } from "../api";
 import { GapDetailPanel, GapTable, GapTableSkeleton, gapKey } from "../components/gaps";
 import type { GapRow } from "../components/gaps";
 import { ModelNote } from "../components/ModelNote";
-import { NA, fmtGrowth, fmtInt, fmtPct, fmtText, isNum } from "../lib/format";
+import { NA, fmtDec, fmtGrowth, fmtInt, fmtPct, fmtText, isNum } from "../lib/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -34,7 +34,6 @@ function median(values: number[]): number | null {
 }
 
 export function GapsPage({ response, loadDetail, loading = false, error }: GapsPageProps) {
-  const [minimumProbability, setMinimumProbability] = useState(0);
   const [sort, setSort] = useState<SortKey>("gap_score");
   const [focus, setFocus] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -54,7 +53,6 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   }, [response.items]);
 
   const rows: GapRow[] = useMemo(() => response.items
-    .filter((g) => minimumProbability <= 0 || (isNum(g.p_link) && g.p_link >= minimumProbability - 1e-9))
     .filter((g) => !focus || g.a === focus || g.b === focus)
     .sort((l, r) => {
       const a = sortValue(l, sort);
@@ -64,7 +62,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
       if (b == null) return -1;
       return b - a;
     })
-    .map((gap) => ({ gap, rank: ranks.get(gapKey(gap)) ?? 0 })), [response.items, minimumProbability, focus, sort, ranks]);
+    .map((gap) => ({ gap, rank: ranks.get(gapKey(gap)) ?? 0 })), [response.items, focus, sort, ranks]);
 
   const concepts = useMemo(() => {
     const map = new Map<string, ConceptInfo>();
@@ -104,7 +102,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   }, [selKey, loadDetail]);
 
   const empty = response.items.length === 0;
-  function resetFilters() { setMinimumProbability(0); setFocus(null); }
+  function resetFilters() { setFocus(null); }
   const focusLabel = focus ? concepts.find((c) => c.id === focus)?.label ?? focus : null;
 
   const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
@@ -116,10 +114,18 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     ["Top likelihood", empty ? NA : fmtPct(topProbability), false, "Highest model estimate among them"],
     ["Focused area", focusLabel ? fmtText(focusLabel) : "All concepts", false, "Use the left rail to narrow the list"],
   ];
-  const stats: Array<[string, string]> = [
-    ["Concepts", empty ? NA : fmtInt(concepts.length)],
-    ["Predicted gaps", empty ? NA : fmtInt(response.items.length)],
-    ["Growing concepts", empty ? NA : fmtInt(growing.length)],
+  const shrinking = concepts.filter((c) => c.growth != null && c.growth < 0).length;
+  const gapCount = new Map<string, { label: string; n: number }>();
+  for (const g of response.items) for (const [id, label] of [[g.a, g.a_label], [g.b, g.b_label]] as const) gapCount.set(id, { label, n: (gapCount.get(id)?.n ?? 0) + 1 });
+  const busiest = [...gapCount.values()].sort((x, y) => y.n - x.n)[0];
+  const strongest = [...response.items].sort((x, y) => (y.gap_score ?? 0) - (x.gap_score ?? 0))[0];
+  const glance: Array<[string, string, string]> = empty ? [] : [
+    ["Concepts in gaps", fmtInt(concepts.length), "Distinct topics that appear in at least one gap"],
+    ["Predicted gaps", fmtInt(response.items.length), "Pairs with under 3 shared papers that the model expects to connect"],
+    ["Growing / shrinking", `${fmtInt(growing.length)} / ${fmtInt(shrinking)}`, `${concepts.length ? Math.round((growing.length / concepts.length) * 100) : 0}% of these concepts are growing`],
+    ["Fastest growing", fastest ? fmtText(fastest.label) : NA, fastest ? `${fmtGrowth(fastest.growth)} over three years` : ""],
+    ["Most gaps", busiest ? fmtText(busiest.label) : NA, busiest ? `Appears in ${fmtInt(busiest.n)} of the ${fmtInt(response.items.length)} gaps` : ""],
+    ["Strongest gap", strongest ? `${fmtText(strongest.a_label)} × ${fmtText(strongest.b_label)}` : NA, strongest ? `Gap score ${fmtDec(strongest.gap_score)}` : ""],
   ];
 
   function pick(c: ConceptInfo) {
@@ -133,11 +139,6 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     <div className="gx">
       <aside className="gx-rail" aria-label="Filters and overview" data-tour="gap-filters">
         <div className="gx-field">
-          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum likelihood</label><span className="gx-mono">{empty ? NA : fmtPct(minimumProbability)}</span></div>
-          <input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value={minimumProbability} disabled={empty} aria-describedby="gf-minp-h" onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
-          <p id="gf-minp-h" className="gx-help">Hide pairs the model rates as less likely than this to connect</p>
-        </div>
-        <div className="gx-field">
           <label htmlFor="gf-sort">Sort gaps by</label>
           <select id="gf-sort" value={sort} disabled={empty} aria-describedby="gf-sort-h" onChange={(e) => setSort(e.currentTarget.value as SortKey)}>
             {sortOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -147,16 +148,15 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
 
         <section className="gx-sec" aria-labelledby="gf-ov">
           <h2 id="gf-ov" className="gx-label">All areas at a glance</h2>
-          {empty && <p className="gx-help">Totals across every concept in the export</p>}
-          <div className="gx-stats">
-            {stats.map(([label, v]) => (
-              <div key={label} className="gx-stat"><span className="gx-stat__l">{label}</span><span className="gx-stat__v">{v}</span></div>
-            ))}
-          </div>
-          {fastest && (
-            <p className="gx-fast">
-              {fastest && <>Fastest growing: <strong>{fmtText(fastest.label)}</strong>. </>}
-            </p>
+          {empty ? <p className="gx-help">Totals across every concept in the export</p> : (
+            <>
+              <p className="gx-help">{fmtInt(response.items.length)} predicted gaps connect {fmtInt(concepts.length)} concepts; {fmtInt(growing.length)} of them are growing.</p>
+              <dl className="gx-glance">
+                {glance.map(([label, v, note]) => (
+                  <div key={label} className="gx-glance__row"><dt>{label}</dt><dd>{v}</dd><dd className="gx-glance__note">{note}</dd></div>
+                ))}
+              </dl>
+            </>
           )}
         </section>
 
@@ -187,7 +187,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
         </div>
 
         <ul className="gx-factors" aria-label="What the ranking combines">
-          <li><strong>Likelihood</strong>: will the two topics connect?</li>
+          <li><strong>Likelihood</strong>: will the two topics connect? It is high on every row because this list shows only the highest-scoring pairs; read it as a ranking, not a chance.</li>
           <li><strong>Momentum</strong>: are both topics growing?</li>
           <li><strong>Novelty</strong>: is the combination still uncrowded?</li>
           <li><strong>Stated gaps</strong> (shown, not scored): how often authors writing on either topic say problems remain open.</li>
