@@ -1,13 +1,9 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 export type Theme = "light" | "dark";
-const KEY = "ws-theme";
 
 function systemTheme(): Theme {
   try { return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } catch { return "light"; }
-}
-function storedTheme(): Theme | null {
-  try { const v = window.localStorage.getItem(KEY); return v === "dark" || v === "light" ? v : null; } catch { return null; }
 }
 export function currentTheme(): Theme {
   const attr = document.documentElement.getAttribute("data-theme");
@@ -24,22 +20,16 @@ function apply(theme: Theme) {
 function subscribe(onChange: () => void) {
   const observer = new MutationObserver(onChange);
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  // Follow the system only while the user has not chosen.
   let mq: MediaQueryList | null = null;
-  const onSystem = () => { if (!storedTheme()) apply(systemTheme()); };
+  const onSystem = () => apply(systemTheme());
   try { mq = window.matchMedia("(prefers-color-scheme: dark)"); mq.addEventListener("change", onSystem); } catch { /* ignore */ }
   return () => { observer.disconnect(); mq?.removeEventListener("change", onSystem); };
 }
 
-/** Current theme plus a toggle; re-renders whenever data-theme changes (including from other code). */
-export function useTheme(): { theme: Theme; toggle: () => void } {
+/** Current system theme; re-renders whenever the OS appearance changes. */
+export function useTheme(): { theme: Theme } {
   const theme = useSyncExternalStore(subscribe, currentTheme, () => "light" as Theme);
-  const toggle = useCallback(() => {
-    const next: Theme = currentTheme() === "dark" ? "light" : "dark";
-    try { window.localStorage.setItem(KEY, next); } catch { /* storage unavailable */ }
-    apply(next);
-  }, []);
-  return { theme, toggle };
+  return { theme };
 }
 
 /** Resolve a CSS custom property to a concrete colour string (for canvas and three.js). */
