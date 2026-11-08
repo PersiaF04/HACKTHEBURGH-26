@@ -17,7 +17,7 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 ![Whitespace research map](docs/images/research-map.png)
 
-*Research map screenshot uses labelled placeholder fixtures; the live site now serves the real OpenAlex export (2015–2026) with the frozen backtest model.*
+*The live site serves real data: the OpenAlex export (2015–2026, 731,511 works) scored by the frozen backtest model. This screenshot predates that export and shows labelled placeholder fixtures; a real-data screenshot will replace it.*
 
 **Contents:** [Problem](#the-problem) · [What it does](#what-it-does) · [Results](#results) · [How it works](#how-it-works) · [Tracks](#tracks) · [Tech stack](#tech-stack) · [Run locally](#run-locally) · [Deployment](#deployment) · [Data and limitations](#data-and-limitations) · [Team](#team) · [Licence](#licence)
 
@@ -28,7 +28,7 @@ Research moves faster than people can read it. Search finds work that already ex
 ## What it does
 
 - **Research map:** explore the latest snapshot as a 3D concept map. Concepts are sized by paper count and coloured by growth; selecting one reveals its trend, predicted gaps and supporting papers. The map has no time slider.
-- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Search and Open problems are MVP features that are currently placeholders.
+- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Search matches concept names only; paper search and author-stated open problems are not in the current export, so those views say so instead of showing data.
 - **Evidence:** review the one-shot backtest, baselines, calibration, base rate, and hits and misses at [`/evidence`](https://whitespace-hacktheburgh-26.vercel.app/evidence).
 - **Code coverage:** explore the concept-by-year archive coverage and papers without a linked record at [`/coverage`](https://whitespace-hacktheburgh-26.vercel.app/coverage).
 
@@ -95,7 +95,7 @@ To type-check and build it:
 npm --prefix whitespace/web run build
 ```
 
-Without files in `whitespace/web/public/data/`, the frontend uses bundled placeholder fixtures. Copy an export there to view it.
+The real export is committed in `whitespace/web/public/data/`, so the dev server shows real data. Without those files, the frontend falls back to bundled, labelled placeholder fixtures.
 
 ## Deployment
 
