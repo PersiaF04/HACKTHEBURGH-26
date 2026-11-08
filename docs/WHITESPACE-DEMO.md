@@ -6,10 +6,10 @@ additions). Facts come from [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/
 
 ## Read this first
 
-- **No result exists yet.** Every result number below is a bracketed
-  placeholder such as `[AP model]`. Fill each one from the named file after the
-  single held-out run, or use the no-result lines. Never say a placeholder out
-  loud.
+- **A single 2020 result exists** ([#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122),
+  SHA 93448d2). Numbers filled below are real; any bracketed placeholder still
+  left (such as `[purge test result]`) has no recorded value yet. Fill it from the named
+  file or leave it out. Never say a placeholder out loud.
 - **If no real backtest exists at demo time, say this sentence verbatim:
   "planned backtest, not achieved".** Then show the protocol (no-result variant, 0:20 to 1:10) instead
   of numbers. A planned or synthetic number is never presented as a result.
@@ -37,7 +37,7 @@ additions). Facts come from [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/
 
 | Item | Needs |
 | --- | --- |
-| Backtest numbers | The held-out 2020 run, once, after the 10:30 UTC freeze, and a human sign-off of the headline (average precision, all strata, against the best baseline chosen on the calibration origin) |
+| Backtest numbers | The held-out 2020 run, scored once at frozen SHA 93448d2 (pipeline freeze 02:00 UTC 8 Nov), and a human sign-off of the headline (average precision, all strata, against the best baseline chosen on the calibration origin) |
 | Map on real data | `map-<year>.json` (latest year only), `concepts.json`, `meta.json` (from #167) wired through a static route adapter |
 | Gap list and detail | `gaps.json`, `gap-details.json` (from #167) wired the same way |
 | Evidence page | `backtest.json`, `manifest.json` (from #166) wired the same way |
@@ -63,9 +63,9 @@ Result variant (a real run exists). Total 3:00.
 
 | Time | On screen | Exact control | Spoken line | Data file for each number |
 | --- | --- | --- | --- | --- |
-| 0:00 to 0:20 | Evidence page, headline panel | Open **Evidence**; no clicks | HRT opening: "Which research gap should I spend my thesis on? We tested a ranked guess against what actually happened." G-Research opening: "Research has structure no single paper shows; this replays it using only what was knowable at each date." | none yet |
-| 0:20 to 1:10 | Evidence page: headline, baseline table, strata tabs | Click each starting-weight tab (0, 1, 2); expand the baseline table | "Frozen on origins up to 2014 and calibrated at 2017, scored once at 2020 on outcomes from 2021 to 2023, on every eligible pair. Base rate is [base rate]. Our precision at 100 is [P@100 model] against [P@100 best baseline] for the strongest simple baseline, average precision [AP model] against [AP best baseline]. By starting weight: [AP w0], [AP w1], [AP w2]." If the model does not beat the best baseline, say so here, plainly. | `backtest.json` (metrics, baselines, strata); `manifest.json` (split, counts) |
-| 1:10 to 1:30 | Evidence page: checks and caveats | Scroll to leakage checks and vintage note | "These checks passed: [purge test result], [poison test result]. Unprompted caveat: OpenAlex re-assigned topics in October 2026, so our concept labels are not what was known in 2020." | `manifest.json`; `backtest.json` checks block (exact field to confirm) |
+| 0:00 to 0:20 | Evidence page, headline panel | Open **Evidence**; no clicks | HRT opening: "Which research gap should I spend my thesis on? We tested a ranked guess against what actually happened." G-Research opening: "Research has structure no single paper shows; this replays it using only papers published by each date." | none yet |
+| 0:20 to 1:10 | Evidence page: headline, baseline table, strata tabs | Click each starting-weight tab (0, 1, 2); expand the baseline table | "Frozen on origins up to 2014 and calibrated at 2017, scored once at 2020 on outcomes from 2021 to 2023, on every eligible pair. Base rate is 0.28. Our average precision is 0.69 against 0.60 for the best baseline, a gain of 0.089 (95% interval 0.0845 to 0.0945). Precision at 100 is 1.00 against 0.66 for the best baseline, but other simple baselines reach 0.91 to 1.00, so it is not distinctive; indicative only (paired interval 0.11 to 0.62). Calibration is imperfect: expected calibration error 0.14, and the top decile is predicted at 0.53 but observed at 0.78. By starting weight (average precision against base rate): 0.155 against 0.056, 0.443 against 0.284, 0.777 against 0.666. Honest line: other simple baselines beat the model on average precision inside each starting-weight stratum (stratum 0: 0.154 against 0.216 to 0.247)." If the model does not beat the best baseline, say so here, plainly. | `backtest.json` (metrics, baselines, strata); `manifest.json` (split, counts) |
+| 1:10 to 1:30 | Evidence page: checks and caveats | Scroll to leakage checks and vintage note | "These checks passed: [purge test result], [poison test result]. Unprompted caveat: OpenAlex re-assigned topics in October 2026, so which papers are in our AI corpus reflects current topic assignments, not those of 2020." | `manifest.json`; `backtest.json` checks block (exact field to confirm) |
 | 1:30 to 2:10 | Research map, then a concept | Click a concept; show its trend and predicted partners | "Each dot is a concept; size is paper count. Positions come from one fixed layout, so the map is stable, not a separate layout per year. Click a concept to see its trend and predicted partners." | `map-<year>.json` (latest year only), `concepts.json`, `meta.json` |
 | 2:10 to 2:35 | Gap finder, then gap detail | Open the top ranked gap; show score parts and the 3 supporting links | "A gap is a pair not yet linked, meaning fewer than three joint papers. The rank is a guess from publication patterns, with every component shown. Here is one hit and one miss from the backtest." | `gaps.json`, `gap-details.json`; hits and misses in `backtest.json` |
 | 2:35 to 2:50 | Coverage heatmap | Click one dark cell | "Dark means no linked code found in the Papers with Code archive, a 28 July 2025 snapshot. That is a lower bound, not proof of no implementation. Years where the archive is thin are greyed; the cutoff is [coverage cutoff year]." | coverage response (#165, #145) |
@@ -90,9 +90,8 @@ from the README with no live app if needed.
    combined and ranks which are likely to appear together in three or more
    papers within three years. It is a ranked guess from past publication
    patterns, not importance or truth."
-2. 0:15 to 0:35: With a result: "Tested once at 2020: base rate [base rate],
-   our precision at 100 [P@100 model] against [P@100 best baseline] for the
-   best simple baseline." Without one: "planned backtest, not achieved; the
+2. 0:15 to 0:35: With a result: "Tested once at 2020: base rate 0.28,
+   our average precision 0.69 against 0.60 for the best simple baseline." Without one: "planned backtest, not achieved; the
    protocol is purged, out of sample and compares against the strongest simple
    baseline."
 3. 0:35 to 0:50: "It also shows where no linked code was found in the Papers
