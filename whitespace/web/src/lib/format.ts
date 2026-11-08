@@ -25,10 +25,14 @@ export function fmtPct(value: Maybe<number>, digits = 0): string {
   return isNum(value) ? `${(value * 100).toFixed(digits)}%` : NA;
 }
 
-/** Signed growth share: 0.51 -> "+51%", -0.1 -> "-10%". */
+/**
+ * 3-year growth as a percentage change. The export's `growth` is a natural-log ratio,
+ * log(papers in Y-2..Y + 1) - log(papers in Y-5..Y-3 + 1) (export_map_gaps.growth), so the change is exp(g) - 1:
+ * 0 -> "0%", 0.69 -> "+99%", -5.6 -> "-100%". It can never fall below -100%.
+ */
 export function fmtGrowth(value: Maybe<number>): string {
   if (!isNum(value)) return NA;
-  const pct = Math.round(value * 100);
+  const pct = Math.round((Math.exp(value) - 1) * 100);
   return `${pct > 0 ? "+" : ""}${pct}%`;
 }
 

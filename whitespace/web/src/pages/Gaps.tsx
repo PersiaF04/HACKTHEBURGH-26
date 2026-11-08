@@ -3,7 +3,7 @@ import type { GapDetailResponse, GapListResponse, GapSummary } from "../api";
 import { GapDetailPanel, GapTable, GapTableSkeleton, gapKey } from "../components/gaps";
 import type { GapRow } from "../components/gaps";
 import { ModelNote } from "../components/ModelNote";
-import { NA, fmtDec, fmtInt, fmtPct, fmtText, isNum } from "../lib/format";
+import { NA, fmtGrowth, fmtInt, fmtPct, fmtText, isNum } from "../lib/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -168,7 +168,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
               {shownGrowing.map((c) => (
                 <li key={c.id}>
                   <button type="button" aria-pressed={focus === c.id} className="gx-concept" onClick={() => pick(c)}>
-                    <span className="gx-concept__row"><span>{fmtText(c.label)}</span><span className="gx-mono">{fmtDec(c.growth)}</span></span>
+                    <span className="gx-concept__row"><span>{fmtText(c.label)}</span><span className="gx-mono">{fmtGrowth(c.growth)}</span></span>
                     <span className="gx-concept__bar"><span style={{ width: `${Math.round(((c.growth as number) / maxGrowth) * 100)}%` }} /></span>
                   </button>
                 </li>
