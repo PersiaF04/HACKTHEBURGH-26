@@ -151,12 +151,12 @@ export default function App() {
           <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" style={{ fill: "var(--ws-ink)" }} /><circle cx="21" cy="8" r="4" style={{ fill: "none", stroke: "var(--ws-ink)" }} strokeWidth="2" /><line x1="10.5" y1="17" x2="17.5" y2="11" style={{ stroke: "var(--ws-accent)" }} strokeWidth="2" strokeDasharray="2.5 2.5" /></svg>
           <span className="brand-name">Whitespace</span>
         </a>
-        <div className="topbar-spacer" />
         <nav className="view-tabs" aria-label="Primary views">
           {navTabs.map(([route, label]) => (
             <a key={route} href={route} aria-current={tabActive(route) ? "page" : undefined} onClick={(event) => navigate(event, route)}>{label}</a>
           ))}
         </nav>
+        <div className="topbar-spacer" />
         <div className="topbar-tools">
           <DemoToggle />
         </div>
