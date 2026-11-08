@@ -11,6 +11,7 @@
 .ws-page *::before,
 .ws-page *::after { box-sizing: inherit; }
 .ws-page__header { max-width: 52rem; margin-bottom: 1.5rem; }
+.ws-page__note { max-width: 46rem; margin: .75rem 0 0; color: var(--ws-muted); font-size: .9rem; line-height: 1.55; }
 .ws-page h1 { margin: 0 0 .6rem; font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.08; }
 .ws-eyebrow { margin: 0 0 .35rem; color: var(--ws-accent); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .ws-lede { max-width: 48rem; margin: 0; color: var(--ws-muted); font-size: clamp(1.05rem, 2vw, 1.25rem); }
@@ -22,12 +23,12 @@
 .ws-page select { max-width: 100%; padding: .55rem .7rem; border: 1px solid var(--ws-muted); border-radius: .45rem; background: var(--ws-surface); color: var(--ws-ink); }
 .ws-notice { margin: 1rem 0; padding: 1rem 1.1rem; border: 1px solid var(--ws-border-strong); border-left: .3rem solid var(--ws-accent); border-radius: .45rem; background: var(--ws-track); }
 .ws-state { margin: 1.25rem 0; padding: 1.2rem; border: 1px solid var(--ws-border); border-radius: .5rem; background: var(--ws-track); }
-.ws-state--error { border-color: var(--ws-error); background: #FBEDEC; color: var(--ws-error); }
+.ws-state--error { border-color: var(--ws-error); background: var(--ws-error-bg); color: var(--ws-error); }
 .ws-filters { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0; }
 .ws-filters label { display: grid; gap: .35rem; min-width: min(100%, 15rem); font-weight: 650; }
 .ws-result-count { color: var(--ws-muted); }
 .ws-problem-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr)); gap: 1rem; padding: 0; list-style: none; }
-.ws-problem-card { min-width: 0; padding: 1.2rem; border: 1px solid var(--ws-border); border-radius: .7rem; background: var(--ws-surface); box-shadow: 0 2px 9px rgb(15 35 60 / 5%); }
+.ws-problem-card { min-width: 0; padding: 1.2rem; border: 1px solid var(--ws-border); border-radius: .7rem; background: var(--ws-surface); box-shadow: 0 2px 9px var(--ws-shadow); }
 .ws-problem-card__meta { display: flex; align-items: center; justify-content: space-between; gap: .75rem; color: var(--ws-muted); font-size: .92rem; }
 .ws-tag { display: inline-block; padding: .15rem .55rem; border: 1px solid var(--ws-border-strong); border-radius: 999px; color: var(--ws-ink); font-weight: 650; }
 .ws-problem-card blockquote { margin: 1rem 0; font-size: 1.1rem; font-weight: 550; }

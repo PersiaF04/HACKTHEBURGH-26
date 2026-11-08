@@ -32,7 +32,7 @@
 .ws-coverage-page :focus-visible { outline: 3px solid var(--coverage-focus); outline-offset: 3px; }
 .ws-coverage-scroll-hint { margin: .75rem 0; color: var(--coverage-muted); }
 .ws-coverage-legend { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem; margin: .75rem 0; color: var(--ws-ink); font-size: .9rem; }
-.ws-coverage-gradient { display: inline-block; width: 8rem; height: 1rem; border: 1px solid var(--ws-muted); border-radius: .25rem; background: linear-gradient(to right, rgba(35, 75, 125, .46), rgba(35, 75, 125, .08)); }
+.ws-coverage-gradient { display: inline-block; width: 8rem; height: 1rem; border: 1px solid var(--ws-muted); border-radius: .25rem; background: linear-gradient(to right, color-mix(in srgb, var(--ws-heat) 46%, transparent), color-mix(in srgb, var(--ws-heat) 8%, transparent)); }
 .ws-coverage-table-scroll { max-width: 100%; overflow: auto; border: 1px solid var(--coverage-line); border-radius: .45rem; background: var(--ws-surface); }
 .ws-coverage-table { width: 100%; min-width: 42rem; border-collapse: separate; border-spacing: 0; }
 .ws-coverage-table caption { padding: .8rem; color: var(--coverage-muted); text-align: left; }
@@ -48,7 +48,7 @@
 .ws-coverage-cell--missing { border-style: dashed; background: repeating-linear-gradient(135deg, var(--ws-surface), var(--ws-surface) 5px, var(--ws-border) 5px, var(--ws-border) 10px); color: var(--ws-ink); cursor: not-allowed; }
 .ws-coverage-cell:disabled { opacity: .85; }
 .ws-coverage-state { margin: 1rem 0; padding: 1rem; border: 1px solid var(--coverage-line); border-radius: .45rem; background: var(--ws-track); }
-.ws-coverage-error { border-color: var(--ws-error); background: #FBEDEC; color: var(--ws-error); }
+.ws-coverage-error { border-color: var(--ws-error); background: var(--ws-error-bg); color: var(--ws-error); }
 .ws-coverage-error button { padding: .4rem .8rem; border: 1px solid var(--ws-error); border-radius: .35rem; background: var(--ws-surface); color: var(--ws-error); cursor: pointer; }
 .ws-coverage-mobile { display: none; }
 .ws-coverage-concept { margin: .6rem 0; border: 1px solid var(--coverage-line); border-radius: .45rem; background: var(--ws-surface); }

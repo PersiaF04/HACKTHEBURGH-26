@@ -2,11 +2,11 @@ import { fmtText } from "../lib/format";
 import "./map.css";
 
 export const GROWTH_STEPS = [
-  { color: "#C3C7CF", label: "Shrinking" },
-  { color: "#F0C9A0", label: "0 to 15%" },
-  { color: "#EDA060", label: "15 to 30%" },
-  { color: "#E07432", label: "30 to 45%" },
-  { color: "#BF4A0E", label: "45% or more" },
+  { color: "var(--ws-growth-0)", label: "Shrinking" },
+  { color: "var(--ws-growth-1)", label: "0 to 15%" },
+  { color: "var(--ws-growth-2)", label: "15 to 30%" },
+  { color: "var(--ws-growth-3)", label: "30 to 45%" },
+  { color: "var(--ws-growth-4)", label: "45% or more" },
 ] as const;
 
 type MapLegendProps = {
@@ -18,7 +18,7 @@ type MapLegendProps = {
 };
 
 const HINT: Record<MapLegendProps["view"], string> = {
-  "3d": "Drag to rotate, scroll to zoom, right-drag (or shift-drag) to pan. Click a dot for details. Keys: arrows rotate, + and − zoom, 0 resets.",
+  "3d": "Drag to rotate, scroll or pinch to zoom. Position comes from a per-year layout of the concepts, not a measured axis. Click a dot for details. Keys: arrows rotate, + and − zoom, 0 resets.",
   "2d": "Drag to pan, scroll to zoom. Click a dot for details.",
   none: "",
 };

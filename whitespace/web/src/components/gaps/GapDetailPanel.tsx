@@ -42,7 +42,6 @@ const SECTIONS: Array<[string, string]> = [
   ["How the score is made", "The four numbers multiplied together to rank this pair."],
   ["Closest papers on each side", "The papers that best represent each concept, so you can judge the pair yourself."],
   ["Shared neighbouring concepts", "Concepts both sides already connect to, which hint at a bridge."],
-  ["Stated open problems", "Sentences where authors say something is still unsolved."],
 ];
 
 const FORMULA_NAMES: Array<[string, string?]> = [["P(link)"], ["Momentum", "×"], ["Novelty", "×"], ["Stated gaps", "×"], ["Gap score", "="]];
@@ -54,7 +53,7 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
       <div className="gx-detail__head">
         <span className="gx-eyebrow">Gap detail</span>
         <h2 className="gx-detail__title gx-detail__title--idle">Select a gap to see why it ranks</h2>
-        <p className="gx-detail__status">{empty ? "Pick a row in the table once ranked gaps are loaded." : "Pick a row in the table to open its evidence here."}</p>
+        <p className="gx-detail__status">{empty ? "Pick a row in the table once ranked gaps are loaded." : "Nothing is selected. Start with the first row in the table, which has the highest gap score, to open its evidence here."}</p>
       </div>
       <section className="gx-sec">
         <h3 className="gx-h3">What you will see</h3>
@@ -97,6 +96,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
   const papersA = detail?.closest_a ?? [];
   const papersB = detail?.closest_b ?? [];
   const shared = detail?.shared_neighbours ?? [];
+  const problems = detail?.open_problems ?? [];
   const labelA = fmtText(g.a_label);
   const labelB = fmtText(g.b_label);
   return (
@@ -141,6 +141,42 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
         </section>
       )}
 
+      {detail && (
+        <section className="gx-sec gx-sec--tight">
+          <details className="gx-problems">
+            <summary>
+              <span className="gx-h3">Author-stated open problems</span>
+              <span className="gx-mono gx-problems__n">{problems.length > 0 ? fmtInt(problems.length) : NA}</span>
+            </summary>
+            {problems.length > 0 ? (
+              <ul className="gx-problems__list">
+                {problems.slice(0, 5).map((o, i) => {
+                  const href = safeExternalUrl(o.paper?.url);
+                  return (
+                    <li key={`${o.paper?.id ?? i}-${i}`}>
+                      <span className="gx-problems__s">{fmtText(o.sentence)}</span>
+                      <span className="gx-problems__m">{href ? <a href={href} target="_blank" rel="noreferrer">{fmtText(o.paper?.title)}</a> : fmtText(o.paper?.title)} · {fmtYear(o.paper?.year)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="gx-note">Author-stated open problems are not available in this export yet.</p>
+            )}
+            <a
+              className="gx-problems__more"
+              href="/open-problems"
+              onClick={(event) => {
+                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                window.history.pushState({}, "", "/open-problems");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+            >Browse all open problems</a>
+          </details>
+        </section>
+      )}
+
       <section className="gx-sec gx-sec--tight">
         {shared.length > 0 && (
           <>
@@ -148,7 +184,6 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
             <div className="gx-chips">{shared.map((c) => <span key={c.id} className="gx-chip">{fmtText(c.label)}</span>)}</div>
           </>
         )}
-        <a className="gx-link" href="#open-problems">Stated open problems for this pair ↓</a>
       </section>
     </aside>
   );

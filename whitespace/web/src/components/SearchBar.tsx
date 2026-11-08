@@ -17,6 +17,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
   const uid = useId();
   const [query, setQuery] = useState("");
   const [papers, setPapers] = useState<SearchResponse["papers"]>([]);
+  const [searchPlaceholder, setSearchPlaceholder] = useState(false);
 
   const needle = query.trim().toLowerCase();
   const results = useMemo(() => {
@@ -32,7 +33,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
     if (!needle || disabled) { setPapers([]); return undefined; }
     let current = true;
     const timer = window.setTimeout(() => {
-      onSearch(needle).then((r) => { if (current) setPapers((r.papers ?? []).slice(0, 4)); }).catch(() => { if (current) setPapers([]); });
+      onSearch(needle).then((r) => { if (current) { setPapers((r.papers ?? []).slice(0, 4)); setSearchPlaceholder(r.placeholder === true); } }).catch(() => { if (current) setPapers([]); });
     }, 250);
     return () => { current = false; window.clearTimeout(timer); };
   }, [needle, disabled, onSearch]);
@@ -47,11 +48,11 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
   const none = needle && results.length === 0 && papers.length === 0;
 
   return (
-    <section className="whitespace-search" aria-label="Search">
+    <section className="whitespace-search" aria-label="Search" data-tour="map-search">
       <form className="whitespace-search__form" onSubmit={submit} role="search">
         <label htmlFor={`${uid}-q`}>Find a concept or paper</label>
         <div className="whitespace-search__field">
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="#5B606B" strokeWidth="1.6" /><line x1="11" y1="11" x2="14.5" y2="14.5" stroke="#5B606B" strokeWidth="1.6" strokeLinecap="round" /></svg>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" style={{ stroke: "var(--ws-muted)" }} strokeWidth="1.6" /><line x1="11" y1="11" x2="14.5" y2="14.5" style={{ stroke: "var(--ws-muted)" }} strokeWidth="1.6" strokeLinecap="round" /></svg>
           <input
             id={`${uid}-q`}
             type="search"
@@ -62,6 +63,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
             autoComplete="off"
           />
         </div>
+        {(results.length > 0 || papers.length > 0 || none) && <div className="whitespace-search__dropdown">
         {results.length > 0 && (
           <ul className="whitespace-search__results" aria-label="Matching concepts">
             {results.map((c) => (
@@ -86,7 +88,10 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
             ))}
           </ul>
         )}
-        {none && <p className="whitespace-search__none">No concept or paper matches {"“"}{query.trim()}{"”"}.</p>}
+        {none && <p className="whitespace-search__none" role="status">
+          {searchPlaceholder ? "Search is not available yet." : <>No concept names match {"“"}{query.trim()}{"”"}. This searches concept names only.</>}
+        </p>}
+        </div>}
       </form>
     </section>
   );

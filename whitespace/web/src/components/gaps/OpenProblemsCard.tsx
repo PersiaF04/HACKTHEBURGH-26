@@ -26,7 +26,7 @@ export interface OpenProblemsCardProps {
   error?: string | null;
 }
 
-export const SERIES_COLORS = ["#15171C", "#8A8F99"];
+export const SERIES_COLORS = ["var(--ws-chart-ink)", "var(--ws-chart-2)"];
 const typeLabels: Record<OpenProblem["type"], string> = { open_problem: "Open problem", limitation: "Limitation", future_work: "Future work" };
 const W = 720, X0 = 48, X1 = 700, Y0 = 150, Y1 = 15;
 type Key = "concept_rate" | "ai_ml_rate";
@@ -58,15 +58,15 @@ function Chart({ series }: { series: ConceptSeries[] }) {
   const label = `Share of papers stating an open problem, ${y0} to ${y1}, for ${series.map((s) => s.label).join(" and ")}`;
   return (
     <svg viewBox={`0 0 ${W} 180`} role="img" aria-label={label} className="gx-chart">
-      <g fontFamily="IBM Plex Mono, monospace" fontSize="11" fill="#5B606B">
-        {grid.map((v, i) => <line key={i} x1={X0} y1={Y(v)} x2={X1} y2={Y(v)} stroke={i === 0 ? "#D5D5CF" : "#EFEFEA"} />)}
+      <g fontFamily="IBM Plex Mono, monospace" fontSize="11" style={{ fill: "var(--ws-muted)" }}>
+        {grid.map((v, i) => <line key={i} x1={X0} y1={Y(v)} x2={X1} y2={Y(v)} style={{ stroke: i === 0 ? "var(--ws-border-strong)" : "var(--ws-soft)" }} />)}
         {grid.map((v, i) => <text key={`t${i}`} x={40} y={Y(v) + 4} textAnchor="end">{fmtPct(v)}</text>)}
         {ticks.map((y) => <text key={y} x={X(y)} y={170} textAnchor="middle">{y}</text>)}
       </g>
-      {avg && <polyline points={avg} fill="none" stroke="#B9BCC4" strokeWidth="2" strokeDasharray="2 4" strokeLinecap="round" />}
+      {avg && <polyline points={avg} fill="none" style={{ stroke: "var(--ws-rule)" }} strokeWidth="2" strokeDasharray="2 4" strokeLinecap="round" />}
       {series.map((s, i) => ({ s, i })).reverse().map(({ s, i }) => {
         const pts = line(s.rates, "concept_rate");
-        return pts ? <polyline key={s.id} points={pts} fill="none" stroke={SERIES_COLORS[i % 2]} strokeWidth="2.5" strokeLinejoin="round" /> : null;
+        return pts ? <polyline key={s.id} points={pts} fill="none" style={{ stroke: SERIES_COLORS[i % 2] }} strokeWidth="2.5" strokeLinejoin="round" /> : null;
       })}
     </svg>
   );
@@ -88,7 +88,7 @@ export function OpenProblemsCard({ subtitle, series, items, filter, onFilter, lo
             const r = lastRate(s.rates, "concept_rate");
             return <span key={s.id} className="gx-legend__i"><span className="gx-legend__sw" style={{ borderTop: `2.5px solid ${SERIES_COLORS[i % 2]}` }} />{fmtText(s.label)}{isNum(r) ? ` · ${fmtPct(r)}` : ""}</span>;
           })}
-          {isNum(aiRate) && <span className="gx-legend__i"><span className="gx-legend__sw" style={{ borderTop: "2px dotted #B9BCC4" }} />All AI/ML · {fmtPct(aiRate)}</span>}
+          {isNum(aiRate) && <span className="gx-legend__i"><span className="gx-legend__sw" style={{ borderTop: "2px dotted var(--ws-rule)" }} />All AI/ML · {fmtPct(aiRate)}</span>}
         </div>
       </div>
       <Chart series={series} />
@@ -101,7 +101,7 @@ export function OpenProblemsCard({ subtitle, series, items, filter, onFilter, lo
       {loading && <p className="gx-empty" role="status">Loading open problems…</p>}
       {error && <p className="gx-empty" role="alert">{error}</p>}
       {!loading && !error && shown.length === 0 && (
-        <p className="gx-empty">{items.length === 0 ? "No stated open problems were found for this selection." : "No statements of this type for this selection. Choose All to see the rest."}</p>
+        <p className="gx-empty">{items.length === 0 ? "Open problems are not extracted yet; sentences appear once the pipeline mines them." : "No statements of this type for this selection. Choose All to see the rest."}</p>
       )}
       {!loading && !error && shown.length > 0 && (
         <ul className="gx-sents">

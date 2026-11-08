@@ -97,7 +97,15 @@ function PapersPerYear({ counts, forecast }: { counts: { year: number; count: nu
 }
 
 export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, area, firstYear, gapRate }: ConceptPanelProps) {
-  if (!concept) return <aside className="whitespace-concept ex__right" aria-label="Concept details"><p className="whitespace-help">Select a dot on the map or a search result to see its details here.</p></aside>;
+  if (!concept) return <aside className="whitespace-concept ex__right" aria-label="Concept details" data-tour="concept-panel"><div className="whitespace-try">
+    <h2>Try this</h2>
+    <ol>
+      <li><strong>Click a dot</strong> on the map.</li>
+      <li>See which concepts it is <strong>predicted</strong> to link with.</li>
+      <li>Open <a href="/gaps" onClick={goToGaps}>Gaps &amp; open problems</a> to rank them.</li>
+    </ol>
+    <p className="whitespace-help">Predictions are model outputs, not findings. Nothing is selected yet.</p>
+  </div></aside>;
 
   const counts = (detail?.counts_by_year ?? []).filter((c) => c.year <= year);
   const forecast = parseForecast(detail?.forecast);
@@ -115,7 +123,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
   const growthClass = concept.growth !== null && concept.growth !== undefined && concept.growth < 0 ? "is-down" : "is-up";
 
   return (
-    <aside className="whitespace-concept ex__right" aria-label="Concept details" aria-live="polite">
+    <aside className="whitespace-concept ex__right" aria-label="Concept details" aria-live="polite" data-tour="concept-panel">
       <header>
         {areaName && <span className="whitespace-concept__area">{fmtText(areaName)}</span>}
         <h2>{fmtText(concept.label)}</h2>
@@ -129,7 +137,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
       </dl>
 
       {counts.length > 0 && (
-        <section aria-labelledby="wc-ppy">
+        <section className="whitespace-concept__card" aria-labelledby="wc-ppy">
           <div className="whitespace-concept__head">
             <h3 id="wc-ppy">Papers per year</h3>
             {forecast.length > 0 && <span className="whitespace-concept__sub">dashed = forecast, 80% interval</span>}
@@ -160,7 +168,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
       {papers.length > 0 && (
         <section aria-labelledby="wc-papers">
           <h3 id="wc-papers">Most-cited papers</h3>
-          <ol className="whitespace-concept__papers">
+          <ol className="whitespace-concept__papers whitespace-concept__paper-cards">
             {papers.slice(0, 5).map((p) => (
               <li key={p.id}>
                 {p.url ? <a href={p.url} target="_blank" rel="noreferrer">{fmtText(p.title)}</a> : <span className="whitespace-concept__ptitle">{fmtText(p.title)}</span>}
@@ -175,7 +183,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
         <section aria-labelledby="wc-probs">
           <div className="whitespace-concept__head">
             <h3 id="wc-probs">Stated open problems</h3>
-            <a href="/open-problems" onClick={(event) => { event.preventDefault(); window.history.pushState({}, "", "/open-problems"); window.dispatchEvent(new PopStateEvent("popstate")); }}>All {"→"}</a>
+            <a href="/gaps" onClick={(event) => { event.preventDefault(); window.history.pushState({}, "", "/gaps"); window.dispatchEvent(new PopStateEvent("popstate")); }}>All {"→"}</a>
           </div>
           {problems.slice(0, 3).map((op, i) => (
             <blockquote key={`${op.paper?.id ?? "p"}-${i}`} className="whitespace-concept__problem" title={fmtText(op.paper?.title)}>

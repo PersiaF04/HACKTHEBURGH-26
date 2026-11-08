@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { ConceptPoint, PredictedEdge } from "../api";
 import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import { readMapTheme } from "../lib/mapTheme";
+import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
@@ -11,6 +13,10 @@ type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
   concepts: MapConcept[];
+  /** Unfiltered concepts of the current year. Bounds and area offsets come from these, so filtering never rescales the cloud. */
+  allConcepts?: MapConcept[];
+  /** The camera resets on first data and when this changes (the selected year), never on a filter change. */
+  resetKey?: string | number;
   edges: PredictedEdge[];
   selectedConceptId: string | null;
   focus: MapFocus;
@@ -21,19 +27,20 @@ export type MapCanvas3DProps = {
   linkedEdges?: LinkedEdge[];
   showPredicted?: boolean;
   showAreaLabels?: boolean;
-  /** Called once if WebGL cannot be created, so the parent can fall back to the 2D map. */
+  /** Called once if WebGL cannot be created, so the host can report unavailable 3D. */
   onUnsupported?: () => void;
 };
 
-const GROWTH_COLORS = ["#C3C7CF", "#F0C9A0", "#EDA060", "#E07432", "#BF4A0E"] as const;
-const UNKNOWN_COLOR = "#9AA0AA";
-const SPAN_XY = 100; // x,y mapped into [-50, 50]
-const SPAN_Z = 50; // z mapped into [-25, 25]
+const SPAN_XY = 140; // x,y mapped into [-70, 70] for more room between clusters
+const SPAN_Z = 64; // z mapped into [-32, 32]
 const FOV = 45;
-const MAX_LABELS = 60;
-const HOME = new THREE.Vector3(0, -105, 75);
+const MAX_LABELS = 30;
+const HOME = new THREE.Vector3(0, -150, 105);
 const TARGET = new THREE.Vector3(0, 0, 0);
-const HELP = "Drag to rotate, scroll to zoom, right-drag to pan";
+const TOP_DOWN = new THREE.Vector3(0, -1, 185);
+const FRONT_ON = new THREE.Vector3(0, -185, 8);
+const HELP = "Drag to orbit around the centre, scroll or pinch to zoom, then click a node for details. Use Top and Front to orient the map.";
+type CameraView = "top" | "front" | "overview";
 
 function growthBucket(g: number | null): number {
   if (g === null || g === undefined || Number.isNaN(g)) return 5;
@@ -51,22 +58,31 @@ function describe(c: ConceptPoint): string {
 const VERT = /* glsl */ `
 attribute float aSize;
 attribute vec3 aColor;
+attribute float aHeat;
 uniform float uScale;
 varying vec3 vColor;
+varying float vHeat;
 void main() {
   vColor = aColor;
+  vHeat = aHeat;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   gl_PointSize = max(3.0, aSize * uScale / -mv.z);
   gl_Position = projectionMatrix * mv;
 }`;
 const FRAG = /* glsl */ `
 varying vec3 vColor;
+varying float vHeat;
+uniform vec3 uRim;
+uniform float uHeatmap;
 void main() {
   vec2 p = gl_PointCoord - 0.5;
   float d = length(p);
   if (d > 0.5) discard;
   float rim = smoothstep(0.40, 0.48, d);
-  gl_FragColor = vec4(mix(vColor, vec3(1.0), rim * 0.85), 1.0);
+  vec3 cold = vec3(0.12, 0.35, 0.76);
+  vec3 warm = vec3(0.96, 0.22, 0.08);
+  vec3 base = mix(vColor, mix(cold, warm, vHeat), uHeatmap);
+  gl_FragColor = vec4(mix(base, uRim, rim * 0.85), 1.0);
 }`;
 
 type Scene3D = {
@@ -76,9 +92,12 @@ type Scene3D = {
   controls: OrbitControls;
   requestRender: () => void;
   resetView: () => void;
+  setCameraView: (view: CameraView) => void;
+  setHeatmap: (enabled: boolean) => void;
   zoom: (factor: number) => void;
   rotate: (dAzimuth: number, dPolar: number) => void;
   setData: () => void;
+  applyTheme: () => void;
   setLines: () => void;
   /** Move the orbit target to a concept; animated unless `instant` or reduced motion. */
   flyTo: (index: number, instant: boolean) => void;
@@ -89,7 +108,7 @@ type Scene3D = {
 type Flight = { t0: number; dur: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromO: THREE.Vector3; toO: THREE.Vector3 };
 
 export function MapCanvas3D({
-  concepts, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
+  concepts, allConcepts, resetKey, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
   linkedEdges, showPredicted = true, showAreaLabels = true, onUnsupported,
 }: MapCanvas3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -99,34 +118,81 @@ export function MapCanvas3D({
   const [unsupported, setUnsupported] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [hoverText, setHoverText] = useState("");
+  const [heatmap, setHeatmap] = useState(false);
+  const { theme } = useTheme();
 
-  // Geometry-level derived data: world positions, sizes, colour buckets.
-  const data = useMemo(() => {
-    const n = concepts.length;
+  // Layout from the UNFILTERED set: bounds, z scale and area offsets are fixed per year, so a filter only hides dots.
+  const base = allConcepts ?? concepts;
+  const layout = useMemo(() => {
+    const all = base;
     let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
-    for (const c of concepts) {
+    for (const c of all) {
       if (c.x < xmin) xmin = c.x; if (c.x > xmax) xmax = c.x;
       if (c.y < ymin) ymin = c.y; if (c.y > ymax) ymax = c.y;
     }
     const range = Math.max(xmax - xmin, ymax - ymin) || 1;
     const xc = (xmin + xmax) / 2, yc = (ymin + ymax) / 2;
     // z scale: 95th percentile of |growth| so a few outliers do not flatten everything.
-    const mags = concepts.filter((c) => c.growth !== null && !Number.isNaN(c.growth)).map((c) => Math.abs(c.growth as number)).sort((a, b) => a - b);
+    const mags = all.filter((c) => c.growth !== null && !Number.isNaN(c.growth)).map((c) => Math.abs(c.growth as number)).sort((a, b) => a - b);
     const zRef = Math.max(0.05, mags.length ? mags[Math.floor(mags.length * 0.95)] ?? mags[mags.length - 1] : 0.05);
+    const pos = new Float32Array(all.length * 3);
+    all.forEach((c, i) => {
+      const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
+      pos[i * 3] = ((c.x - xc) / range) * SPAN_XY;
+      pos[i * 3 + 1] = ((c.y - yc) / range) * SPAN_XY;
+      pos[i * 3 + 2] = Math.max(-1, Math.min(1, g / zRef)) * (SPAN_Z / 2);
+    });
+    // Preserve each area's internal geometry, but make the largest named areas visually distinct.
+    // This is a navigation layout aid; node height and colour still come from the observed growth data.
+    const areaGroups = new Map<string, { indices: number[]; x: number; y: number }>();
+    all.forEach((concept, i) => {
+      if (!concept.area) return;
+      const group = areaGroups.get(concept.area) ?? { indices: [], x: 0, y: 0 };
+      group.indices.push(i);
+      group.x += pos[i * 3]; group.y += pos[i * 3 + 1];
+      areaGroups.set(concept.area, group);
+    });
+    const rankedAreas = [...areaGroups.entries()]
+      .map(([name, group]) => ({ name, group, x: group.x / group.indices.length, y: group.y / group.indices.length }))
+      .sort((a, b) => b.group.indices.length - a.group.indices.length);
+    const majorCount = Math.min(5, Math.max(0, Math.ceil(Math.sqrt(rankedAreas.length))));
+    rankedAreas.forEach((area, rank) => {
+      const major = rank < majorCount;
+      const angle = major ? (Math.PI * 2 * rank) / Math.max(1, majorCount) - Math.PI / 2 : Math.atan2(area.y, area.x);
+      const radius = major ? SPAN_XY * 0.42 : Math.min(SPAN_XY * 0.22, Math.hypot(area.x, area.y) * 0.62);
+      const targetX = Math.cos(angle) * radius;
+      const targetY = Math.sin(angle) * radius;
+      for (const i of area.group.indices) {
+        pos[i * 3] += targetX - area.x;
+        pos[i * 3 + 1] += targetY - area.y;
+      }
+    });
+    const center = new THREE.Vector3();
+    for (let i = 0; i < all.length; i += 1) center.add(new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
+    if (all.length > 0) center.multiplyScalar(1 / all.length);
+    return { pos, slot: new Map(all.map((c, i) => [c.id, i])), zRef, center };
+  }, [base]);
+
+  // Geometry-level derived data: world positions (looked up from the fixed layout), sizes, colour buckets.
+  const data = useMemo(() => {
+    const n = concepts.length;
+    const { zRef } = layout;
     const pos = new Float32Array(n * 3);
     const size = new Float32Array(n);
     const color = new Float32Array(n * 3);
+    const heat = new Float32Array(n);
     const bucket = new Uint8Array(n);
     const tmp = new THREE.Color();
+    const palette = readMapTheme().growth;
     concepts.forEach((c, i) => {
-      pos[i * 3] = ((c.x - xc) / range) * SPAN_XY;
-      pos[i * 3 + 1] = ((c.y - yc) / range) * SPAN_XY;
+      const k = (layout.slot.get(c.id) ?? 0) * 3;
+      pos[i * 3] = layout.pos[k]; pos[i * 3 + 1] = layout.pos[k + 1]; pos[i * 3 + 2] = layout.pos[k + 2];
       const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
-      pos[i * 3 + 2] = Math.max(-1, Math.min(1, g / zRef)) * (SPAN_Z / 2);
+      heat[i] = Math.max(0, Math.min(1, (g / zRef + 1) / 2));
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
-      tmp.set(b === 5 ? UNKNOWN_COLOR : GROWTH_COLORS[b]).convertLinearToSRGB(); // shader writes raw values
+      tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
@@ -139,12 +205,14 @@ export function MapCanvas3D({
       sums.set(c.area, s);
     });
     const areas = [...sums].map(([name, s]) => ({ name, v: new THREE.Vector3(s.x / s.n, s.y / s.n, s.z / s.n) }));
-    return { n, pos, size, color, bucket, indexById, labelOrder, areas };
-  }, [concepts]);
+    const center = layout.center;
+    return { n, pos, size, color, heat, bucket, indexById, labelOrder, areas, center };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [concepts, layout, theme]);
 
   // Latest props for the render loop (no re-creation of the engine).
-  const live = useRef({ data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
-  live.current = { data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
+  const live = useRef({ resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
+  live.current = { resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
 
   // Engine: renderer, camera, controls, picking, overlay. Created once per mount.
   useEffect(() => {
@@ -169,7 +237,7 @@ export function MapCanvas3D({
       return undefined;
     }
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    renderer.setClearColor(0xfbfbf9, 1);
+    renderer.setClearColor(new THREE.Color(readMapTheme().mapBg), 1);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 1000);
@@ -179,11 +247,11 @@ export function MapCanvas3D({
     controls.target.copy(TARGET);
     controls.enableDamping = !reduced;
     controls.dampingFactor = 0.12;
-    controls.screenSpacePanning = true;
+    controls.enablePan = false;
     controls.minDistance = 8;
     controls.maxDistance = 400;
     controls.zoomSpeed = 0.9;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
     controls.update();
 
     // Labels pool and rings, built once.
@@ -202,13 +270,13 @@ export function MapCanvas3D({
     // Persistent point cloud, rebuilt when data changes.
     const pointsMat = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG,
-      uniforms: { uScale: { value: 1 } },
+      uniforms: { uScale: { value: 1 }, uRim: { value: new THREE.Vector3(1, 1, 1) }, uHeatmap: { value: 0 } },
     });
     let points: THREE.Points | null = null;
     let edgeLines: THREE.LineSegments | null = null;
     let linkLines: THREE.LineSegments | null = null;
-    const edgeMat = new THREE.LineDashedMaterial({ color: 0x2952e3, dashSize: 1.6, gapSize: 1.0, transparent: true, opacity: 0.85 });
-    const linkMat = new THREE.LineBasicMaterial({ color: 0xb9bcc4, transparent: true, opacity: 0.6 });
+    const edgeMat = new THREE.LineDashedMaterial({ color: 0x6b8cff, dashSize: 1.6, gapSize: 1.0, transparent: true, opacity: 0.85 });
+    const linkMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.6 });
 
     let width = 0, height = 0;
     let screen = new Float32Array(0); // projected x,y,depth per node (CSS px)
@@ -373,7 +441,7 @@ export function MapCanvas3D({
     window.addEventListener("resize", resize);
 
     // Picking: nearest projected node within its pixel radius (no raycast, no per-frame work).
-    const hit = (clientX: number, clientY: number): number => {
+    const hit = (clientX: number, clientY: number, slop = 0): number => {
       if (projDirty) { camera.updateMatrixWorld(); project(); }
       const rect = canvas.getBoundingClientRect();
       const px = clientX - rect.left, py = clientY - rect.top;
@@ -382,7 +450,7 @@ export function MapCanvas3D({
       for (let i = 0; i < n; i += 1) {
         const depth = screen[i * 3 + 2];
         if (depth <= 0) continue;
-        const reach = Math.max(9, pxSize(i, depth) / 2 + 3);
+        const reach = Math.max(9 + slop, pxSize(i, depth) / 2 + 3 + slop);
         const dx = screen[i * 3] - px;
         if (dx > reach || dx < -reach) continue;
         const dy = screen[i * 3 + 1] - py;
@@ -395,15 +463,20 @@ export function MapCanvas3D({
       return best;
     };
 
+    // A second finger (pinch) or any drag never counts as a tap; touch taps get a larger hit radius.
     let down: { x: number; y: number; moved: boolean } | null = null;
+    const pointers = new Set<number>();
     const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY, moved: false };
+      pointers.add(e.pointerId);
+      const wasMulti = pointers.size > 1;
+      down = { x: e.clientX, y: e.clientY, moved: wasMulti };
       flight = null; // the user takes over from any camera flight
       if (hoverRef.current >= 0) { hoverRef.current = -1; canvas.style.cursor = ""; setHoverText(""); requestRender(); }
     };
     const onMove = (e: PointerEvent) => {
       if (down) {
-        if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 4) down.moved = true;
+        if (pointers.size > 1) down.moved = true;
+        else if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 4) down.moved = true;
         return;
       }
       const i = hit(e.clientX, e.clientY);
@@ -416,13 +489,14 @@ export function MapCanvas3D({
     };
     const onUp = (e: PointerEvent) => {
       const d0 = down;
-      down = null;
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) down = null; else if (down) down.moved = true;
       if (d0 && !d0.moved && e.button === 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        const i = hit(e.clientX, e.clientY);
+        const i = hit(e.clientX, e.clientY, e.pointerType === "touch" ? 14 : 0);
         if (i >= 0) live.current.onSelectConcept(live.current.concepts[i].id);
       }
     };
-    const onCancel = () => { down = null; };
+    const onCancel = (e: PointerEvent) => { pointers.delete(e.pointerId); down = null; };
     const onLeave = () => {
       if (hoverRef.current >= 0) { hoverRef.current = -1; setHoverText(""); requestRender(); }
     };
@@ -454,9 +528,27 @@ export function MapCanvas3D({
     };
     const resetView = () => {
       flight = null;
-      camera.position.copy(HOME);
-      controls.target.copy(TARGET);
+      const center = live.current.data.center;
+      camera.position.copy(center).add(HOME);
+      controls.target.copy(center);
       controls.update();
+      requestRender();
+    };
+    const setCameraView = (view: CameraView) => {
+      if (view === "overview") { resetView(); return; }
+      const center = live.current.data.center;
+      const direction = (view === "top" ? TOP_DOWN : FRONT_ON).clone().normalize();
+      const distance = Math.max(controls.minDistance, Math.min(controls.maxDistance, camera.position.distanceTo(center)));
+      const toO = direction.multiplyScalar(distance);
+      if (reduced) {
+        flight = null;
+        controls.target.copy(center);
+        camera.position.copy(center).add(toO);
+        controls.update();
+        requestRender();
+        return;
+      }
+      flight = { t0: performance.now(), dur: 260, fromT: controls.target.clone(), toT: center.clone(), fromO: camera.position.clone().sub(controls.target), toO };
       requestRender();
     };
 
@@ -477,6 +569,17 @@ export function MapCanvas3D({
     };
     stage.addEventListener("keydown", onKey);
 
+    const applyTheme = () => {
+      const T = readMapTheme();
+      renderer.setClearColor(new THREE.Color(T.mapBg), 1);
+      edgeMat.color.set(T.accent);
+      linkMat.color.set(T.rule);
+      const rim = new THREE.Color(T.surface).convertLinearToSRGB(); // shader writes raw values
+      (pointsMat.uniforms.uRim.value as THREE.Vector3).set(rim.r, rim.g, rim.b);
+      requestRender();
+    };
+    let viewKey: string | number | undefined;
+    let viewSet = false;
     const setData = () => {
       const d = live.current.data;
       if (points) { scene.remove(points); points.geometry.dispose(); points = null; }
@@ -485,6 +588,7 @@ export function MapCanvas3D({
         g.setAttribute("position", new THREE.BufferAttribute(d.pos, 3));
         g.setAttribute("aSize", new THREE.BufferAttribute(d.size, 1));
         g.setAttribute("aColor", new THREE.BufferAttribute(d.color, 3));
+        g.setAttribute("aHeat", new THREE.BufferAttribute(d.heat, 1));
         g.computeBoundingSphere();
         points = new THREE.Points(g, pointsMat);
         points.frustumCulled = false;
@@ -492,6 +596,8 @@ export function MapCanvas3D({
       }
       hoverRef.current = -1;
       projDirty = true;
+      // Reset the camera on first data and on a year change only; a filter change keeps the pose.
+      if (d.n && (!viewSet || viewKey !== live.current.resetKey)) { resetView(); viewSet = true; viewKey = live.current.resetKey; }
       requestRender();
     };
     const setLines = () => {
@@ -529,13 +635,18 @@ export function MapCanvas3D({
       linkLines = build(lk, linkMat, false);
       requestRender();
     };
+    const setHeatmap = (enabled: boolean) => {
+      pointsMat.uniforms.uHeatmap.value = enabled ? 1 : 0;
+      requestRender();
+    };
 
     const flyTo = (index: number, instant: boolean) => {
       const d = live.current.data;
       if (index < 0 || index >= d.n) return;
-      const toT = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]);
+      const toT = d.center.clone();
       const fromO = camera.position.clone().sub(controls.target);
-      const toO = fromO.clone().setLength(Math.max(controls.minDistance, Math.min(fromO.length(), 70)));
+      const relative = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]).sub(toT);
+      const toO = new THREE.Vector3(-relative.x, -relative.y, Math.max(18, relative.z + 28)).normalize().multiplyScalar(Math.max(controls.minDistance, Math.min(fromO.length(), 90)));
       if (instant || reduced) {
         flight = null;
         controls.target.copy(toT);
@@ -555,8 +666,9 @@ export function MapCanvas3D({
     canvas.addEventListener("webglcontextrestored", onContextRestored);
 
     engineRef.current = {
-      renderer, scene, camera, controls, requestRender, resetView, zoom, rotate, setData, setLines, flyTo, focused: false,
+      renderer, scene, camera, controls, requestRender, resetView, setCameraView, setHeatmap, zoom, rotate, setData, applyTheme, setLines, flyTo, focused: false,
     };
+    applyTheme();
     setData();
     setLines();
     resize();
@@ -588,7 +700,9 @@ export function MapCanvas3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
+  useEffect(() => { engineRef.current?.applyTheme(); engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
+  useEffect(() => { engineRef.current?.applyTheme(); }, [theme]);
+  useEffect(() => { engineRef.current?.setHeatmap(heatmap); }, [heatmap]);
   useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, showPredicted, data]);
   useEffect(() => { engineRef.current?.requestRender(); }, [selectedConceptId, showAreaLabels]);
 
@@ -615,6 +729,11 @@ export function MapCanvas3D({
   }, [focusTick, hasData]);
 
   const onZoom = useCallback((f: number) => engineRef.current?.zoom(f), []);
+  const [cameraView, setCameraView] = useState<CameraView>("overview");
+  const chooseCameraView = useCallback((view: CameraView) => {
+    engineRef.current?.setCameraView(view);
+    setCameraView(view);
+  }, []);
 
   return (
     <section className="ws3d" aria-label="3D research concept map">
@@ -622,23 +741,29 @@ export function MapCanvas3D({
         ref={stageRef}
         className="ws3d__stage"
         tabIndex={0}
-        role="application"
+        role="region"
         title={HELP}
-        aria-label="3D concept map. Arrow keys rotate, plus and minus zoom, zero resets. Drag to rotate, scroll to zoom, right-drag to pan."
+        aria-label="3D concept map. Drag to orbit around the centre, scroll or pinch to zoom. Use Top, Front, or Default camera controls. Arrow keys rotate, plus and minus zoom, zero resets."
       >
         {unsupported ? (
-          <div className="ws3d__unsupported" role="status">3D view is not supported in this browser. Showing the 2D map instead.</div>
+          <div className="ws3d__unsupported" role="status">This browser cannot display the 3D research map.</div>
         ) : (
           <>
             <div ref={overlayRef} className="ws3d__overlay" aria-hidden="true" />
             {placeholder && <span className="ws3d__tag">Placeholder data: this map is not the real corpus</span>}
-            <div className="ws3d__controls" role="group" aria-label="Map controls" title={HELP}>
+            <div className="ws3d__controls" role="group" aria-label="3D map controls" title={HELP}>
+              <div className="ws3d__camera" role="group" aria-label="Camera angle">
+                <button type="button" aria-pressed={cameraView === "top"} onClick={() => chooseCameraView("top")} title="Look straight down on the map">Top</button>
+                <button type="button" aria-pressed={cameraView === "front"} onClick={() => chooseCameraView("front")} title="Look across the map at node height">Front</button>
+                <button type="button" aria-pressed={cameraView === "overview"} onClick={() => chooseCameraView("overview")} title="Restore the centred default camera">Default</button>
+              </div>
+              <button type="button" className="ws3d__heat" aria-pressed={heatmap} onClick={() => setHeatmap((value) => !value)} title="Highlight recent paper growth: cool is colder and warm is emerging">Heat map</button>
               <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>
               <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out" title="Zoom out (-)">{"−"}</button>
-              <button type="button" onClick={() => engineRef.current?.resetView()} title="Back to the full view (0)">Reset view</button>
             </div>
+            <p className="ws3d__guide">{heatmap ? "Growth heat: cool = colder · warm = emerging" : "Drag to orbit · Scroll to zoom · Click a node to inspect it"}</p>
             {!concepts.length && <div className="ws3d__unsupported ws3d__empty" role="status">No concepts match the current filters.</div>}
-            {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not come back, switch to 2D.</div>}
+            {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not recover, refresh the page.</div>}
             {hoverText && <div className="ws3d__hover" aria-hidden="true">{hoverText}</div>}
           </>
         )}

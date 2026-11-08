@@ -8,8 +8,10 @@ import EvidencePage from "./pages/Evidence";
 import { CoveragePage } from "./pages/CoveragePage";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
 import { PaperLink } from "./components/PaperLink";
+import { Onboarding } from "./components/Onboarding";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { SkeletonBlock, SkeletonText } from "./components/Skeleton";
-import { fmtText, fmtYear } from "./lib/format";
+import { fmtYear } from "./lib/format";
 
 const PLACEHOLDER_TIP = "Placeholder data: this build shows fixtures, not results";
 const REAL_TIP = "Real export: OpenAlex AI subfield 1702";
@@ -25,22 +27,30 @@ function PageSkeleton({ label }: { label: string }) {
   );
 }
 
-// Routes stay mounted; only the first two are linked in the header.
-const sections = [
+const pages = [
   ["/", "Research map"],
-  ["/gaps", "Gaps & open problems"],
-  ["/open-problems", "Gaps & open problems"],
+  ["/gaps", "Gap finder"],
+  ["/open-problems", "Open problems"],
   ["/evidence", "Evidence"],
   ["/coverage", "Code coverage"],
 ] as const;
-const navTabs = [["/", "Research map"], ["/gaps", "Gaps & open problems"]] as const;
+const navTabs = pages.slice(0, 3);
+
+let tourAutoOpened = false;
 
 function currentPath() {
-  return window.location.pathname;
+  return window.location.pathname.replace(/\/+$/, "") || "/";
 }
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
+  // Auto-open only on the home route, and at most once per page session even if storage throws.
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    if (currentPath() !== "/" || tourAutoOpened) return false;
+    try { if (window.localStorage.getItem("ws-onboarding-seen") === "true") return false; } catch { /* storage unavailable */ }
+    tourAutoOpened = true;
+    return true;
+  });
   const [retry, setRetry] = useState(0);
   const [problemConcept, setProblemConcept] = useState("");
   const [problemType, setProblemType] = useState<"all" | "future_work" | "limitation" | "open_problem">("all");
@@ -57,15 +67,18 @@ export default function App() {
   const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [error, setError] = useState<string>();
-  const active = sections.find(([route]) => route === path) ?? sections[0];
+  const active = pages.find(([route]) => route === path) ?? pages[0];
 
   useEffect(() => { document.title = `${active[1]} · Whitespace`; }, [active]);
 
-  const navigate = useCallback((event: React.MouseEvent<HTMLAnchorElement>, route: string) => {
-    event.preventDefault();
+  const navigateTo = useCallback((route: string) => {
     window.history.pushState({}, "", route);
     setPath(route);
   }, []);
+  const navigate = useCallback((event: React.MouseEvent<HTMLAnchorElement>, route: string) => {
+    event.preventDefault();
+    navigateTo(route);
+  }, [navigateTo]);
 
   useEffect(() => {
     const handlePopState = () => setPath(currentPath());
@@ -114,7 +127,6 @@ export default function App() {
       : path === "/open-problems" ? openProblems?.placeholder ?? true
         : path === "/coverage" ? coverage?.placeholder ?? true
           : backtest?.placeholder ?? true;
-  const yearRange = meta.year_range ?? { min: 2015, max: 2026 };
 
   // Start inside the exported years: the corpus may end before the default year.
   useEffect(() => {
@@ -127,53 +139,57 @@ export default function App() {
 
   const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
   const badgeTip = isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
-  const fullBleed = path === "/" || path === "/gaps" || path === "/open-problems";
-  const tabActive = (route: string) => route === "/" ? path === "/" : path === "/gaps" || path === "/open-problems";
+  const tabActive = (route: string) => route === path;
+
+  const fullBleed = path === "/" || path === "/gaps";
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="topbar">
         <a className="brand" href="/" onClick={(event) => navigate(event, "/")} aria-label="Whitespace home">
-          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" fill="#15171C" /><circle cx="21" cy="8" r="4" fill="none" stroke="#15171C" strokeWidth="2" /><line x1="10.5" y1="17" x2="17.5" y2="11" stroke="#2952E3" strokeWidth="2" strokeDasharray="2.5 2.5" /></svg>
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" style={{ fill: "var(--ws-ink)" }} /><circle cx="21" cy="8" r="4" style={{ fill: "none", stroke: "var(--ws-ink)" }} strokeWidth="2" /><line x1="10.5" y1="17" x2="17.5" y2="11" style={{ stroke: "var(--ws-accent)" }} strokeWidth="2" strokeDasharray="2.5 2.5" /></svg>
           <span className="brand-name">Whitespace</span>
         </a>
-        <div className="topbar-spacer" />
-        <nav className="view-tabs" aria-label="Main views: Research map, Gaps and open problems">
+        <nav className="view-tabs" aria-label="Primary views">
           {navTabs.map(([route, label]) => (
             <a key={route} href={route} aria-current={tabActive(route) ? "page" : undefined} onClick={(event) => navigate(event, route)}>{label}</a>
           ))}
         </nav>
+        <div className="topbar-spacer" />
+        <div className="topbar-tools">
+          <button type="button" className="onboarding-trigger" aria-label="Show feature tour" title="What can I do here?" onClick={() => setOnboardingOpen(true)}>i</button>
+          <ThemeToggle />
+        </div>
         <span className="data-badge" tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
       </header>
       <main id="main-content" className={fullBleed ? "main-content" : "main-content main-content--padded"}>
-          {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} yearRange={yearRange} selectedConceptId={selectedConceptId} onYearChange={setYear} onSelectConcept={selectConcept} onSearch={search} />}
+          {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} selectedConceptId={selectedConceptId} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <PageSkeleton label="Loading research map…" />}
           {path === "/gaps" && status === "loading" && !gaps && <PageSkeleton label="Loading gap finder…" />}
           {path === "/gaps" && gaps && <GapsPage response={gaps} loadDetail={loadGap} loading={status === "loading"} error={status === "error" ? error : null} />}
           {path === "/open-problems" && <OpenProblemsPage response={openProblems} selectedConcept={problemConcept} onConceptChange={setProblemConcept} selectedType={problemType} onTypeChange={setProblemType} status={status} errorMessage={error} onRetry={retryPage} />}
           {path === "/evidence" && <EvidencePage response={backtest} status={status} errorMessage={error} />}
           {path === "/coverage" && <>
-            <CoveragePage response={coverage} selectedYear={year} onYearChange={setYear} onSelectCell={(cell) => {
-              setSelectedCoverageCell({ conceptId: cell.concept_id, year: cell.year });
-            }} status={status} errorMessage={error} onRetry={retryPage} />
+            <CoveragePage response={coverage} selectedYear={year} onYearChange={setYear} onSelectCell={(cell) => setSelectedCoverageCell({ conceptId: cell.concept_id, year: cell.year })} status={status} errorMessage={error} onRetry={retryPage} />
             {selectedCoverageCell && (() => {
               const concept = coverage?.concepts.find((item) => item.id === selectedCoverageCell.conceptId);
               const cell = concept?.cells.find((item) => item.year === selectedCoverageCell.year);
               return <section className="coverage-selection" aria-live="polite" aria-labelledby="coverage-selection-title">
                 <h2 id="coverage-selection-title">Papers without a linked code record</h2>
-                <p>{fmtText(concept?.label)} - {fmtYear(selectedCoverageCell.year)}. A missing archive link does not mean an implementation does not exist.</p>
+                <p>{concept?.label ?? "Selected concept"} · {fmtYear(selectedCoverageCell.year)}. A missing archive link does not mean an implementation does not exist.</p>
                 {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><PaperLink paper={paper} /></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
               </section>;
             })()}
           </>}
             {status === "error" && <p className="app-error" role="alert">{error}</p>}
       </main>
-      <footer className="app-footer">
+      <footer className="app-footer" aria-label="Additional research views">
         <span>More:</span>
         <a href="/evidence" aria-current={path === "/evidence" ? "page" : undefined} onClick={(event) => navigate(event, "/evidence")}>Evidence</a>
         <a href="/coverage" aria-current={path === "/coverage" ? "page" : undefined} onClick={(event) => navigate(event, "/coverage")}>Code coverage</a>
       </footer>
+      <Onboarding open={onboardingOpen} onClose={() => setOnboardingOpen(false)} onNavigate={navigateTo} />
     </div>
   );
 }

@@ -376,7 +376,7 @@ async function staticOrFixture<T extends object>(name: string, fixture: T): Prom
 }
 
 /** Local data only by default, so the demo has no judging-time network dependency. */
-export const api = {
+const realApi = {
   meta: () => pick<MetaResponse>(API_ROUTES.meta, metaFixture as MetaResponse, staticMeta),
   map: (year: number) => {
     const fixture = { ...mapFixture, year } as MapResponse;
@@ -404,6 +404,8 @@ export const api = {
       staticByYear("coverage", year, { ...fixture, concepts: [], years: [] }));
   },
 };
+
+export const api = realApi;
 
 export function isPlaceholder(data: { placeholder?: boolean }): boolean {
   return data.placeholder === true;

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { ConceptPoint, PredictedEdge } from "../api";
 import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
-import { GROWTH_STEPS } from "./MapLegend";
+import { readMapTheme, withAlpha } from "../lib/mapTheme";
+import { useTheme } from "../lib/useTheme";
 import "./map.css";
 
 type MapFocus = { x: number; y: number } | null;
@@ -42,9 +43,6 @@ const MAX_LABELS = 60;
 const FONT_SANS = "'IBM Plex Sans', system-ui, sans-serif";
 const FONT_MONO = "'IBM Plex Mono', ui-monospace, monospace";
 
-const UNKNOWN_COLOR = "#9AA0AA";
-/** Bucket index 0..4 for GROWTH_STEPS, 5 for unknown growth. */
-const COLORS: string[] = [...GROWTH_STEPS.map((step) => step.color), UNKNOWN_COLOR];
 
 function extent(values: number[]): [number, number] {
   if (!values.length) return [0, 1];
@@ -179,6 +177,8 @@ export function MapCanvas({
     if (canvas.width !== targetW || canvas.height !== targetH) { canvas.width = targetW; canvas.height = targetH; }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, width, height);
+    const T = readMapTheme();
+    const COLORS = T.growth; // bucket 0..4 growth steps, 5 unknown
 
     const kx = (width / VIEW_SIZE) * view.scale;
     const ky = (height / VIEW_SIZE) * view.scale;
@@ -200,7 +200,7 @@ export function MapCanvas({
         ctx.lineTo(bx, by);
       }
       ctx.lineWidth = 1;
-      ctx.strokeStyle = "#D3D5DA";
+      ctx.strokeStyle = T.link;
       ctx.stroke();
       if (selIdx >= 0) {
         ctx.beginPath();
@@ -210,7 +210,7 @@ export function MapCanvas({
           ctx.lineTo(sx(s.nodes[b].wx), sy(s.nodes[b].wy));
         }
         ctx.lineWidth = 1.5;
-        ctx.strokeStyle = "#15171C";
+        ctx.strokeStyle = T.ink;
         ctx.stroke();
       }
     }
@@ -224,14 +224,14 @@ export function MapCanvas({
         ctx.beginPath();
         ctx.moveTo(sx(na.wx), sy(na.wy));
         ctx.lineTo(sx(nb.wx), sy(nb.wy));
-        ctx.strokeStyle = `rgba(41, 82, 227, ${Math.max(0.3, Math.min(0.9, e.p))})`;
+        ctx.strokeStyle = withAlpha(T.accent, Math.max(0.3, Math.min(0.9, e.p)));
         ctx.stroke();
       }
       ctx.setLineDash([]);
     }
 
     // Nodes batched by colour bucket (one fill per bucket).
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.strokeStyle = withAlpha(T.halo, 0.9);
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.88;
     for (let bucket = 0; bucket < COLORS.length; bucket += 1) {
@@ -263,10 +263,10 @@ export function MapCanvas({
       ctx.strokeStyle = colour;
       ctx.stroke();
     };
-    if (hoverIdx >= 0 && hoverIdx !== selIdx) ring(hoverIdx, 1.5, 2, "#5B606B");
+    if (hoverIdx >= 0 && hoverIdx !== selIdx) ring(hoverIdx, 1.5, 2, T.muted);
     if (selIdx >= 0) {
-      ring(selIdx, 2.5, 0, "#15171C");
-      ring(selIdx, 1.5, 5, "#15171C");
+      ring(selIdx, 2.5, 0, T.ink);
+      ring(selIdx, 1.5, 5, T.ink);
     }
 
     // Area labels (fade as the user zooms in).
@@ -274,7 +274,7 @@ export function MapCanvas({
     if (s.showAreaLabels && s.areaCentroids.length) {
       ctx.font = `500 12px ${FONT_SANS}`;
       ctx.textAlign = "center";
-      ctx.fillStyle = `rgba(91, 96, 107, ${Math.max(0.35, 1 - (view.scale - 1) * 0.25)})`;
+      ctx.fillStyle = withAlpha(T.muted, Math.max(0.35, 1 - (view.scale - 1) * 0.25));
       for (const a of s.areaCentroids) ctx.fillText(a.name, sx(a.x), sy(a.y) - 16);
     }
 
@@ -295,9 +295,9 @@ export function MapCanvas({
       }
       placed.push(box);
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255,255,255,0.92)";
+      ctx.strokeStyle = withAlpha(T.halo, 0.92);
       ctx.strokeText(n.label, l, y + 4);
-      ctx.fillStyle = "#15171C";
+      ctx.fillStyle = T.ink;
       ctx.fillText(n.label, l, y + 4);
       return true;
     };
@@ -322,11 +322,11 @@ export function MapCanvas({
         if (!inView(mx, my)) continue;
         const text = `P ${fmtP(e.p)}`;
         const w = ctx.measureText(text).width + 12;
-        ctx.fillStyle = "#2952E3";
+        ctx.fillStyle = T.accent;
         ctx.beginPath();
         ctx.roundRect(mx - w / 2, my - 9, w, 18, 4);
         ctx.fill();
-        ctx.fillStyle = "#FFFFFF";
+        ctx.fillStyle = T.onAccent;
         ctx.fillText(text, mx, my + 4);
       }
     }
@@ -339,7 +339,8 @@ export function MapCanvas({
   useEffect(() => () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); frameRef.current = 0; }, []);
 
   // Redraw whenever the scene changes.
-  useEffect(() => { schedule(); }, [schedule, nodes, linked, predicted, selectedConceptId, showPredicted, showAreaLabels]);
+  const { theme } = useTheme();
+  useEffect(() => { schedule(); }, [schedule, nodes, linked, predicted, selectedConceptId, showPredicted, showAreaLabels, theme]);
 
   const hasConcepts = concepts.length > 0;
   useEffect(() => {
@@ -513,9 +514,9 @@ export function MapCanvas({
         )}
         {hoverText && <div className="whitespace-map__hover" aria-hidden="true">{hoverText}</div>}
         <div className="whitespace-map__zoom" role="group" aria-label="Map controls">
-          <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in"><svg {...iconProps}><path d="M7 2v10M2 7h10" stroke="#15171C" strokeWidth="1.6" strokeLinecap="round" /></svg></button>
-          <button type="button" onClick={() => zoomAt(0.8)} aria-label="Zoom out"><svg {...iconProps}><path d="M2 7h10" stroke="#15171C" strokeWidth="1.6" strokeLinecap="round" /></svg></button>
-          <button type="button" onClick={resetView} aria-label="Reset view"><svg {...iconProps}><rect x="2" y="2" width="10" height="10" rx="1.5" fill="none" stroke="#15171C" strokeWidth="1.5" /></svg></button>
+          <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in"><svg {...iconProps}><path d="M7 2v10M2 7h10" style={{ stroke: "var(--ws-ink)" }} strokeWidth="1.6" strokeLinecap="round" /></svg></button>
+          <button type="button" onClick={() => zoomAt(0.8)} aria-label="Zoom out"><svg {...iconProps}><path d="M2 7h10" style={{ stroke: "var(--ws-ink)" }} strokeWidth="1.6" strokeLinecap="round" /></svg></button>
+          <button type="button" onClick={resetView} aria-label="Reset view"><svg {...iconProps}><rect x="2" y="2" width="10" height="10" rx="1.5" fill="none" style={{ stroke: "var(--ws-ink)" }} strokeWidth="1.5" /></svg></button>
         </div>
       </div>
 

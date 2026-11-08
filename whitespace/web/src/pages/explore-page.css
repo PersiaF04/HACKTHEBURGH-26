@@ -1,6 +1,7 @@
 /* Page layout for the Research map: three full-height columns that fill the frame. */
 .ex { display: flex; align-items: stretch; width: 100%; height: 100%; min-height: 0; background: var(--ws-surface); overflow: hidden; }
-.ex__left { flex: 0 0 280px; width: 280px; min-height: 0; overflow-y: auto; padding: 20px; border-right: 1px solid var(--ws-border); background: var(--ws-surface); display: flex; flex-direction: column; gap: 28px; }
+.ex__left { flex: 0 0 380px; width: 380px; min-height: 0; overflow-y: auto; padding: 20px; border-right: 1px solid var(--ws-border); background: var(--ws-surface); display: flex; flex-direction: column; gap: 28px; direction: rtl; scrollbar-gutter: stable; }
+.ex__left > * { direction: ltr; }
 .ex__centre { flex: 1 1 0; min-width: 0; min-height: 0; padding: 16px; background: var(--ws-page); display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
 .ex__right { flex: 0 0 380px; width: 380px; min-height: 0; overflow-y: auto; padding: 20px; border-left: 1px solid var(--ws-border); background: var(--ws-surface); }
 .ex__title { flex: none; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -18,7 +19,8 @@
 @media (max-width: 1100px) {
   .ex { flex-direction: column; height: auto; overflow: visible; }
   .ex__left, .ex__right { flex: none; width: auto; overflow: visible; border: 0; }
-  .ex__left { border-bottom: 1px solid var(--ws-border); }
+  .ex__centre { order: 1; } .ex__right { order: 2; } .ex__left { order: 3; }
+  .ex__left { border-top: 1px solid var(--ws-border); }
   .ex__right { border-top: 1px solid var(--ws-border); }
   .ex__centre { flex: none; overflow: visible; }
   .ex__loading { min-height: 240px; }
@@ -33,6 +35,6 @@
 .ex__mapwrap > :not(.ex__viewtoggle) { flex: 1 1 0; min-height: 0; }
 .ex__viewtoggle { position: absolute; top: 12px; left: 12px; z-index: 5; display: inline-flex; background: var(--ws-surface); border: 1px solid var(--ws-border); border-radius: 8px; padding: 2px; gap: 2px; }
 .ex__viewtoggle button { font: 500 12px/1 var(--ws-sans, "IBM Plex Sans", system-ui, sans-serif); color: var(--ws-muted); background: transparent; border: 0; border-radius: 6px; padding: 7px 10px; min-width: 40px; cursor: pointer; }
-.ex__viewtoggle button[aria-pressed="true"] { background: #ECECE7; color: var(--ws-ink, #15171C); }
-.ex__viewtoggle button:focus-visible { outline: 2px solid #2952E3; outline-offset: 1px; }
+.ex__viewtoggle button[aria-pressed="true"] { background: var(--ws-selected); color: var(--ws-ink); }
+.ex__viewtoggle button:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 1px; }
 @media (max-width: 1100px) { .ex__mapwrap { flex: none; height: 62vh; min-height: 380px; } }
