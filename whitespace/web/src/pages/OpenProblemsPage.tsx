@@ -1,8 +1,10 @@
-import type { ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import type { OpenProblem, OpenProblemResponse } from '../api';
 import { EmptyNote, SkeletonBlock } from '../components/Skeleton';
 import { fmtPct, fmtText, fmtYear } from '../lib/format';
 import './whitespace-pages.css';
+import '../components/gaps/gaps.css';
+import './open-problems.css';
 
 export const OPEN_PROBLEMS_CAPTION = 'Statements appear once papers with stated future work, limitations or open problems have been extracted; nothing is shown until then.';
 
@@ -40,7 +42,7 @@ const typeLabels: Record<string, string> = {
 };
 
 const chartWidth = 720;
-const chartHeight = 220;
+const chartHeight = 170;
 const chartPadding = { top: 18, right: 16, bottom: 34, left: 48 };
 
 function formatRate(value: number | null): string {
@@ -109,6 +111,16 @@ function titleCase(value: string): string {
   return typeLabels[value] ?? value.split('_').join(' ');
 }
 
+const TYPES: Array<[OpenProblemsPageProps['selectedType'], string]> = [
+  ['all', 'All'], ['open_problem', 'Open problems'], ['future_work', 'Future work'], ['limitation', 'Limitations'],
+];
+
+const TYPE_HELP: Record<string, string> = {
+  open_problem: 'The authors say something is unknown, unclear or unexplored.',
+  future_work: 'The authors say what should be done next.',
+  limitation: 'The authors state a weakness or constraint of their own work.',
+};
+
 export function OpenProblemsPage({
   selectedConcept,
   onConceptChange,
@@ -123,82 +135,142 @@ export function OpenProblemsPage({
   const items: OpenProblem[] = response?.items ?? [];
   const placeholder = response?.placeholder ?? false;
   const selectedLabel = conceptOptions.find((concept) => concept.id === selectedConcept)?.label ?? 'Selected concept';
-  const changeConcept = (event: ChangeEvent<HTMLSelectElement>) => onConceptChange(event.currentTarget.value);
-  const changeType = (event: ChangeEvent<HTMLSelectElement>) =>
-    onTypeChange(event.currentTarget.value as OpenProblemsPageProps['selectedType']);
+  const labelOf = (id: string) => conceptOptions.find((concept) => concept.id === id)?.label ?? id;
+  const [picked, setPicked] = useState<number | null>(null);
+  const quality = (response as { quality?: string } | null)?.quality;
+  const qualityNote = (response as { note?: string } | null)?.note;
+  const latest = [...(response?.rates_by_year ?? [])].filter((point) => point.ai_ml_rate !== null).sort((a, b) => b.year - a.year)[0];
+  const counts: Record<string, number> = { open_problem: 0, future_work: 0, limitation: 0 };
+  items.forEach((item) => { counts[item.type] = (counts[item.type] ?? 0) + 1; });
+  const sel = picked !== null ? items[picked] : null;
+  const changeConcept = (event: ChangeEvent<HTMLSelectElement>) => { setPicked(null); onConceptChange(event.currentTarget.value); };
+  const chooseType = (type: OpenProblemsPageProps['selectedType']) => { setPicked(null); onTypeChange(type); };
+  const ready = status === 'ready';
+  const summary: Array<[string, string, string]> = [
+    ['Statements shown', ready ? String(items.length) : fmtPct(null), selectedConcept ? `About ${fmtText(selectedLabel)}` : 'Across all concepts'],
+    ['Open problems / future work', ready ? `${counts.open_problem} / ${counts.future_work}` : fmtPct(null), `${counts.limitation} limitations in this view`],
+    ['Papers with a statement', latest ? fmtPct(latest.ai_ml_rate, 1) : fmtPct(null), latest ? `Share of papers in ${fmtYear(latest.year)}` : 'Share of papers'],
+  ];
 
   return (
-    <section className="ws-page ws-open-problems" aria-label="Open problems">
-      <header className="ws-page__header">
-        <p className="ws-eyebrow">Source-led reading</p>
-        <h1>Open Problems</h1>
-        <p className="ws-question"><strong>What do authors themselves say is still unsolved?</strong></p>
-        <p className="ws-lede">
-          Questions, limitations and future work stated by authors — always linked back to the paper where the wording appears.
-        </p>
-        <p className="ws-page__note">Use this page to investigate source material. A statement is evidence to follow up, not proof that a question remains unresolved today.</p>
-      </header>
-
-
-      <section className="ws-filters" aria-label="Filter open problems" data-tour="open-problem-filters">
-        <label>
-          <span>Concept</span>
-          <select value={selectedConcept} onChange={changeConcept}>
+    <div className="gx ws-open-problems" aria-label="Open problems">
+      <aside className="gx-rail" aria-label="Filters" data-tour="open-problem-filters">
+        <div className="gx-card">
+          <label className="gx-card__t" htmlFor="op-concept">Concept</label>
+          <select id="op-concept" className="gx-select" value={selectedConcept} onChange={changeConcept}>
             <option value="">All concepts</option>
             {conceptOptions.map((concept) => <option key={concept.id} value={concept.id}>{concept.label}</option>)}
           </select>
-        </label>
-        <label>
-          <span>Statement type</span>
-          <select value={selectedType} onChange={changeType}>
-            <option value="all">All types</option>
-            <option value="future_work">Future work</option>
-            <option value="limitation">Limitations</option>
-            <option value="open_problem">Open problems</option>
-          </select>
-        </label>
-      </section>
-
-      <section className="ws-rate-section" aria-labelledby="ws-rate-heading" data-tour="open-problem-trend">
-        <div>
-          <h2 id="ws-rate-heading">Stated open problems over time</h2>
-          <p>Compare the share of papers containing a stated question or limitation for this concept with the AI/ML scope. Missing values are not treated as zero.</p>
+          <p className="gx-help">Only statements that mention this concept.</p>
         </div>
-        {status === 'error' && <EmptyNote>Rate history is unavailable while the statements request has failed.</EmptyNote>}
-        {status === 'ready' && response && <RateTrend points={response.rates_by_year ?? []} conceptLabel={selectedConcept ? selectedLabel : 'All selected concepts'} />}
-      </section>
-
-      {status === 'error' && (
-        <div className="ws-state ws-state--error" role="alert">
-          <p>{errorMessage || 'Statements could not be loaded.'}</p>
-          {onRetry && <button type="button" onClick={onRetry}>Try again</button>}
+        <div className="gx-card">
+          <span className="gx-card__t" id="op-type-l">Statement type</span>
+          <div className="gx-seg" role="radiogroup" aria-labelledby="op-type-l">
+            {TYPES.map(([value, label]) => (
+              <button key={value} type="button" role="radio" aria-checked={selectedType === value} className={selectedType === value ? 'is-on' : undefined} onClick={() => chooseType(value)}>{label}</button>
+            ))}
+          </div>
+          <p className="gx-help">{selectedType === 'all' ? 'Showing every kind of statement.' : TYPE_HELP[selectedType]}</p>
         </div>
-      )}
-      {status !== 'error' && items.length === 0 && <OpenProblemsSkeleton loading={status === 'loading'} />}
-      {status === 'ready' && items.length === 0 && !placeholder && <EmptyNote>No matching statements for these filters.</EmptyNote>}
+        <div className="gx-card">
+          <span className="gx-card__t">What the types mean</span>
+          <ul className="gx-defs">
+            {Object.entries(TYPE_HELP).map(([k, v]) => <li key={k}><strong>{titleCase(k)}</strong><span>{v}</span></li>)}
+          </ul>
+        </div>
+      </aside>
 
-      {status === 'ready' && items.length > 0 && (
-        <>
-          <p className="ws-result-count" aria-live="polite">{items.length} {items.length === 1 ? 'statement' : 'statements'}</p>
-          <ul className="ws-problem-list" data-tour="open-problem-list">
+      <section className="gx-centre" aria-labelledby="op-h">
+        <div className="gx-titles">
+          <h1 id="op-h" className="gx-h1">Open Problems</h1>
+          <p className="gx-desc gx-question">What do authors themselves say is still unsolved?</p>
+          <p className="gx-desc">Questions, limitations and future work stated by authors, each linked to the paper where the wording appears. A statement is a lead to follow up, not proof that a question is still open today.</p>
+        </div>
+
+        <div className="gx-summary gx-summary--3">
+          {summary.map(([label, v, cap]) => (
+            <div key={label} className="gx-summary__c"><span className="gx-summary__l">{label}</span><span className="gx-summary__v">{v}</span><span className="gx-summary__cap">{cap}</span></div>
+          ))}
+        </div>
+
+        <section className="gx-tablecard ws-op-chart" aria-labelledby="ws-rate-heading" data-tour="open-problem-trend">
+          <div>
+            <h2 id="ws-rate-heading" className="gx-h3">Stated open problems over time</h2>
+            <p className="gx-desc">Share of papers whose abstract states a question or limitation, for {selectedConcept ? fmtText(selectedLabel) : 'all concepts'} against the whole AI/ML scope. Missing values are not treated as zero.</p>
+          </div>
+          {status === 'error' && <EmptyNote>Rate history is unavailable while the statements request has failed.</EmptyNote>}
+          {ready && response && <RateTrend points={response.rates_by_year ?? []} conceptLabel={selectedConcept ? selectedLabel : 'All selected concepts'} />}
+        </section>
+
+        {status === 'error' && (
+          <div className="ws-state ws-state--error" role="alert">
+            <p>{errorMessage || 'Statements could not be loaded.'}</p>
+            {onRetry && <button type="button" onClick={onRetry}>Try again</button>}
+          </div>
+        )}
+        {status !== 'error' && items.length === 0 && <OpenProblemsSkeleton loading={status === 'loading'} />}
+        {ready && items.length === 0 && !placeholder && <EmptyNote>No matching statements for these filters.</EmptyNote>}
+
+        {ready && items.length > 0 && (
+          <ul className="ws-op-list" data-tour="open-problem-list" aria-label={`${items.length} statements`}>
             {items.map((item, index) => (
-              <li className="ws-problem-card" key={`${item.paper.id}-${index}`}>
-                <div className="ws-problem-card__meta">
-                  <span className="ws-tag">{titleCase(item.type)}</span>
-                  <span>{fmtYear(item.paper.year)}</span>
-                </div>
-                <blockquote>{item.sentence}</blockquote>
-                <p className="ws-source">
-                  Source: <a href={item.paper.url} target="_blank" rel="noreferrer">
-                    {fmtText(item.paper.title)} <span className="ws-sr-only">(opens in a new tab)</span>
-                  </a>
-                </p>
-                {item.paper.abstract_excerpt && <p className="ws-source-excerpt">{item.paper.abstract_excerpt}</p>}
+              <li key={`${item.paper.id}-${index}`}>
+                <button type="button" className={picked === index ? 'ws-op-card is-selected' : 'ws-op-card'} aria-pressed={picked === index} onClick={() => setPicked(picked === index ? null : index)}>
+                  <span className="ws-op-card__meta"><span className="gx-tag gx-tag--solid">{titleCase(item.type)}</span><span>{fmtYear(item.paper.year)}</span></span>
+                  <span className="ws-op-card__q">{item.sentence}</span>
+                  <span className="ws-op-card__src">{fmtText(item.paper.title)}</span>
+                </button>
               </li>
             ))}
           </ul>
-        </>
-      )}
-    </section>
+        )}
+      </section>
+
+      <div className="gx-detailcol">
+        <aside className="gx-detail" aria-label="Statement details" aria-live="polite">
+          {sel ? (
+            <>
+              <div className="gx-detail__head">
+                <span className="gx-eyebrow">{titleCase(sel.type)} · {fmtYear(sel.paper.year)}</span>
+                <h2 className="gx-detail__title ws-op-title">Statement</h2>
+              </div>
+              <blockquote className="ws-op-quote">{sel.sentence}</blockquote>
+              <section className="gx-sec">
+                <h3 className="gx-h3">Source paper</h3>
+                <p className="gx-desc"><a href={sel.paper.url} target="_blank" rel="noreferrer">{fmtText(sel.paper.title)} <span className="ws-sr-only">(opens in a new tab)</span></a></p>
+                {sel.paper.abstract_excerpt && <p className="gx-desc">{sel.paper.abstract_excerpt}</p>}
+              </section>
+              {(sel.concept_ids ?? []).length > 0 && (
+                <section className="gx-sec">
+                  <h3 className="gx-h3">Concepts it mentions</h3>
+                  <div className="ws-op-chips">
+                    {(sel.concept_ids ?? []).slice(0, 12).map((id) => <button key={id} type="button" onClick={() => { setPicked(null); onConceptChange(id); }}>{fmtText(labelOf(id))}</button>)}
+                  </div>
+                  <p className="gx-help">Pick one to filter the list to it.</p>
+                </section>
+              )}
+              <button type="button" className="gx-more" onClick={() => setPicked(null)}>Back to reading guide</button>
+            </>
+          ) : (
+            <>
+              <div className="gx-detail__head">
+                <span className="gx-eyebrow">Reading guide</span>
+                <h2 className="gx-detail__title gx-detail__title--idle">Select a statement</h2>
+                <p className="gx-detail__status">Pick a card to see its source paper and the concepts it mentions.</p>
+              </div>
+              <section className="gx-sec">
+                <h3 className="gx-h3">How reliable is this?</h3>
+                <p className="gx-desc">{qualityNote ?? 'Statements were picked by a pattern match on abstracts and have not been hand-checked, so some are not real author-stated open problems.'}</p>
+                {quality && <p className="gx-desc">Extraction quality: <strong className="gx-ink">{quality}</strong>.</p>}
+              </section>
+              <section className="gx-sec">
+                <h3 className="gx-h3">Where it comes from</h3>
+                <p className="gx-desc">Short excerpts quoted from abstracts indexed by OpenAlex. Copyright remains with the publishers and authors; no full abstracts are included.</p>
+              </section>
+            </>
+          )}
+        </aside>
+      </div>
+    </div>
   );
 }
