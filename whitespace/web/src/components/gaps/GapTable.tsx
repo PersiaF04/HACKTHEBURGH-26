@@ -34,7 +34,7 @@ export const gapKey = (g: GapSummary) => `${g.a}::${g.b}`;
 const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right" }> = [
   { label: "#", cls: "gx-th--rank", help: "Position in the full ranking by gap score, whatever the current filters." },
   { label: "Concept pair", cls: "", help: "Two research concepts that do not yet share three or more papers." },
-  { label: "P(link) · bootstrap interval", cls: "gx-th--p", help: "Model's estimated chance that these two concepts share 3+ papers within three years. The shaded bar is the bootstrap range when one exists." },
+  { label: "P(link) · interval", cls: "gx-th--p", help: "Model's estimated chance that these two concepts share 3+ papers within three years. The shaded bar is an interval, shown only when it has been validated." },
   { label: "Momentum", cls: "gx-th--r", align: "right", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
   { label: "Novelty", cls: "gx-th--r", align: "right", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
   { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "A boost when authors writing about either concept say problems remain open." },
