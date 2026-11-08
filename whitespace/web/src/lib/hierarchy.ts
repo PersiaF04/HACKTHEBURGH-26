@@ -146,16 +146,43 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const members = new Map<string, string[]>();
   for (const e of structure) if (e.kind === "member") members.set(e.source, [...(members.get(e.source) ?? []), e.target]);
-  for (const [hubId, ids] of members) {
+  const GAP = 0.6; // clear space kept between any two branches
+  const clusters = [...members].map(([hubId, ids]) => {
     const hub = byId.get(hubId)!, at = ring.get(hubId)!;
     hub.x = at.x; hub.y = at.y;
+    const grow = Math.sqrt(Math.max(1, ids.length / 60)); // a bigger branch takes more room
+    let radius = 0;
     ids.forEach((id, i) => {
       const n = byId.get(id)!;
       const ang = i * 2.399963 + Math.atan2(at.y, at.x);
-      const rad = 0.3 + 1.2 * Math.sqrt((i + 1) / ids.length);
+      const rad = (0.3 + 1.2 * Math.sqrt((i + 1) / ids.length)) * grow;
       n.x = at.x + Math.cos(ang) * rad;
       n.y = at.y + Math.sin(ang) * rad;
+      radius = Math.max(radius, rad);
     });
+    return { hub, ids, radius, dx: 0, dy: 0 };
+  });
+  // Branches repel: push any two apart until their clusters clear each other by GAP.
+  for (let pass = 0; pass < 120; pass += 1) {
+    let moved = false;
+    for (let a = 0; a < clusters.length; a += 1) {
+      for (let b = a + 1; b < clusters.length; b += 1) {
+        const A = clusters[a], B = clusters[b];
+        let dx = B.hub.x + B.dx - (A.hub.x + A.dx), dy = B.hub.y + B.dy - (A.hub.y + A.dy);
+        const d = Math.hypot(dx, dy) || 0.001;
+        const need = A.radius + B.radius + GAP;
+        if (d >= need) continue;
+        dx /= d; dy /= d;
+        const push = (need - d) / 2;
+        A.dx -= dx * push; A.dy -= dy * push; B.dx += dx * push; B.dy += dy * push;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  for (const c of clusters) {
+    c.hub.x += c.dx; c.hub.y += c.dy;
+    for (const id of c.ids) { const n = byId.get(id)!; n.x += c.dx; n.y += c.dy; }
   }
   for (const n of nodes) {
     if (n.kind !== "hypothesis") continue;
@@ -165,5 +192,12 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
     const len = Math.hypot(mx, my) || 1;
     n.x = mx + (mx / len) * 0.3;
     n.y = my + (my / len) * 0.3;
+    // A hypothesis also keeps out of every branch it does not belong to.
+    for (const c of clusters) {
+      const dx = n.x - c.hub.x, dy = n.y - c.hub.y;
+      const d = Math.hypot(dx, dy) || 0.001;
+      const need = c.radius + 0.25;
+      if (d < need && !n.ends?.includes(c.hub.id)) { n.x = c.hub.x + (dx / d) * need; n.y = c.hub.y + (dy / d) * need; }
+    }
   }
 }
