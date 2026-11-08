@@ -209,7 +209,7 @@ export const API_ROUTES = {
  * - VITE_USE_MOCK=true: always the bundled fixtures in ../mock.
  * - VITE_USE_MOCK=false: fetch the /api/... routes from a server.
  * - unset (default): read the exported files in public/data (served at /data/...) when
- *   /data/meta.json loads, otherwise the bundled fixtures. No external service is called.
+ *   /data/meta.json loads with placeholder: false, otherwise the bundled fixtures. No external service is called.
  */
 const mockSetting = import.meta.env.VITE_USE_MOCK;
 const apiMode = mockSetting === "false";
@@ -254,11 +254,11 @@ function loadFile<T>(name: string): Promise<T | null> {
 }
 
 let staticModePromise: Promise<boolean> | null = null;
-/** True when the exported files are present (decided once, from /data/meta.json). */
+/** True only for a real export: /data/meta.json loads and says placeholder: false (decided once). A placeholder export falls back to the bundled fixtures. */
 function useStaticData(): Promise<boolean> {
   if (apiMode || forceMock) return Promise.resolve(false);
   staticModePromise ??= loadFile<MetaResponse>("meta.json")
-    .then((meta) => meta !== null && typeof meta === "object" && "placeholder" in meta)
+    .then((meta) => meta !== null && typeof meta === "object" && (meta as { placeholder?: unknown }).placeholder === false)
     .catch(() => false);
   return staticModePromise;
 }
