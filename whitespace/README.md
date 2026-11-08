@@ -46,3 +46,20 @@ Not implemented here: the PRD's embedding-based near-duplicate merge (cosine abo
 - **Population.** Primary metrics use the full eligible pair universe, for the model and every baseline alike, reported separately for starting weights 0, 1 and 2.
 - **Baselines.** Current weight, degree product, preferential attachment, common neighbours, Adamic-Adar and Jaccard score the same pairs with the same tie-breaking.
 - **Code coverage.** A missing Papers with Code link means no linked code in that archive, never that no code exists.
+
+## Code layer (`pipeline/code_layer.py`, issue #142)
+
+Wording rule: a paper without a link has *no linked code in this archive* (Papers with Code, snapshot 28 Jul 2025, CC-BY-SA-4.0), never "no code". Coverage is a lower bound.
+
+- **Loader.** `load_links(path, revision)` reads a local `.parquet` (needs `pyarrow`) or `.csv` copy of Hugging Face `pwc-archive/links-between-paper-and-code` and returns rows plus a manifest (source URL, revision SHA you pass, file sha256, row counts, distinct arXiv ids, licence, attribution). It never downloads or stores the data.
+- **OpenAlex join.** `openalex_filter_urls` builds batched filters (at most 50 arXiv DOIs per call). `resolve_arxiv_ids(ids, fetch)` takes an injected `fetch(url) -> dict`. A work maps to an arXiv id only through `locations` URLs or an arXiv DOI, never a journal DOI in its own `doi`. Duplicates collapse by arXiv id (most-cited wins) and the join method is recorded. `make_polite_fetcher` is the real keyless fetcher with a request budget; CI does not call it.
+- **Coverage.** `coverage_table` gives per (concept, year) linked papers, all papers, `code_rate` and a state (`ok`, `thin`, `partial`, `outside_archive_vintage`); `code_rate` is null unless `ok`. The year is the arXiv-id month for new-style ids, and the OpenAlex publication date for old-style ids (`hep-th/9901001`) and papers without an arXiv id (`date_source` recorded). The low-coverage cutoff is the first year with at least `min_linked` linked papers in the pinned file (a parameter, returned in the output); years ending after the archive date (default 2025-07-28, a parameter) are `partial` and later years `outside_archive_vintage`. Old-style ids count as arXiv papers and can match; only papers with no usable arXiv id are flagged unmatchable by construction.
+- **Hand-check.** `build_frame` makes the seeded stratified 100-pair frame (year band x join method x code link present); `wilson_interval(k, n)`; `TEMPLATE_COLUMNS`. The frame measures precision, not recall. Adjudication is manual.
+
+Manual 500-id resolution check (live requests, about 10; run from the repository root with a local copy of the links file; not part of CI):
+
+```sh
+python -m whitespace.pipeline.code_layer --links path/to/links.parquet --revision <dataset-commit-sha> --mailto you@example.org --seed 20261107 --per-band 125
+```
+
+It draws 125 distinct new-style arXiv ids per year band (<=2017, 2018-2020, 2021-2023, 2024-2025), resolves them and prints resolved counts by band. Spike #122 measured 493/500 (98.6%) with its own draw; this command re-runs the procedure, and exact ids may differ if the sampling code differs. The figure is resolution only, not join correctness.
