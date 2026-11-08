@@ -32,14 +32,14 @@ Record only decisions that materially affect product scope, architecture, user e
 - **Consequences:** The web shell has no data-sync step; it builds from `web/` alone. The Vercel connection is pending; this decision does not claim a deployed URL exists.
 - **Related task / PRD section:** #50; PRD section 12
 
-### D-003: Show author-stated open problems on a dedicated Open Problems page
+### D-003: Keep author-stated open problems in the gap detail as a compact collapsed section, linked to the Open Problems page
 
-- **Date / status:** 2026-11-08 / Accepted
+- **Date / status:** 2026-11-08 / Accepted (supersedes the earlier page-only wording)
 - **Decision owner / agreed by:** Persia (product owner; he/him)
-- **Context:** F5 placed authors' stated open problems inside the gap detail. The frontend integration (#228, PR #229) gives the app a dedicated Open Problems tab, and the current export has no such sentences: `open-problems.json` is a placeholder and gap details carry empty `open_problems`.
-- **Options:** (A) show open problems only on the Open Problems page; (B) keep them in the gap detail as well.
-- **Decision:** Option A. Author-stated open problems live on the Open Problems page (F6), not in Gap Finder or gap detail.
-- **Consequences:** Gap detail shows score breakdown, closest papers and shared neighbours only. Until sentences are extracted from abstracts, the Open Problems page shows “not available yet”; nothing is fabricated or filled with demo content. Evidence (F7) and Code coverage (F11) stay reachable through the footer link and direct routes, as in #229.
+- **Context:** F5 placed authors' stated open problems inside the gap detail, and the app gained a dedicated Open Problems tab (#228, PR #229). User clarification: the complaint was visual clutter from a large card, not removing the feature. The current export has no such sentences: `open-problems.json` is a placeholder and gap details carry empty `open_problems`.
+- **Options:** (A) Open Problems page only; (B) restore the large card in the gap detail; (C) a compact collapsed disclosure in the gap detail plus a link to the Open Problems page.
+- **Decision:** Option C.
+- **Consequences:** F5 is retained. The detail panel shows a compact, collapsed “Author-stated open problems” evidence section with a link to the Open Problems page for full reading and filters; with no export data it shows “Author-stated open problems are not available in this export yet.” and nothing is fabricated. The Evidence and Code coverage footer links are unchanged. Delivered as one small UI PR into the #229 stack.
 - **Related task / PRD section:** #228, PR #229, #235; PRD F5, F6
 
 ### D-004: The research map is 3D-only with no time slider
