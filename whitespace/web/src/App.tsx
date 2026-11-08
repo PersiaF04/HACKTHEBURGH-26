@@ -94,6 +94,13 @@ export default function App() {
         : path === "/coverage" ? coverage?.placeholder ?? true
           : backtest?.placeholder ?? true;
   const yearRange = meta.year_range ?? { min: 2015, max: 2026 };
+  const noDataForYear = (path === "/" && map?.no_data) || (path === "/coverage" && coverage?.no_data);
+
+  // Start inside the exported years: the corpus may end before the default year.
+  useEffect(() => {
+    const range = meta.year_range;
+    if (range && (year < range.min || year > range.max)) setYear(range.max);
+  }, [meta.year_range]); // only when the data's year range changes, not on every year change
   const retryPage = () => setRetry((value) => value + 1);
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
@@ -122,6 +129,7 @@ export default function App() {
             <span className="offline-pill">Offline demo</span>
           </div>
           {isPlaceholder && <div className="placeholder-banner" role="status"><strong>Placeholder data</strong><span>{MOCK_NOTICE}</span></div>}
+          {noDataForYear && <p className="placeholder-banner" role="status"><strong>No data for {year}</strong><span>{meta.year_range ? `The exported data covers ${meta.year_range.min} to ${meta.year_range.max}. Later years are absent, not zero.` : "No file was exported for this year."}</span></p>}
           {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} yearRange={yearRange} selectedConceptId={selectedConceptId} onYearChange={setYear} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <p role="status">Loading research map…</p>}
           {path === "/gaps" && status === "loading" && !gaps && <p role="status">Loading gap finder…</p>}
