@@ -43,12 +43,12 @@ None of these targets is met until measured and recorded.
 
 | ID | Feature | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
-| F1 | Research map | MVP | About 3,000–6,000 concepts in 2D, sized by paper count and coloured by growth; smooth pan and zoom |
+| F1 | Research map | MVP | About 3,000–6,000 concepts in a 3D-only view (no 2D map and no time slider), sized by paper count and coloured by growth; smooth orbit and zoom (D-004) |
 | F2 | Time slider | Removed | Removed from scope at Varshil's request: the approved design has no slider; the map shows the latest snapshot year; year-scoped `map-<year>.json` files are not needed by the UI |
 | F3 | Paper and concept search | MVP | Hybrid semantic and keyword search returns papers and concepts; map moves to the result |
 | F4 | Gap finder | MVP | Rank unlinked pairs with P(link), interval, momentum, novelty, stated-gap rate and gap score; filter by area and minimum P |
-| F5 | Gap detail | MVP | Show score breakdown, three closest papers on each side, shared neighbours and authors' stated open problems |
-| F6 | Open-problems explorer | MVP | For each concept, show stated-gap rate over time and “future work,” “limitation” and “open problem” sentences linked to papers |
+| F5 | Gap detail | MVP | Show score breakdown, three closest papers on each side and shared neighbours; authors' stated open problems are shown on the Open Problems page (F6), not in the gap detail (D-003) |
+| F6 | Open-problems explorer | MVP | Dedicated Open Problems page (D-003). For each concept, show stated-gap rate over time and “future work,” “limitation” and “open problem” sentences linked to papers. The current export has no author-stated open-problem sentences (`open-problems.json` is a placeholder and gap details carry empty `open_problems`), so until sentences are extracted the page shows “not available yet” and no content is invented |
 | F7 | Evidence page | MVP | Show Precision@k against all declared baselines, calibration, base rate, PR-AUC and hits/misses tables; report metrics by starting pair weight |
 | F8 | Concept trend forecast | Stretch | Show paper share over time with an 80% interval against a naive forecast |
 | F9 | Research-question generator | Stretch | A local LLM drafts three questions for a gap from retrieved abstracts; each sentence is checked against sources and marked grounded or not, with citations |
@@ -70,7 +70,7 @@ None of these targets is met until measured and recorded.
 1. Search a research area or paste an abstract.
 2. The map moves to that area. Open a concept to see its trend.
 3. Open Gap Finder for that area and select a highly ranked pair.
-4. Read its score breakdown, supporting papers and stated open problems.
+4. Read its score breakdown and supporting papers; open the Open Problems page for authors' stated open problems.
 5. Optionally draft research questions, then open Evidence to see the backtest and calibration.
 6. Open Code Coverage to inspect linked-code coverage, its historical limits and the sampled link-precision check.
 
@@ -295,7 +295,7 @@ Never cut: map, Gap Finder, Evidence page and F11 code-coverage view.
 
 - **0:00–0:20 — hook:** “Papers with Code shut down in 2025. Search shows what exists; it cannot show what is missing.” Use only after shutdown and archive facts are verified.
 - **0:20–1:20 — map:** click a concept to show its trend and predicted partners, open Code Coverage and click a dark cell.
-- **1:20–2:20 — gap:** open Gap Finder, select the top gap, inspect score components and authors' open problems, then show Evidence: Precision@100 against baselines and calibration.
+- **1:20–2:20 — gap:** open Gap Finder, select the top gap, inspect score components and supporting papers, then show Evidence: Precision@100 against baselines and calibration.
 - **2:20–2:50 — limitations:** co-occurrence is a proxy; code links are a lower bound; MAGI/ERLA is prior art.
 - **2:50–3:00 — close:** “See where research is going, and what nobody has built yet.” Qualify code claims as “no linked code in this archive.”
 
