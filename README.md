@@ -1,91 +1,102 @@
 # Whitespace
 
-Whitespace is a research-discovery tool for AI/ML literature. It turns a historical paper corpus into a concept graph that changes over time, and asks which concept pairs that are not yet linked are likely to be linked within three years. It was started at HackTheBurgh XIII (repository name: `HACKTHEBURGH-26`).
+**See where AI research is going, and the questions nobody has answered yet.**
 
-**One-liner:** "See where research is going, and the questions nobody has answered yet."
+**Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)**
 
-**Status:** under active development (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](PRD.md)). The pipeline code and tests and the frontend MVP (on mock data) are in place; the full corpus, real artifacts and the forecast evaluation are still in progress. No forecast result exists yet, and nothing in this repository is a measured result until it is recorded.
+Whitespace is a research-discovery tool for AI/ML literature. It builds a concept graph from about 730,000 OpenAlex papers, follows how it changes year by year, and ranks the concept pairs that aren't linked yet by how likely they are to become linked within three years. Alongside the forecast it shows what authors say is still open, and where published work has no linked code.
 
-## Who it is for
+Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
-- PhD and MSc students choosing a novel, timely thesis or dissertation topic.
-- Researchers who want to spot emerging directions and avoid saturated ones.
-- Lab leads and supervisors deciding which directions to pursue or recommend.
+> **Status:** the real-data run is in progress. Until it finishes, the site shows placeholder data, labelled as such on every page. The forecast is evaluated once, on a held-out test year. No result is claimed until it's recorded, and it's published whichever way it falls.
 
-## Two tracks, one set of evidence
+## Who it's for
 
-Both tracks use the same evidence and limitations; only the opening framing changes ([`PRD.md`](PRD.md) section 18).
+| User | Need |
+| --- | --- |
+| PhD and MSc students | Choose a novel, timely thesis topic |
+| Researchers | Spot emerging directions and avoid saturated ones |
+| Lab leads and supervisors | Decide which directions to pursue or recommend |
 
-- **HRT: which research gap should I pursue?** Rank unlinked concept pairs by the probability that they link within three years. The model will be tested once on a purged temporal backtest (fit through 2014, calibrate at 2017, test once at 2020 with outcomes in 2021 to 2023) so no outcome window leaks into a later split. Probabilities are calibrated on the 2017 origin and will be reported with the base rate, precision@k and average precision on all eligible pairs; if the model does not beat the strongest baseline, that will be reported.
-- **G-Research: make the invisible visible.** A research map with a time slider, an explorer of author-stated open problems (limitations, future work), and a code-coverage view from the archived Papers with Code links. Coverage is a lower bound: a paper without a link has no linked code in that archive, not necessarily no code.
+## What it does
 
-The exact track prompts are not yet confirmed against the official event site (see the PRD).
+- **Explore:** a research map with a time slider from 2015. Concepts are sized by paper count and coloured by growth. Search for papers and concepts, and open a concept to see its trend, predicted gaps, top papers and open problems.
+- **Gaps:** unlinked concept pairs ranked by the probability that they link within three years, with an interval, score components, supporting papers and the open problems authors state for each side.
+- **Evidence:** the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
+- **Code coverage:** a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
+
+## Two tracks, one body of evidence
+
+- **HRT: "Which research gap should I pursue?"** The probabilities come from a purged temporal backtest: the model is fit on origins through 2014, calibrated on 2017 and tested once on 2020, with outcomes in 2021–2023, so no outcome window leaks into a later split. The pre-registered headline is the model's average precision minus the best baseline's (the baseline is chosen on 2017, never on the test year), with a 95% bootstrap interval. The verdict is "beats the baseline" only if the whole interval is above zero.
+- **G-Research: "Make the invisible visible."** The map and time slider show where research is moving, the open-problems view collects the limitations and future work authors write down, and the coverage view shows where published work has no linked code.
+
+## How it works
+
+1. **Ingest:** OpenAlex works in AI (subfield 1702), downloaded in checkpointed windows with a manifest.
+2. **Concepts:** phrases extracted per snapshot year, so a year never uses vocabulary from the future.
+3. **Graph:** two concepts are linked once they co-occur in at least three papers.
+4. **Model:** pair features from each snapshot and a link model, calibrated on a separate origin.
+5. **Evaluation:** a purged backtest on every eligible pair, not sampled negatives, against declared baselines.
+6. **Code coverage:** papers joined locally to the Papers with Code archive, with no API calls.
+7. **Export:** static JSON files for the site, with placeholder and synthetic flags, a route map and a validator.
+
+The site is a static app: every result is precomputed, so the demo makes no live external calls while it's being judged.
+
+## Tech stack
+
+- **Pipeline:** Python 3.11, with offline tests.
+- **Frontend:** Vite, React, TypeScript, IBM Plex.
+- **Hosting:** Vercel, deployed automatically from `main` by GitHub Actions.
 
 ## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `whitespace/pipeline/` | Python pipeline: shared time rules and purge check, concepts, snapshot graphs, labels, baselines, metrics, Papers with Code layer, coverage export |
-| `whitespace/tests/` | Offline tests (no network, no downloaded data) |
-| `whitespace/web/` | Frontend MVP (Vite, React, TypeScript, Zustand): Explore, Gaps, Open problems, Evidence and Coverage routes, built against `mock/*.json` |
-| `web/` | Earlier minimal frontend shell, still the folder CI's Web build checks |
-| `docs/` | Demo script, judge Q&A, submission checklist |
-| `docs/coordination/` | Issue workflow, CI and delivery, decision log, agent messaging |
-| `scripts/` | Team inbox, agent session start, old-project term check |
-| `.github/` | Issue and PR templates, CI workflows |
-
-`whitespace/web/` is the frontend location in [`PRD.md`](PRD.md) section 15. Removing the `web/` shell and pointing CI at `whitespace/web/` is waiting on an owner decision ([#169](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/169)). See [`whitespace/README.md`](whitespace/README.md) for the pipeline's rules and modules.
+| `whitespace/pipeline/` | Ingest, concepts, graphs, labels, baselines, model, backtest, metrics, code layer and exporters |
+| `whitespace/tests/` | Offline tests, plus a labelled synthetic sample export |
+| `whitespace/web/` | Frontend; exported data goes in `public/data/` |
+| `docs/` | Demo script, judge Q&A, submission checklist, team coordination |
+| `.github/workflows/` | CI (Markdown lint, web build, pipeline tests) and the production deploy |
+| `PRD.md` | Product requirements and evaluation protocol |
 
 ## Run locally
 
-Pipeline tests, from the repository root (Python 3.11 is what CI uses):
+Pipeline tests, from the repository root:
 
 ```sh
 python -m pip install -r whitespace/requirements.txt
 python -m pytest -q whitespace
 ```
 
-There is no end-to-end pipeline command on `main` yet; the manual Papers with Code resolution check is described in [`whitespace/README.md`](whitespace/README.md).
-
-Frontend, with Node.js 22. It reads the mock JSON in `whitespace/web/mock/` and needs no API or network:
+Frontend, with Node.js 22:
 
 ```sh
 npm --prefix whitespace/web ci
 npm --prefix whitespace/web run dev      # development server
-npm --prefix whitespace/web run build    # type-check and build to whitespace/web/dist
-npm --prefix whitespace/web run preview  # serve the build
+npm --prefix whitespace/web run build    # type-check and build
 ```
 
-## Vercel preview
+With no files in `whitespace/web/public/data/`, the frontend uses its bundled placeholder fixtures. Copy an export there to see it rendered.
 
-Deployment is tracked in [#135](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/135). The Vercel project `whitespace` is set to root directory `whitespace/web`, install `npm ci`, build `npm run build` and output `dist`; `whitespace/web/vercel.json` rewrites every route to `index.html` so deep links load on refresh.
+## Deployment
 
-- Vercel's Git deployments are blocked for this private repository on the Hobby plan, because the commit author must be the team owner. Previews are therefore deployed from the owner's authenticated machine with `vercel deploy` in a folder linked to the project, without `--prod`. [PR #172](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/172) proposes an owner-token preview workflow instead.
-- A preview of PR #159 at `eff0a25` is at <https://whitespace-gd2vx6uoz-persia3.vercel.app>. It runs on mock fixtures and shows no real results. The link is deployment-specific and may change.
-- The production URL still serves the previous deployment until the product owner approves a cutover.
+Every merge to `main` that changes `whitespace/web/` deploys production through [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). The job runs only on `main`, uses a Vercel token held in the protected `production` environment, and never runs on pull requests. You can also start it from *Actions → Deploy production → Run workflow*. Deep links work because `whitespace/web/vercel.json` rewrites every route to the app.
 
 ## Data and limitations
 
-- Paper metadata comes from OpenAlex (CC0 metadata). Raw abstracts are not committed or published.
-- Code links come from the [Papers with Code archive on Hugging Face](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code) (`cc-by-sa-4.0`, 300,161 rows, snapshot retrieved 28 July 2025). Credit Papers with Code and follow the share-alike terms. Papers after about mid-2025 will look unlinked.
-- A "link" is co-occurrence in at least three papers. Co-occurrence is not importance or truth.
-- Concept-pair forecasting is prior art, not a new idea (for example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881)).
+- **Papers:** [OpenAlex](https://openalex.org) metadata (CC0). Raw abstracts aren't committed or published.
+- **Code links:** the [Papers with Code archive](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code) (CC BY-SA 4.0, snapshot of 28 July 2025). Coverage is a lower bound: a paper without a link has no code in that archive, not necessarily no code at all. Papers after mid-2025 will look unlinked.
+- **Links:** a "link" means co-occurrence in at least three papers. It measures attention, not importance or truth.
+- **Prior art:** forecasting concept pairs isn't new; see, for example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881). Whitespace's contribution is the leakage-safe evaluation and turning the forecast into a decision tool.
 
-## Team and lanes
+## Team
 
-- **Product owner:** Persia ([@PersiaF04](https://github.com/PersiaF04)), who owns scope, priorities and merge decisions.
-- **Contributors:** Varshil and sanamorii ([#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122)).
-- **Lanes** ([`PRD.md`](PRD.md) section 20): pipeline / ML, backend, and frontend / pitch.
-- **Agents:** Claude Code agents implement assigned issues and Codex agents review pull requests, as set out in [`AGENTS.md`](AGENTS.md).
+- **Persia** ([@PersiaF04](https://github.com/PersiaF04)): product owner.
+- **Varshil:** frontend and design.
+- **sanamorii:** pipeline, model and evaluation.
 
-## Contributing
-
-Read [`TEAMWORK.md`](TEAMWORK.md) and [`AGENTS.md`](AGENTS.md). GitHub Issues are the work queue: one issue per change, one branch per issue, and a pull request to `main` with `Closes #<issue>`. Do not work directly on `main`.
-
-## AI-use disclosure
-
-This project is built with AI coding agents. Claude Code agents write code and documentation and Codex agents review it, under human decisions on scope and merging.
+The team builds with AI coding agents: Claude Code agents implement issues and Codex agents review pull requests, under the team's decisions on scope and merging. See [`AGENTS.md`](AGENTS.md) and [`TEAMWORK.md`](TEAMWORK.md) for how work is organised.
 
 ## Licence
 
-Not selected. The repository has no `LICENSE` file, so treat the code as not licensed for reuse until one is added.
+No licence has been chosen yet. Until a `LICENSE` file is added, the code isn't licensed for reuse.
