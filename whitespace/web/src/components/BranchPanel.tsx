@@ -9,8 +9,8 @@ type Props = {
   onClose: () => void;
 };
 
-/** A drop of more than 100% is impossible, so such values (partial-year data in the export) are treated as unknown. */
-const sane = (g: number | null | undefined): g is number => typeof g === "number" && !Number.isNaN(g) && g >= -1;
+/** Growth is a log ratio in the export; fmtGrowth converts it to a percentage that cannot fall below -100%. */
+const sane = (g: number | null | undefined): g is number => typeof g === "number" && Number.isFinite(g);
 const trend = (g: number | null | undefined) =>
   !sane(g) ? "trend unavailable" : g >= 0.45 ? "growing fast" : g >= 0.15 ? "growing" : g >= -0.05 ? "steady" : "shrinking";
 
