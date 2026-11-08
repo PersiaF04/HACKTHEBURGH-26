@@ -18,7 +18,7 @@ type MapLegendProps = {
 };
 
 const HINT: Record<MapLegendProps["view"], string> = {
-  "3d": "Drag to rotate, scroll to zoom, right-drag (or shift-drag) to pan. Click a dot for details. Keys: arrows rotate, + and − zoom, 0 resets.",
+  "3d": "Drag to rotate, scroll or pinch to zoom. Position comes from a per-year layout of the concepts, not a measured axis. Click a dot for details. Keys: arrows rotate, + and − zoom, 0 resets.",
   "2d": "Drag to pan, scroll to zoom. Click a dot for details.",
   none: "",
 };

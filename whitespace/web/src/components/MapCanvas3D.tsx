@@ -13,6 +13,10 @@ type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
   concepts: MapConcept[];
+  /** Unfiltered concepts of the current year. Bounds and area offsets come from these, so filtering never rescales the cloud. */
+  allConcepts?: MapConcept[];
+  /** The camera resets on first data and when this changes (the selected year), never on a filter change. */
+  resetKey?: string | number;
   edges: PredictedEdge[];
   selectedConceptId: string | null;
   focus: MapFocus;
@@ -104,7 +108,7 @@ type Scene3D = {
 type Flight = { t0: number; dur: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromO: THREE.Vector3; toO: THREE.Vector3 };
 
 export function MapCanvas3D({
-  concepts, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
+  concepts, allConcepts, resetKey, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
   linkedEdges, showPredicted = true, showAreaLabels = true, onUnsupported,
 }: MapCanvas3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -117,42 +121,31 @@ export function MapCanvas3D({
   const [heatmap, setHeatmap] = useState(false);
   const { theme } = useTheme();
 
-  // Geometry-level derived data: world positions, sizes, colour buckets.
-  const data = useMemo(() => {
-    const n = concepts.length;
+  // Layout from the UNFILTERED set: bounds, z scale and area offsets are fixed per year, so a filter only hides dots.
+  const base = allConcepts ?? concepts;
+  const layout = useMemo(() => {
+    const all = base;
     let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
-    for (const c of concepts) {
+    for (const c of all) {
       if (c.x < xmin) xmin = c.x; if (c.x > xmax) xmax = c.x;
       if (c.y < ymin) ymin = c.y; if (c.y > ymax) ymax = c.y;
     }
     const range = Math.max(xmax - xmin, ymax - ymin) || 1;
     const xc = (xmin + xmax) / 2, yc = (ymin + ymax) / 2;
     // z scale: 95th percentile of |growth| so a few outliers do not flatten everything.
-    const mags = concepts.filter((c) => c.growth !== null && !Number.isNaN(c.growth)).map((c) => Math.abs(c.growth as number)).sort((a, b) => a - b);
+    const mags = all.filter((c) => c.growth !== null && !Number.isNaN(c.growth)).map((c) => Math.abs(c.growth as number)).sort((a, b) => a - b);
     const zRef = Math.max(0.05, mags.length ? mags[Math.floor(mags.length * 0.95)] ?? mags[mags.length - 1] : 0.05);
-    const pos = new Float32Array(n * 3);
-    const size = new Float32Array(n);
-    const color = new Float32Array(n * 3);
-    const heat = new Float32Array(n);
-    const bucket = new Uint8Array(n);
-    const tmp = new THREE.Color();
-    const palette = readMapTheme().growth;
-    concepts.forEach((c, i) => {
+    const pos = new Float32Array(all.length * 3);
+    all.forEach((c, i) => {
+      const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
       pos[i * 3] = ((c.x - xc) / range) * SPAN_XY;
       pos[i * 3 + 1] = ((c.y - yc) / range) * SPAN_XY;
-      const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
       pos[i * 3 + 2] = Math.max(-1, Math.min(1, g / zRef)) * (SPAN_Z / 2);
-      heat[i] = Math.max(0, Math.min(1, (g / zRef + 1) / 2));
-      size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
-      const b = growthBucket(c.growth);
-      bucket[i] = b;
-      tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
-      color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
     // Preserve each area's internal geometry, but make the largest named areas visually distinct.
     // This is a navigation layout aid; node height and colour still come from the observed growth data.
     const areaGroups = new Map<string, { indices: number[]; x: number; y: number }>();
-    concepts.forEach((concept, i) => {
+    all.forEach((concept, i) => {
       if (!concept.area) return;
       const group = areaGroups.get(concept.area) ?? { indices: [], x: 0, y: 0 };
       group.indices.push(i);
@@ -174,6 +167,34 @@ export function MapCanvas3D({
         pos[i * 3 + 1] += targetY - area.y;
       }
     });
+    const center = new THREE.Vector3();
+    for (let i = 0; i < all.length; i += 1) center.add(new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
+    if (all.length > 0) center.multiplyScalar(1 / all.length);
+    return { pos, slot: new Map(all.map((c, i) => [c.id, i])), zRef, center };
+  }, [base]);
+
+  // Geometry-level derived data: world positions (looked up from the fixed layout), sizes, colour buckets.
+  const data = useMemo(() => {
+    const n = concepts.length;
+    const { zRef } = layout;
+    const pos = new Float32Array(n * 3);
+    const size = new Float32Array(n);
+    const color = new Float32Array(n * 3);
+    const heat = new Float32Array(n);
+    const bucket = new Uint8Array(n);
+    const tmp = new THREE.Color();
+    const palette = readMapTheme().growth;
+    concepts.forEach((c, i) => {
+      const k = (layout.slot.get(c.id) ?? 0) * 3;
+      pos[i * 3] = layout.pos[k]; pos[i * 3 + 1] = layout.pos[k + 1]; pos[i * 3 + 2] = layout.pos[k + 2];
+      const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
+      heat[i] = Math.max(0, Math.min(1, (g / zRef + 1) / 2));
+      size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
+      const b = growthBucket(c.growth);
+      bucket[i] = b;
+      tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
+      color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
+    });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
     const labelOrder = concepts.map((_, i) => i).sort((a, b) => (concepts[b].paper_count ?? 0) - (concepts[a].paper_count ?? 0));
     const sums = new Map<string, { x: number; y: number; z: number; n: number }>();
@@ -184,16 +205,14 @@ export function MapCanvas3D({
       sums.set(c.area, s);
     });
     const areas = [...sums].map(([name, s]) => ({ name, v: new THREE.Vector3(s.x / s.n, s.y / s.n, s.z / s.n) }));
-    const center = new THREE.Vector3();
-    for (let i = 0; i < n; i += 1) center.add(new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
-    if (n > 0) center.multiplyScalar(1 / n);
+    const center = layout.center;
     return { n, pos, size, color, heat, bucket, indexById, labelOrder, areas, center };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [concepts, theme]);
+  }, [concepts, layout, theme]);
 
   // Latest props for the render loop (no re-creation of the engine).
-  const live = useRef({ data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
-  live.current = { data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
+  const live = useRef({ resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
+  live.current = { resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
 
   // Engine: renderer, camera, controls, picking, overlay. Created once per mount.
   useEffect(() => {
@@ -559,6 +578,8 @@ export function MapCanvas3D({
       (pointsMat.uniforms.uRim.value as THREE.Vector3).set(rim.r, rim.g, rim.b);
       requestRender();
     };
+    let viewKey: string | number | undefined;
+    let viewSet = false;
     const setData = () => {
       const d = live.current.data;
       if (points) { scene.remove(points); points.geometry.dispose(); points = null; }
@@ -575,7 +596,8 @@ export function MapCanvas3D({
       }
       hoverRef.current = -1;
       projDirty = true;
-      resetView();
+      // Reset the camera on first data and on a year change only; a filter change keeps the pose.
+      if (d.n && (!viewSet || viewKey !== live.current.resetKey)) { resetView(); viewSet = true; viewKey = live.current.resetKey; }
       requestRender();
     };
     const setLines = () => {

@@ -156,6 +156,8 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
             <div className="ex__mapwrap">
               <MapCanvas3DLazy
                 concepts={visible}
+                allConcepts={map.concepts}
+                resetKey={selectedYear}
                 edges={edges}
                 linkedEdges={linkedEdges}
                 selectedConceptId={selectedId}
