@@ -18,7 +18,7 @@ export type Hierarchy = {
 };
 
 const K = 7;
-const MEMBERS_PER_BRANCH = 24;
+export const DEFAULT_PER_BRANCH = 60;
 export const BRANCH_PREFIX = "branch:";
 export const HYPOTHESIS_PREFIX = "hyp:";
 export const isSynthetic = (id: string) => id.startsWith(BRANCH_PREFIX) || id.startsWith(HYPOTHESIS_PREFIX);
@@ -55,7 +55,7 @@ function kmeans(points: ConceptPoint[], k: number): number[] {
   return assign;
 }
 
-export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hierarchy {
+export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], perBranch = DEFAULT_PER_BRANCH): Hierarchy {
   if (concepts.length < K * 2) return { nodes: concepts.map((c) => ({ ...c, kind: "concept" as const })), structure: [], branches: 0, branchInfo: new Map(), hypothesisInfo: new Map() };
   const inGap = new Set(gaps.flatMap((g) => [g.a, g.b]));
   const assign = kmeans(concepts, K);
@@ -72,7 +72,7 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hi
     if (!members.length) return;
     members.sort((p, q) => (q.paper_count ?? 0) - (p.paper_count ?? 0));
     const name = `${members[0].label} branch`;
-    const core = members.slice(0, MEMBERS_PER_BRANCH);
+    const core = members.slice(0, perBranch);
     const x = core.reduce((s, m) => s + m.x, 0) / core.length;
     const y = core.reduce((s, m) => s + m.y, 0) / core.length;
     const gs = core.filter((m) => typeof m.growth === "number" && !Number.isNaN(m.growth));
@@ -82,7 +82,7 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hi
     nodes.push({ id, label: name, x, y, paper_count: total, growth, kind: "branch" });
     hubs.push({ id, x, y });
     // Only each branch's largest concepts (and any concept in a ranked gap) are drawn, so the tree stays readable.
-    const drawn = members.filter((m, i) => i < MEMBERS_PER_BRANCH || inGap.has(m.id));
+    const drawn = members.filter((m, i) => i < perBranch || inGap.has(m.id));
     branchInfo.set(id, { id, label: name, total: members.length, papers: total, growth, shown: drawn, hypotheses: [] });
     for (const m of drawn) { nodes.push({ ...m, kind: "concept" }); conceptBranch.set(m.id, id); }
     for (const m of drawn) structure.push({ source: id, target: m.id, kind: "member" });
@@ -150,7 +150,7 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
     ids.forEach((id, i) => {
       const n = byId.get(id)!;
       const ang = i * 2.399963 + Math.atan2(at.y, at.x);
-      const rad = 0.07 * Math.sqrt(i + 1) + 0.05;
+      const rad = 0.05 + 0.4 * Math.sqrt((i + 1) / ids.length);
       n.x = at.x + Math.cos(ang) * rad;
       n.y = at.y + Math.sin(ang) * rad;
     });

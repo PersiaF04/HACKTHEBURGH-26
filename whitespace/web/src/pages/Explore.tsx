@@ -10,7 +10,7 @@ import { MapLegend } from "../components/MapLegend";
 import { MapSkeleton } from "../components/MapSkeleton";
 import { SearchBar } from "../components/SearchBar";
 import { fmtInt } from "../lib/format";
-import { buildHierarchy, isSynthetic } from "../lib/hierarchy";
+import { buildHierarchy, DEFAULT_PER_BRANCH, isSynthetic } from "../lib/hierarchy";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
 import "./explore-page.css";
@@ -41,6 +41,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [detail, setDetail] = useState<ConceptResponse | null | undefined>(undefined);
   const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
+  const [perBranch, setPerBranch] = useState(DEFAULT_PER_BRANCH);
   const [synth, setSynth] = useState<string | null>(null);
   const [ranked, setRanked] = useState<GapSummary[]>([]);
 
@@ -80,7 +81,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
     return () => { current = false; };
   }, [selectedYear]);
-  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, ranked) : null), [live, map.concepts, ranked]);
+  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, ranked, perBranch) : null), [live, map.concepts, ranked, perBranch]);
 
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
   const areas = useMemo(() => {
@@ -199,6 +200,13 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
               />
             </div>
             <MapLegend view="3d" hasLinked={hasLinked} />
+            {hierarchy && (
+              <div className="ex__perbranch">
+                <label htmlFor="ex-per-branch">Concepts per branch</label>
+                <input id="ex-per-branch" type="range" min={10} max={300} step={10} value={perBranch} onChange={(e) => setPerBranch(Number(e.currentTarget.value))} />
+                <span className="whitespace-mono">{perBranch}</span>
+              </div>
+            )}
             {hierarchy && (
               <p className="ws-note ex__structure-note">
                 Graph structure: large white dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Grey dots are the largest concepts in each branch. Blue dots are the top ranked hypotheses (gaps), linked to the two concepts they join; dashed lines are other predicted links. Branches are derived in the app, not exported by the pipeline.
