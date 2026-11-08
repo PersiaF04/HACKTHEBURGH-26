@@ -1,5 +1,16 @@
 # Whitespace
 
+[![Live site](https://img.shields.io/badge/live-whitespace--hacktheburgh--26.vercel.app-2952E3?logo=vercel&logoColor=white)](https://whitespace-hacktheburgh-26.vercel.app)
+[![CI](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml)
+[![Pipeline tests](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml)
+[![Deploy production](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-149ECA?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Data: OpenAlex](https://img.shields.io/badge/data-OpenAlex-F4A300)
+![HackTheBurgh XIII](https://img.shields.io/badge/HackTheBurgh-XIII-15171C)
+
 **See where AI research is going, and the questions nobody has answered yet.**
 
 **Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)**
@@ -9,6 +20,8 @@ Whitespace is a research-discovery tool for AI/ML literature. It builds a concep
 Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 > **Status:** the real-data run is in progress. Until it finishes, the site shows placeholder data, labelled as such on every page. The forecast is evaluated once, on a held-out test year. No result is claimed until it's recorded, and it's published whichever way it falls.
+
+![Whitespace research map](docs/images/research-map.png)
 
 ## Who it's for
 
@@ -20,17 +33,25 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 ## What it does
 
-- **Explore:** a research map with a time slider from 2015. Concepts are sized by paper count and coloured by growth. Open a concept to see its trend, predicted gaps and top papers. Search and the open-problems view are placeholders for now.
+- **Explore:** a research map of the latest snapshot year. Concepts are sized by paper count and coloured by growth. Open a concept to see its trend, predicted gaps and top papers. Search and the open-problems view are placeholders for now.
 - **Gaps:** unlinked concept pairs ranked by the calibrated probability that they link within three years, with score components and supporting papers.
 - **Evidence** (at `/evidence`): the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
 - **Code coverage** (at `/coverage`): a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
+
+### Screens
+
+These screenshots of the live site show placeholder data; they will be replaced once the real export is live.
+
+| Gaps and open problems | Evidence | Code coverage |
+| --- | --- | --- |
+| ![Gaps and open problems](docs/images/gaps.png) | ![Evidence](docs/images/evidence.png) | ![Code coverage](docs/images/coverage.png) |
 
 ## The two tracks
 
 The track framings below are the team's own wording; the official prompts aren't confirmed.
 
 - **HRT track: which research gap to pursue.** The probabilities come from a purged temporal backtest: the model is fit on origins through 2014, calibrated on 2017 and tested once on 2020, with outcomes in 2021–2023, so no outcome window leaks into a later split. The pre-registered headline is the model's average precision minus the best baseline's (the baseline is chosen on 2017, never on the test year), with a 95% bootstrap interval. The verdict is "beats the baseline" only if the whole interval is above zero.
-- **G-Research track: making the invisible visible.** The map and time slider show where research is moving, and the coverage view shows where published work has no linked code. Mining limitations and future work from abstracts is planned.
+- **G-Research track: making the invisible visible.** The map shows where research is moving, and the coverage view shows where published work has no linked code. Mining limitations and future work from abstracts is planned.
 
 ## How it works
 
@@ -58,6 +79,7 @@ The site is a static app: every result is precomputed, so the demo makes no live
 | `whitespace/tests/` | Offline tests, plus a labelled synthetic sample export |
 | `whitespace/web/` | Frontend; exported data goes in `public/data/` |
 | `docs/` | Demo script, judge Q&A, submission checklist, team coordination |
+| `docs/BACKLOG.md` | Deferred and removed items (not built) |
 | `.github/workflows/` | CI (Markdown lint, web build, pipeline tests) and the production deploy |
 | `PRD.md` | Product requirements and evaluation protocol |
 

@@ -1,6 +1,26 @@
 import type { ChangeEvent } from 'react';
 import type { OpenProblem, OpenProblemResponse } from '../api';
+import { EmptyNote, SkeletonBlock } from '../components/Skeleton';
+import { fmtPct, fmtText, fmtYear } from '../lib/format';
 import './whitespace-pages.css';
+
+export const OPEN_PROBLEMS_CAPTION = 'Statements appear once papers with stated future work, limitations or open problems have been extracted; nothing is shown until then.';
+
+function OpenProblemsSkeleton({ loading }: { loading: boolean }) {
+  return (
+    <div className="ws-op-skeleton" aria-label="Open problems layout, no data yet">
+      <svg className="ws-skel-chart" viewBox="0 0 220 120" role="img" aria-label="Empty rate-over-time chart frame">
+        <rect x="30" y="8" width="180" height="84" fill="#F0F0EC" stroke="#CFCFC8" />
+        <text x="120" y="112" textAnchor="middle">Year</text>
+        <text x="10" y="50" textAnchor="middle" transform="rotate(-90 10 50)">Share of papers</text>
+      </svg>
+      <div aria-hidden="true">
+        {[0, 1, 2].map((i) => <div className="ws-skel-row" key={i}><SkeletonBlock height={10} width={i === 1 ? '75%' : '92%'} /><SkeletonBlock height={10} /></div>)}
+      </div>
+      <p className="ws-skel-caption" role="status">{loading ? 'Loading statements… ' : ''}{OPEN_PROBLEMS_CAPTION}</p>
+    </div>
+  );
+}
 
 export interface OpenProblemsPageProps {
   response: OpenProblemResponse | null;
@@ -24,8 +44,7 @@ const chartHeight = 220;
 const chartPadding = { top: 18, right: 16, bottom: 34, left: 48 };
 
 function formatRate(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return 'Not available';
-  return `${(value * 100).toFixed(1)}%`;
+  return fmtPct(value, 1);
 }
 
 function RateTrend({ points, conceptLabel }: { points: NonNullable<OpenProblemResponse['rates_by_year']>; conceptLabel: string }) {
@@ -33,7 +52,7 @@ function RateTrend({ points, conceptLabel }: { points: NonNullable<OpenProblemRe
   const values = usable.flatMap((point) => [point.concept_rate, point.ai_ml_rate])
     .filter((value): value is number => value !== null && Number.isFinite(value));
   if (usable.length === 0 || values.length === 0) {
-    return <p className="ws-state">No rate-over-time data is available for this selection.</p>;
+    return <EmptyNote>No rate-over-time data for this selection ({fmtPct(null)}).</EmptyNote>;
   }
 
   const minYear = Math.min(...usable.map((point) => point.year));
@@ -57,8 +76,8 @@ function RateTrend({ points, conceptLabel }: { points: NonNullable<OpenProblemRe
         <line x1={chartPadding.left} y1={chartHeight - chartPadding.bottom} x2={chartWidth - chartPadding.right} y2={chartHeight - chartPadding.bottom} className="ws-rate-axis" />
         <text x={chartPadding.left - 8} y={chartPadding.top + 4} textAnchor="end" className="ws-rate-label">{formatRate(maxValue)}</text>
         <text x={chartPadding.left - 8} y={chartHeight - chartPadding.bottom + 4} textAnchor="end" className="ws-rate-label">{formatRate(minValue)}</text>
-        <text x={chartPadding.left} y={chartHeight - 8} textAnchor="start" className="ws-rate-label">{minYear}</text>
-        <text x={chartWidth - chartPadding.right} y={chartHeight - 8} textAnchor="end" className="ws-rate-label">{maxYear}</text>
+        <text x={chartPadding.left} y={chartHeight - 8} textAnchor="start" className="ws-rate-label">{fmtYear(minYear)}</text>
+        <text x={chartWidth - chartPadding.right} y={chartHeight - 8} textAnchor="end" className="ws-rate-label">{fmtYear(maxYear)}</text>
         {series.map((item) => {
           const valid = usable.filter((point) => point[item.key] !== null && Number.isFinite(point[item.key]));
           return (
@@ -78,7 +97,7 @@ function RateTrend({ points, conceptLabel }: { points: NonNullable<OpenProblemRe
           <table>
             <caption>Share of papers with a stated open problem by publication year</caption>
             <thead><tr><th scope="col">Year</th><th scope="col">{conceptLabel}</th><th scope="col">All concepts in this AI/ML scope</th></tr></thead>
-            <tbody>{usable.map((point) => <tr key={point.year}><th scope="row">{point.year}</th><td>{formatRate(point.concept_rate)}</td><td>{formatRate(point.ai_ml_rate)}</td></tr>)}</tbody>
+            <tbody>{usable.map((point) => <tr key={point.year}><th scope="row">{fmtYear(point.year)}</th><td>{formatRate(point.concept_rate)}</td><td>{formatRate(point.ai_ml_rate)}</td></tr>)}</tbody>
           </table>
         </div>
       </details>
@@ -141,25 +160,18 @@ export function OpenProblemsPage({
           <h2 id="ws-rate-heading">Stated open problems over time</h2>
           <p>Compare the share of papers for this concept with all concepts in the AI/ML scope. Missing values are not treated as zero.</p>
         </div>
-        {status === 'loading' && <p className="ws-state" role="status">Loading rate history…</p>}
-        {status === 'error' && <p className="ws-state">Rate history is unavailable while the statements request has failed.</p>}
+        {status === 'error' && <EmptyNote>Rate history is unavailable while the statements request has failed.</EmptyNote>}
         {status === 'ready' && response && <RateTrend points={response.rates_by_year ?? []} conceptLabel={selectedConcept ? selectedLabel : 'All selected concepts'} />}
       </section>
 
-      {status === 'loading' && <p className="ws-state" role="status">Loading statements…</p>}
       {status === 'error' && (
         <div className="ws-state ws-state--error" role="alert">
           <p>{errorMessage || 'Statements could not be loaded.'}</p>
           {onRetry && <button type="button" onClick={onRetry}>Try again</button>}
         </div>
       )}
-      {(status === 'empty' || (status === 'ready' && items.length === 0)) && (
-        <p className="ws-state" role="status">
-          {placeholder
-            ? 'The placeholder response contains no example statements. No research result is being shown.'
-            : 'No matching statements for these filters.'}
-        </p>
-      )}
+      {status !== 'error' && items.length === 0 && <OpenProblemsSkeleton loading={status === 'loading'} />}
+      {status === 'ready' && items.length === 0 && !placeholder && <EmptyNote>No matching statements for these filters.</EmptyNote>}
 
       {status === 'ready' && items.length > 0 && (
         <>
@@ -169,12 +181,12 @@ export function OpenProblemsPage({
               <li className="ws-problem-card" key={`${item.paper.id}-${index}`}>
                 <div className="ws-problem-card__meta">
                   <span className="ws-tag">{titleCase(item.type)}</span>
-                  <span>{item.paper.year}</span>
+                  <span>{fmtYear(item.paper.year)}</span>
                 </div>
                 <blockquote>{item.sentence}</blockquote>
                 <p className="ws-source">
                   Source: <a href={item.paper.url} target="_blank" rel="noreferrer">
-                    {item.paper.title} <span className="ws-sr-only">(opens in a new tab)</span>
+                    {fmtText(item.paper.title)} <span className="ws-sr-only">(opens in a new tab)</span>
                   </a>
                 </p>
                 {item.paper.abstract_excerpt && <p className="ws-source-excerpt">{item.paper.abstract_excerpt}</p>}

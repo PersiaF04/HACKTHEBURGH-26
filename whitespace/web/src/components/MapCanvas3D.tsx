@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { ConceptPoint, PredictedEdge } from "../api";
+import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
@@ -13,6 +14,8 @@ export type MapCanvas3DProps = {
   edges: PredictedEdge[];
   selectedConceptId: string | null;
   focus: MapFocus;
+  /** Explicit "go to this concept" request (search, panel link). Each new tick flies the camera to the concept. */
+  focusRequest?: { id: string; tick: number } | null;
   placeholder: boolean;
   onSelectConcept: (id: string) => void;
   linkedEdges?: LinkedEdge[];
@@ -23,7 +26,6 @@ export type MapCanvas3DProps = {
 };
 
 const GROWTH_COLORS = ["#C3C7CF", "#F0C9A0", "#EDA060", "#E07432", "#BF4A0E"] as const;
-const GROWTH_LABELS = ["Shrinking", "0 to 15%", "15 to 30%", "30 to 45%", "45% or more"] as const;
 const UNKNOWN_COLOR = "#9AA0AA";
 const SPAN_XY = 100; // x,y mapped into [-50, 50]
 const SPAN_Z = 50; // z mapped into [-25, 25]
@@ -31,9 +33,10 @@ const FOV = 45;
 const MAX_LABELS = 60;
 const HOME = new THREE.Vector3(0, -105, 75);
 const TARGET = new THREE.Vector3(0, 0, 0);
+const HELP = "Drag to rotate, scroll to zoom, right-drag to pan";
 
 function growthBucket(g: number | null): number {
-  if (g === null || Number.isNaN(g)) return 5;
+  if (g === null || g === undefined || Number.isNaN(g)) return 5;
   if (g < 0) return 0;
   if (g < 0.15) return 1;
   if (g < 0.3) return 2;
@@ -42,9 +45,7 @@ function growthBucket(g: number | null): number {
 }
 
 function describe(c: ConceptPoint): string {
-  const papers = typeof c.paper_count === "number" ? `${c.paper_count.toLocaleString("en-GB")} papers` : "paper count unavailable";
-  const growth = c.growth === null ? "growth unavailable" : `growth ${(c.growth * 100).toFixed(1)}%`;
-  return `${c.label}; ${papers}; ${growth}`;
+  return `${fmtText(c.label)}; papers ${fmtInt(c.paper_count)}; 3-yr growth ${fmtGrowth(c.growth)}`;
 }
 
 const VERT = /* glsl */ `
@@ -77,18 +78,26 @@ type Scene3D = {
   resetView: () => void;
   zoom: (factor: number) => void;
   rotate: (dAzimuth: number, dPolar: number) => void;
+  setData: () => void;
+  setLines: () => void;
+  /** Move the orbit target to a concept; animated unless `instant` or reduced motion. */
+  flyTo: (index: number, instant: boolean) => void;
+  /** Whether this engine has had its first focus yet. */
+  focused: boolean;
 };
 
+type Flight = { t0: number; dur: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromO: THREE.Vector3; toO: THREE.Vector3 };
+
 export function MapCanvas3D({
-  concepts, edges, selectedConceptId, focus, placeholder, onSelectConcept,
+  concepts, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
   linkedEdges, showPredicted = true, showAreaLabels = true, onUnsupported,
 }: MapCanvas3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Scene3D | null>(null);
   const hoverRef = useRef(-1);
   const [unsupported, setUnsupported] = useState(false);
+  const [contextLost, setContextLost] = useState(false);
   const [hoverText, setHoverText] = useState("");
 
   // Geometry-level derived data: world positions, sizes, colour buckets.
@@ -112,7 +121,7 @@ export function MapCanvas3D({
     concepts.forEach((c, i) => {
       pos[i * 3] = ((c.x - xc) / range) * SPAN_XY;
       pos[i * 3 + 1] = ((c.y - yc) / range) * SPAN_XY;
-      const g = c.growth === null || Number.isNaN(c.growth) ? 0 : c.growth;
+      const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
       pos[i * 3 + 2] = Math.max(-1, Math.min(1, g / zRef)) * (SPAN_Z / 2);
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
@@ -134,27 +143,32 @@ export function MapCanvas3D({
   }, [concepts]);
 
   // Latest props for the render loop (no re-creation of the engine).
-  const live = useRef({ data, concepts, edges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
-  live.current = { data, concepts, edges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
+  const live = useRef({ data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
+  live.current = { data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
 
-  // Engine: renderer, camera, controls, picking, overlay. Created once.
+  // Engine: renderer, camera, controls, picking, overlay. Created once per mount.
   useEffect(() => {
-    const canvas = canvasRef.current;
     const stage = stageRef.current;
     const overlay = overlayRef.current;
-    if (!canvas || !stage || !overlay) return undefined;
+    if (!stage || !overlay) return undefined;
+    // The canvas is created here and removed in cleanup. Reusing one canvas across a StrictMode
+    // remount would hand the second renderer a context that forceContextLoss() already killed.
+    const canvas = document.createElement("canvas");
+    canvas.className = "ws3d__canvas";
+    canvas.setAttribute("aria-hidden", "true");
+    stage.insertBefore(canvas, stage.firstChild);
 
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
       if (!renderer.getContext()) throw new Error("no context");
     } catch {
+      canvas.remove();
       setUnsupported(true);
       onUnsupported?.();
       return undefined;
     }
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0xfbfbf9, 1);
 
     const scene = new THREE.Scene();
@@ -169,6 +183,7 @@ export function MapCanvas3D({
     controls.minDistance = 8;
     controls.maxDistance = 400;
     controls.zoomSpeed = 0.9;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.update();
 
     // Labels pool and rings, built once.
@@ -184,7 +199,7 @@ export function MapCanvas3D({
     const hoverRing = mk("ws3d__ring ws3d__ring--hover", 1)[0];
     const selRing = mk("ws3d__ring ws3d__ring--sel", 1)[0];
 
-    // Persistent point cloud, rebuilt when data changes (see effect below).
+    // Persistent point cloud, rebuilt when data changes.
     const pointsMat = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG,
       uniforms: { uScale: { value: 1 } },
@@ -200,6 +215,7 @@ export function MapCanvas3D({
     let projDirty = true;
     let rafId = 0;
     let dirty = true;
+    let flight: Flight | null = null;
     const v = new THREE.Vector3();
     const proj = new THREE.Matrix4();
 
@@ -220,18 +236,16 @@ export function MapCanvas3D({
       projDirty = false;
     };
 
-    const pxSize = (i: number, depth: number) => {
-      const scale = (height * renderer.getPixelRatio()) / (2 * Math.tan((FOV * Math.PI) / 360));
-      return Math.max(3, (live.current.data.size[i] * scale) / depth) / renderer.getPixelRatio();
-    };
+    const focalPx = () => height / (2 * Math.tan((FOV * Math.PI) / 360)); // CSS px
+    const pxSize = (i: number, depth: number) => Math.max(3 / renderer.getPixelRatio(), (live.current.data.size[i] * focalPx()) / depth);
 
     const place = (el: HTMLElement, x: number, y: number) => {
       el.style.display = "block";
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
     };
     const placeRing = (el: HTMLElement, i: number) => {
-      const depth = screen[i * 3 + 2];
-      if (i < 0 || depth <= 0) { el.style.display = "none"; return; }
+      const depth = i >= 0 ? screen[i * 3 + 2] : -1;
+      if (!(depth > 0)) { el.style.display = "none"; return; }
       const d = pxSize(i, depth) + 8;
       el.style.display = "block";
       el.style.width = `${d}px`;
@@ -255,7 +269,7 @@ export function MapCanvas3D({
         const depth = screen[i * 3 + 2];
         const x = screen[i * 3], y = screen[i * 3 + 1];
         if (depth <= 0 || x < -10 || y < -10 || x > width + 10 || y > height + 10) return false;
-        const text = s.concepts[i].label;
+        const text = fmtText(s.concepts[i].label);
         const w = text.length * 5.8 + 4;
         const lx = x + pxSize(i, depth) / 2 + 4, ly = y - 7;
         for (const p of placed) if (lx < p[2] && lx + w > p[0] && ly < p[3] && ly + 14 > p[1]) return false;
@@ -304,28 +318,38 @@ export function MapCanvas3D({
           (d.pos[e.a * 3 + 2] + d.pos[e.b * 3 + 2]) / 2,
         ).project(camera);
         if (v.z > 1) { el.style.display = "none"; return; }
-        el.textContent = `P ${e.p.toFixed(2)}`;
+        el.textContent = `P ${fmtP(e.p)}`;
         place(el, (v.x * 0.5 + 0.5) * width - 22, (1 - (v.y * 0.5 + 0.5)) * height - 9);
       });
     };
 
     const renderNow = () => {
       if (width <= 0 || height <= 0) return;
-      pointsMat.uniforms.uScale.value = (height * renderer.getPixelRatio()) / (2 * Math.tan((FOV * Math.PI) / 360));
+      pointsMat.uniforms.uScale.value = focalPx() * renderer.getPixelRatio(); // point size is in device px
       renderer.render(scene, camera);
       project();
       updateOverlay();
     };
 
-    const loop = () => {
+    const loop = (now: number) => {
       rafId = 0;
+      let flying = false;
+      if (flight) {
+        const k = Math.min(1, (now - flight.t0) / flight.dur);
+        const e = 1 - (1 - k) ** 3;
+        controls.target.lerpVectors(flight.fromT, flight.toT, e);
+        camera.position.copy(controls.target).add(v.lerpVectors(flight.fromO, flight.toO, e));
+        flying = k < 1;
+        if (!flying) flight = null;
+        dirty = true;
+      }
       const moved = controls.update();
       if (moved || dirty) {
         dirty = false;
         projDirty = true;
         renderNow();
       }
-      if (moved) rafId = requestAnimationFrame(loop);
+      if (moved || flying) rafId = requestAnimationFrame(loop);
     };
     const requestRender = () => {
       dirty = true;
@@ -334,16 +358,19 @@ export function MapCanvas3D({
     controls.addEventListener("change", requestRender);
 
     const resize = () => {
-      const rect = stage.getBoundingClientRect();
-      width = Math.max(1, Math.round(rect.width));
-      height = Math.max(1, Math.round(rect.height));
+      // Size from the canvas itself (not the bordered stage) so pixels, picking and overlay agree.
+      width = Math.max(1, canvas.clientWidth);
+      height = Math.max(1, canvas.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); // follows browser zoom and monitor changes
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      projDirty = true;
       requestRender();
     };
     const observer = new ResizeObserver(resize);
-    observer.observe(stage);
+    observer.observe(canvas);
+    window.addEventListener("resize", resize);
 
     // Picking: nearest projected node within its pixel radius (no raycast, no per-frame work).
     const hit = (clientX: number, clientY: number): number => {
@@ -355,11 +382,11 @@ export function MapCanvas3D({
       for (let i = 0; i < n; i += 1) {
         const depth = screen[i * 3 + 2];
         if (depth <= 0) continue;
+        const reach = Math.max(9, pxSize(i, depth) / 2 + 3);
         const dx = screen[i * 3] - px;
-        if (dx > 24 || dx < -24) continue;
+        if (dx > reach || dx < -reach) continue;
         const dy = screen[i * 3 + 1] - py;
         const dist = Math.hypot(dx, dy);
-        const reach = Math.max(9, pxSize(i, depth) / 2 + 3);
         if (dist <= reach) {
           const score = dist + depth * 0.02; // prefer closer to the cursor, then nearer to the camera
           if (score < bestScore) { best = i; bestScore = score; }
@@ -369,7 +396,11 @@ export function MapCanvas3D({
     };
 
     let down: { x: number; y: number; moved: boolean } | null = null;
-    const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY, moved: false }; };
+    const onDown = (e: PointerEvent) => {
+      down = { x: e.clientX, y: e.clientY, moved: false };
+      flight = null; // the user takes over from any camera flight
+      if (hoverRef.current >= 0) { hoverRef.current = -1; canvas.style.cursor = ""; setHoverText(""); requestRender(); }
+    };
     const onMove = (e: PointerEvent) => {
       if (down) {
         if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 4) down.moved = true;
@@ -386,20 +417,23 @@ export function MapCanvas3D({
     const onUp = (e: PointerEvent) => {
       const d0 = down;
       down = null;
-      if (d0 && !d0.moved && e.button === 0) {
+      if (d0 && !d0.moved && e.button === 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         const i = hit(e.clientX, e.clientY);
         if (i >= 0) live.current.onSelectConcept(live.current.concepts[i].id);
       }
     };
+    const onCancel = () => { down = null; };
     const onLeave = () => {
       if (hoverRef.current >= 0) { hoverRef.current = -1; setHoverText(""); requestRender(); }
     };
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
     canvas.addEventListener("pointerleave", onLeave);
 
     const zoom = (factor: number) => {
+      flight = null;
       const offset = camera.position.clone().sub(controls.target);
       const len = Math.max(controls.minDistance, Math.min(controls.maxDistance, offset.length() * factor));
       camera.position.copy(controls.target).add(offset.setLength(len));
@@ -407,6 +441,7 @@ export function MapCanvas3D({
       requestRender();
     };
     const rotate = (dAz: number, dPol: number) => {
+      flight = null;
       const offset = camera.position.clone().sub(controls.target);
       const sph = new THREE.Spherical().setFromVector3(offset.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(camera.up, new THREE.Vector3(0, 1, 0))));
       sph.theta += dAz;
@@ -418,6 +453,7 @@ export function MapCanvas3D({
       requestRender();
     };
     const resetView = () => {
+      flight = null;
       camera.position.copy(HOME);
       controls.target.copy(TARGET);
       controls.update();
@@ -425,6 +461,7 @@ export function MapCanvas3D({
     };
 
     const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const step = 0.12;
       switch (e.key) {
         case "ArrowLeft": rotate(-step, 0); break;
@@ -440,7 +477,6 @@ export function MapCanvas3D({
     };
     stage.addEventListener("keydown", onKey);
 
-    // Expose rebuild hooks via the engine object.
     const setData = () => {
       const d = live.current.data;
       if (points) { scene.remove(points); points.geometry.dispose(); points = null; }
@@ -486,7 +522,7 @@ export function MapCanvas3D({
       }
       edgeLines = build(pred, edgeMat, true);
       const lk: Array<[number, number]> = [];
-      for (const e of linkedRef.current ?? []) {
+      for (const e of s.linkedEdges ?? []) {
         const a = d.indexById.get(e.source), b = d.indexById.get(e.target);
         if (a !== undefined && b !== undefined) lk.push([a, b]);
       }
@@ -494,64 +530,89 @@ export function MapCanvas3D({
       requestRender();
     };
 
-    engineRef.current = {
-      renderer, scene, camera, controls, requestRender, resetView, zoom, rotate,
+    const flyTo = (index: number, instant: boolean) => {
+      const d = live.current.data;
+      if (index < 0 || index >= d.n) return;
+      const toT = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]);
+      const fromO = camera.position.clone().sub(controls.target);
+      const toO = fromO.clone().setLength(Math.max(controls.minDistance, Math.min(fromO.length(), 70)));
+      if (instant || reduced) {
+        flight = null;
+        controls.target.copy(toT);
+        camera.position.copy(toT).add(toO);
+        controls.update();
+        requestRender();
+        return;
+      }
+      flight = { t0: performance.now(), dur: 450, fromT: controls.target.clone(), toT, fromO, toO };
+      requestRender();
     };
-    (engineRef.current as unknown as { setData: () => void; setLines: () => void }).setData = setData;
-    (engineRef.current as unknown as { setData: () => void; setLines: () => void }).setLines = setLines;
+
+    // A lost WebGL context must not leave a frozen canvas: say so, and rebuild when it returns.
+    const onContextLost = (event: Event) => { event.preventDefault(); setContextLost(true); };
+    const onContextRestored = () => { setContextLost(false); setData(); setLines(); requestRender(); };
+    canvas.addEventListener("webglcontextlost", onContextLost);
+    canvas.addEventListener("webglcontextrestored", onContextRestored);
+
+    engineRef.current = {
+      renderer, scene, camera, controls, requestRender, resetView, zoom, rotate, setData, setLines, flyTo, focused: false,
+    };
     setData();
     setLines();
     resize();
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
+      flight = null;
       observer.disconnect();
+      window.removeEventListener("resize", resize);
       controls.removeEventListener("change", requestRender);
       controls.dispose();
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
       canvas.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
       stage.removeEventListener("keydown", onKey);
       for (const o of [points, edgeLines, linkLines]) if (o) o.geometry.dispose();
       pointsMat.dispose(); edgeMat.dispose(); linkMat.dispose();
       for (const el of [...labelEls, ...areaEls, ...chipEls, hoverRing, selRing]) el.remove();
       renderer.dispose();
       renderer.forceContextLoss();
+      canvas.remove();
       engineRef.current = null;
     };
     // The engine is created once; later prop changes are pushed by the effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const linkedRef = useRef(linkedEdges);
-  linkedRef.current = linkedEdges;
-
-  type Hooks = { setData: () => void; setLines: () => void } | null;
-  const hooks = () => engineRef.current as unknown as Hooks;
-
-  useEffect(() => { hooks()?.setData(); hooks()?.setLines(); }, [data]);
-  useEffect(() => { hooks()?.setLines(); }, [edges, linkedEdges, showPredicted, data]);
+  useEffect(() => { engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
+  useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, showPredicted, data]);
   useEffect(() => { engineRef.current?.requestRender(); }, [selectedConceptId, showAreaLabels]);
 
+  // Camera focus: an explicit request (search, panel link) wins; otherwise the map's initial focus point.
+  // The first focus on a new engine is instant, so switching 2D/3D lands on the selection without a fly-in.
+  const focusTick = focusRequest?.tick;
+  const hasData = data.n > 0;
   useEffect(() => {
     const eng = engineRef.current;
-    if (!eng || !focus || !data.n) return;
-    // Aim at the concept nearest the 2D focus so the target sits at its real height.
-    let best = -1, bd = Infinity;
-    concepts.forEach((c, i) => {
-      const d = (c.x - focus.x) ** 2 + (c.y - focus.y) ** 2;
-      if (d < bd) { bd = d; best = i; }
-    });
-    if (best < 0) return;
-    const t = new THREE.Vector3(data.pos[best * 3], data.pos[best * 3 + 1], data.pos[best * 3 + 2]);
-    const delta = t.clone().sub(eng.controls.target);
-    eng.controls.target.copy(t);
-    eng.camera.position.add(delta);
-    eng.controls.update();
-    eng.requestRender();
+    if (!eng || !hasData) return;
+    let target = focusRequest ? data.indexById.get(focusRequest.id) ?? -1 : -1;
+    if (target < 0 && focus && !eng.focused) {
+      let bd = Infinity;
+      concepts.forEach((c, i) => {
+        const dd = (c.x - focus.x) ** 2 + (c.y - focus.y) ** 2;
+        if (dd < bd) { bd = dd; target = i; }
+      });
+    }
+    if (target < 0) return;
+    eng.flyTo(target, !eng.focused);
+    eng.focused = true;
+    // Only a new request (or the first data for this engine) moves the camera, never a filter change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focus?.x, focus?.y, data]);
+  }, [focusTick, hasData]);
 
   const onZoom = useCallback((f: number) => engineRef.current?.zoom(f), []);
 
@@ -562,28 +623,23 @@ export function MapCanvas3D({
         className="ws3d__stage"
         tabIndex={0}
         role="application"
-        aria-label="3D concept map. Arrow keys rotate, plus and minus zoom, zero resets. Use the concept list to select a concept with the keyboard."
+        title={HELP}
+        aria-label="3D concept map. Arrow keys rotate, plus and minus zoom, zero resets. Drag to rotate, scroll to zoom, right-drag to pan."
       >
-        <canvas ref={canvasRef} className="ws3d__canvas" aria-hidden="true" hidden={unsupported} />
         {unsupported ? (
-          <div className="ws3d__unsupported" role="status">3D view is not supported in this browser. Use the concept list below.</div>
+          <div className="ws3d__unsupported" role="status">3D view is not supported in this browser. Showing the 2D map instead.</div>
         ) : (
           <>
             <div ref={overlayRef} className="ws3d__overlay" aria-hidden="true" />
             {placeholder && <span className="ws3d__tag">Placeholder data: this map is not the real corpus</span>}
-            <div className="ws3d__controls" role="group" aria-label="Map controls">
-              <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in">+</button>
-              <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out">{"−"}</button>
-              <button type="button" onClick={() => engineRef.current?.resetView()}>Reset view</button>
+            <div className="ws3d__controls" role="group" aria-label="Map controls" title={HELP}>
+              <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>
+              <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out" title="Zoom out (-)">{"−"}</button>
+              <button type="button" onClick={() => engineRef.current?.resetView()} title="Back to the full view (0)">Reset view</button>
             </div>
-            {!concepts.length && <div className="ws3d__unsupported" role="status" style={{ position: "absolute", inset: 0 }}>No concepts are available for this year.</div>}
+            {!concepts.length && <div className="ws3d__unsupported ws3d__empty" role="status">No concepts match the current filters.</div>}
+            {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not come back, switch to 2D.</div>}
             {hoverText && <div className="ws3d__hover" aria-hidden="true">{hoverText}</div>}
-            <div className="ws3d__legend" aria-hidden="true">
-              <span>height = 3-yr growth</span>
-              <span className="ws3d__legend-swatches">
-                {GROWTH_COLORS.map((c, k) => <i key={c} style={{ background: c }} title={GROWTH_LABELS[k]} />)}
-              </span>
-            </div>
           </>
         )}
       </div>

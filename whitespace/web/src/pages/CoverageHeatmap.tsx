@@ -1,4 +1,5 @@
 import type { CoverageCell, CoverageConcept } from '../api';
+import { NA, fmtInt, fmtPct, fmtYear } from '../lib/format';
 
 export type SelectedCoverageCell = CoverageCell & { concept_id: string; concept_label: string };
 
@@ -14,17 +15,17 @@ function cellFor(concept: CoverageConcept, year: number): CoverageCell | undefin
 }
 
 function formatRate(rate: number | null | undefined): string {
-  return rate === null || rate === undefined ? 'Not available' : `${(rate * 100).toFixed(1)}%`;
+  return fmtPct(rate, 1);
 }
 
 function cellStateLabel(cell: CoverageCell | undefined): string {
-  if (!cell) return 'No coverage cell was supplied';
+  if (!cell) return NA;
   switch (cell.state) {
     case 'available': return 'Available';
     case 'thin': return 'Thin archive coverage';
     case 'outside_archive_vintage': return 'Outside archive vintage';
     case 'unavailable': return 'Unavailable';
-    default: return 'Coverage state not supplied';
+    default: return NA;
   }
 }
 
@@ -35,8 +36,8 @@ function cellValue(cell: CoverageCell | undefined): string {
 }
 
 function cellCounts(cell: CoverageCell | undefined): string {
-  if (cell?.paper_count === undefined || cell.linked_paper_count === undefined) return 'Counts not supplied';
-  return `${cell.linked_paper_count} / ${cell.paper_count} papers linked`;
+  if (cell?.paper_count === undefined || cell.linked_paper_count === undefined) return `Counts ${NA}`;
+  return `${fmtInt(cell.linked_paper_count)} / ${fmtInt(cell.paper_count)} papers linked`;
 }
 
 function cellUnavailable(cell: CoverageCell | undefined): boolean {
@@ -115,7 +116,7 @@ export function CoverageHeatmap({ years, selectedYear, concepts, onSelectCell }:
               <th scope="col">Concept</th>
               {orderedYears.map((year) => (
                 <th scope="col" key={year}>
-                  {year}{year === selectedYear ? <span className="ws-sr-only">, focus year</span> : null}
+                  {fmtYear(year)}{year === selectedYear ? <span className="ws-sr-only">, focus year</span> : null}
                 </th>
               ))}
             </tr>
@@ -143,14 +144,14 @@ export function CoverageHeatmap({ years, selectedYear, concepts, onSelectCell }:
           <details className="ws-coverage-concept" key={concept.id}>
             <summary>
               <span>{concept.label}</span>
-              <span>{cellValue(cellFor(concept, selectedYear))} for {selectedYear}</span>
+              <span>{cellValue(cellFor(concept, selectedYear))} for {fmtYear(selectedYear)}</span>
             </summary>
             <ul>
               {orderedYears.map((year) => {
                 const cell = cellFor(concept, year);
                 return (
                   <li key={year} className={year === selectedYear ? 'ws-coverage-current-year' : undefined}>
-                    <span>{year}</span>
+                    <span>{fmtYear(year)}</span>
                     <CoverageCellButton concept={concept} year={year} cell={cell} onSelectCell={onSelectCell} />
                   </li>
                 );
