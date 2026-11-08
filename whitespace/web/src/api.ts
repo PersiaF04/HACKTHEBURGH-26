@@ -47,6 +47,9 @@ export type MetaResponse = {
   year_range: YearRange | null;
   counts: Record<string, number | null>;
   headline_metrics: Record<string, number | string | null>;
+  /** Export runner: false when papers carry their id as the title. */
+  titles_available?: boolean;
+  titles_note?: string | null;
 };
 export type GapSummary = {
   a: string;
@@ -73,6 +76,8 @@ export type OpenProblem = {
   sentence: string;
   type: "future_work" | "limitation" | "open_problem";
   confidence?: number;
+  /** Phrase concept ids the item concerns (export runner item_shape). */
+  concept_ids?: string[];
   paper: PaperSummary;
 };
 export type GapOpenProblem = OpenProblem;
@@ -118,6 +123,9 @@ export type CoverageResponse = {
   concepts: CoverageConcept[];
   caveat: string;
   archive: CoverageArchive;
+  /** Export runner: "phrase" means the same concept ids as the map. */
+  concept_kind?: string;
+  concept_note?: string | null;
   /** Static data only: no file exists for this year (for example, after the corpus ends). */
   no_data?: boolean;
 };
@@ -201,7 +209,7 @@ export const API_ROUTES = {
  * - VITE_USE_MOCK=true: always the bundled fixtures in ../mock.
  * - VITE_USE_MOCK=false: fetch the /api/... routes from a server.
  * - unset (default): read the exported files in public/data (served at /data/...) when
- *   /data/meta.json loads, otherwise the bundled fixtures. No external service is called.
+ *   /data/meta.json loads with placeholder: false, otherwise the bundled fixtures. No external service is called.
  */
 const mockSetting = import.meta.env.VITE_USE_MOCK;
 const apiMode = mockSetting === "false";
@@ -218,8 +226,6 @@ async function requestJson<T>(route: string): Promise<T> {
 
 // ------------------------------------------------------------------ static export files
 
-/** routes.json from the export runner (#175); only the fields used here. */
-type RoutesFile = { corpus_last_year?: number; map_years?: number[] };
 /** gap-details.json and concepts.json wrap their keyed payloads in `entries`. */
 type KeyedFile<T> = { placeholder?: boolean; entries?: Record<string, T> };
 
@@ -248,11 +254,11 @@ function loadFile<T>(name: string): Promise<T | null> {
 }
 
 let staticModePromise: Promise<boolean> | null = null;
-/** True when the exported files are present (decided once, from /data/meta.json). */
+/** True only for a real export: /data/meta.json loads and says placeholder: false (decided once). A placeholder export falls back to the bundled fixtures. */
 function useStaticData(): Promise<boolean> {
   if (apiMode || forceMock) return Promise.resolve(false);
   staticModePromise ??= loadFile<MetaResponse>("meta.json")
-    .then((meta) => meta !== null && typeof meta === "object" && "placeholder" in meta)
+    .then((meta) => meta !== null && typeof meta === "object" && (meta as { placeholder?: unknown }).placeholder === false)
     .catch(() => false);
   return staticModePromise;
 }
@@ -285,11 +291,7 @@ async function staticByYear<T extends { placeholder: boolean }>(prefix: "map" | 
 }
 
 async function staticMeta(): Promise<MetaResponse> {
-  const meta = (await loadFile<MetaResponse>("meta.json"))!;
-  if (meta.year_range) return meta;
-  // A synthetic export leaves year_range null; routes.json still lists the map years.
-  const years = (await loadFile<RoutesFile>("routes.json"))?.map_years ?? [];
-  return years.length ? { ...meta, year_range: { min: Math.min(...years), max: Math.max(...years) } } : meta;
+  return (await loadFile<MetaResponse>("meta.json"))!; // present: static mode is chosen from it
 }
 
 function compareNullable(a: number | null | undefined, b: number | null | undefined): number {
@@ -353,11 +355,12 @@ async function staticSearch(query: string, k: number): Promise<SearchResponse> {
   };
 }
 
-async function staticOpenProblems(type: string): Promise<OpenProblemResponse> {
+async function staticOpenProblems(concept: string, type: string): Promise<OpenProblemResponse> {
   const file = await loadFile<OpenProblemResponse>("open-problems.json")
     ?? placeholderFixture(openProblemsFixture as OpenProblemResponse);
-  // Items carry no concept id, so only the type filter can be applied client-side.
-  return type ? { ...file, items: file.items.filter((item) => item.type === type) } : file;
+  const items = file.items.filter((item) =>
+    (!type || item.type === type) && (!concept || (item.concept_ids ?? []).includes(concept)));
+  return { ...file, items };
 }
 
 async function staticOrFixture<T extends object>(name: string, fixture: T): Promise<T> {
@@ -383,7 +386,7 @@ export const api = {
       () => staticGap(a, b)),
   openProblems: (concept = "", type = "") =>
     pick<OpenProblemResponse>(API_ROUTES.openProblems(concept, type), openProblemsFixture as OpenProblemResponse,
-      () => staticOpenProblems(type)),
+      () => staticOpenProblems(concept, type)),
   backtest: () =>
     pick<BacktestResponse>(API_ROUTES.backtest, backtestFixture as BacktestResponse,
       () => staticOrFixture("backtest.json", backtestFixture as BacktestResponse)),

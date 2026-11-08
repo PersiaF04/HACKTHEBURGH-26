@@ -1,4 +1,5 @@
 import type { BacktestHit, BacktestResponse, CalibrationBin, RankingMetrics } from "../api";
+import { PaperLink } from "../components/PaperLink";
 import "./evidence.css";
 
 type EvidencePageProps = {
@@ -149,7 +150,7 @@ function EvidenceTable({ title, rows, empty, error }: { title: string; rows: Bac
       {error ? <p>Unable to load examples.</p> : rows.length ? (
         <div className="evidence-table-scroll" tabIndex={0} aria-label={`Scrollable ${title.toLowerCase()} table`}>
           <table><caption>{title} from the evaluation artifact</caption><thead><tr><th scope="col">Concept pair</th><th scope="col">Score</th><th scope="col">Starting weight</th><th scope="col">Year</th></tr></thead>
-            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}</td><td>{formatMetric(row.score)}</td><td>{formatMetric(row.starting_weight)}</td><td>{formatMetric(row.year)}</td></tr>)}</tbody>
+            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}{row.paper && <><br /><PaperLink paper={row.paper} /></>}</td><td>{formatMetric(row.score)}</td><td>{formatMetric(row.starting_weight)}</td><td>{formatMetric(row.year)}</td></tr>)}</tbody>
           </table>
         </div>
       ) : <p>{empty}</p>}
