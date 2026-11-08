@@ -1,155 +1,103 @@
-# Turn Up Scotland
+# Whitespace
 
-Scotland pays wind farms to switch off when the cables south are full. Turn Up Scotland shows the hidden bill, forecasts when the grid operator will ask for help, and tells flexible loads when to answer. Built for HackTheBurgh XIII (repository name: `HACKTHEBURGH-26`).
+Whitespace is a research-discovery tool for AI/ML literature. It looks for ideas that nobody has combined yet and asks which of those combinations are likely to appear soon. It was started at HackTheBurgh XIII (repository name: `HACKTHEBURGH-26`).
 
-## Description
+**Status:** under active development. Whitespace is the selected project direction (see [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122)). The pipeline scaffold is in place; the product features, full corpus and forecast evaluation are still in progress. No forecast result exists yet.
 
-When the transmission lines out of Scotland are full, the grid operator (NESO) pays wind farms to stop and pays gas plants further south to start. The payments to wind make headlines. Two other things do not:
+**Deployment:** the existing Vercel project has been renamed and configured for Whitespace. The Whitespace frontend has not been deployed yet; the previous production deployment remains live until the replacement is built and verified. Track deployment at [#135](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/135). Add a Whitespace URL here only after it is verified.
 
-- **The hidden bill.** Payments to Scottish wind were about £188m between 1 April and 29 October 2026. Two parallel measures of the system cost of the same constraint, gas turn-up offers and NESO's own published constraint cost, were each about £1.8bn over the same window. These overlap: they are shown side by side as magnitudes, not added up, and they do not prove who ultimately paid.
-- **The unanswered call.** NESO began procuring flexible demand to switch on and soak up the surplus wind through its Demand Flexibility Service on 7 October 2026; the first turn-up request in our data is for 8 October. Of about 81,000 MWh requested across 30 such events up to 31 October, about 0.05% (0.046%) was procured.
+## What Whitespace does
 
-Turn Up Scotland rebuilds Scottish wind curtailment from public data, checks it against NESO's published figures, forecasts the next day's curtailment, and replays a decision tool (the Flex Copilot) that says when a flexible load such as an electrolyser, data centre or heat network should be ready to switch on and what to bid. It is a static web app over committed JSON files, so the demo works offline.
+Whitespace turns a historical paper corpus into a concept graph that changes over time. It aims to show three things:
 
-**Who it is for.** The main user is the operations lead of a flexible load, or an aggregator, who decides each day which half-hours to be ready for. A second audience is anyone interested in energy policy: journalists, analysts and the public. Households, trading desks and regions outside Great Britain are out of scope.
+- **Forecasts of unlinked concept pairs.** Which pairs of AI/ML concepts that are not yet linked by the product's co-occurrence rule will co-occur in three or more papers within three years. A pair with fewer than three prior co-occurrences counts as "not yet established", not "never studied".
+- **Author-stated open problems.** Limitation, future-work and open-problem statements, grouped by concept and linked to the papers they came from.
+- **A code-coverage lower bound.** Which papers have a linked code repository in the archived Papers with Code data. A missing link means none was found in that archive, not that no code exists.
 
-**Honest limits.**
+## Who it helps
 
-- All backtests are **retrospective**: NESO's day-ahead files carry no publication timestamps, so scores are built from data as published today and are probably optimistic. Every data file carries `meta.retrospective`.
-- The samples are small. DFS turn-up events have existed for about one month, and the Copilot's replay rests on a handful of tradable half-hours.
-- DFS zone IDs (Z1 to Z3) are shown as zone IDs; their mapping to regions is **not confirmed**, so nothing claims they are Scotland.
-- The Copilot reports net pounds (settlement plus an assumed site value, minus electricity) with a sensitivity chart. It assumes full delivery, which is optimistic, and it makes no revenue claim.
-- No AI model produces any number in the app.
+- PhD and MSc students choosing a thesis or dissertation topic.
+- Researchers who want to spot emerging directions and avoid saturated ones.
+- Lab leads and supervisors deciding which directions to pursue or recommend.
 
-The product requirements, evidence and risks are in [`PRD.md`](PRD.md).
+## Planned features
 
-## Badges
+All features below are **planned**. None is built yet. The list summarises the MVP and stretch features in [`PRD.md`](PRD.md), which is the source of truth.
 
-[![CI](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml)
-[![Models](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/models.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/models.yml)
-[![Pipeline](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/pipeline.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/pipeline.yml)
+- Research map of roughly 3,000 to 6,000 concepts, with a time slider.
+- Paper and concept search.
+- Gap finder and gap detail: ranked unlinked pairs with a score breakdown, supporting papers and shared neighbours.
+- Open-problems explorer.
+- Code coverage view by concept and year.
+- Evidence page showing the evaluation results against every declared baseline, once they exist.
+- Stretch: concept trend forecast, a local research-question generator, and "start from my paper".
 
-## Visuals
+## Data and licensing
 
-No screenshots are committed yet. The three-minute demo script, the Devpost write-up and likely judge questions are in [`docs/DEMO.md`](docs/DEMO.md). The demo journey and the demo-step table are in [`PRD.md`](PRD.md) (sections 3 and 7), and the team's working notes and project status are in [`docs/`](docs/) (for example [`docs/coordination/STATUS.md`](docs/coordination/STATUS.md)). The app has seven screens, all reading JSON from `data/public/` (falling back to `contracts/fixtures/`):
+- **OpenAlex.** Paper metadata is planned to come from OpenAlex, whose records are CC0 per the [OpenAlex API overview](https://docs.openalex.org/how-to-use-the-api/api-overview). Third-party sources reached through OpenAlex may carry separate restrictions, so CC0 on the metadata does not settle rights over everything it points to.
+- **Papers with Code archive.** Code links are planned to come from the [Papers with Code archive on Hugging Face](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code). It is licensed `cc-by-sa-4.0`, has 300,161 rows, and is a snapshot retrieved on 28 July 2025. It will not be updated, so papers after about mid-2025 will look unlinked. Any use of it must credit Papers with Code and follow the share-alike terms.
+- **Abstracts.** Raw abstracts are not redistributed in this repository or in public artifacts.
 
-| Screen | What it shows |
+## Evaluation approach (plan)
+
+This is the planned protocol. **No result exists yet**, and nothing here should be read as a measured or expected performance.
+
+- **Purged temporal split.** Fit origins through 2014, calibration at 2017, and a test origin of 2020 with outcomes in 2021 to 2023. The gaps keep each split's outcome window from overlapping the next split's data.
+- **Population.** All eligible candidate pairs, not a sampled subset.
+- **Reported numbers.** The base rate (the share of eligible pairs that link within three years), precision@k and PR-AUC, beside ROC-AUC and calibration.
+- **Comparison.** The model is compared against the strongest declared baseline on the same pairs. Baselines include current co-occurrence weight, degree product, preferential attachment, Adamic-Adar and cosine similarity. If the model does not beat the strongest baseline, that will be reported.
+
+The test is to be run once, after the design and data snapshot are frozen. Details and open decisions are in [`PRD.md`](PRD.md) and [issue #122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122).
+
+## Limitations
+
+- Co-occurrence is not importance or truth. A concept pair that appears together is not thereby a good idea or a correct one.
+- OpenAlex topic assignments are not labels known at each historical date. OpenAlex [switched to a new topic classifier in October 2026](https://help.openalex.org/data/topics/): the topics did not change, but which works are assigned to them did, and the assignments come from each work's title, abstract and source name. The old assignments were frozen on 5 October 2026 and stay available only until 13 January 2027. The PRD pins one vintage, so topic-based features need care to avoid leakage.
+- A missing code link means no link was found in the Papers with Code archive. It does not mean the paper has no code.
+- Concept-pair forecasting is prior art, not a new idea. For example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881), frame AI research directions as link prediction on a semantic network.
+
+## Stack
+
+The stack is **proposed** in [`PRD.md`](PRD.md) section 10. It has not been verified or built, and the PRD requires each dependency to be checked before use.
+
+| Layer | Proposed technology |
 | --- | --- |
-| The Waste (Waste Map) | A replay of a stormy day, farm by farm, with counters for energy wasted and money paid |
-| Hidden Bill (Iceberg) | Payments to wind next to two much larger parallel measures of system cost |
-| Help Wanted | NESO's turn-up requests against how little was procured |
-| Tomorrow | A half-hourly curtailment forecast with a chronological backtest beside every score |
-| Flex Copilot | A ready-and-bid schedule for a flexible load, scored against a naive rule and a perfect-hindsight oracle |
-| Be the Operator | A game: make the readiness calls yourself and compare with the Copilot and the oracle |
-| Under the Hood | How each number was rebuilt and checked, including the days that do not reconcile |
+| Pipeline | Python 3.11, Polars, DuckDB, NetworkX or igraph, LightGBM, scikit-learn, UMAP |
+| NLP | all-MiniLM-L6-v2 (or SPECTER2 on available GPU), KeyBERT, facebook/bart-large-mnli |
+| Search | FAISS and BM25, combined with reciprocal rank fusion |
+| API | FastAPI, uvicorn |
+| Web | React, TypeScript, Vite, Tailwind, deck.gl, Recharts, Zustand |
 
-## Installation
+## Running locally
 
-Requirements:
+There are no verified run instructions for Whitespace yet. This section will be filled in once the reset in [#136](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/136) lands and the commands have been run.
 
-- Node.js 22 and npm (the web app).
-- Python 3.11 or later (the pipeline and models use only the standard library; `pytest` is needed for tests).
+## Repository layout
 
-```bash
-npm --prefix web ci
-python -m pip install pytest
-```
+Folders currently on `main`. Some still hold earlier-project code that is being removed.
 
-On Windows, Python has no timezone database, so also run `python -m pip install tzdata` before running the pipeline tests (CI runs on Linux and does not need it).
+| Folder | Contents |
+| --- | --- |
+| `docs/` | Coordination docs and the decision log |
+| `scripts/` | Helper scripts, including the team inbox check |
+| `.github/` | Issue templates and workflows |
 
-## Usage
-
-Run all commands from the repository root unless stated.
-
-**Run the app** (it needs no network and no credentials):
-
-```bash
-npm --prefix web run dev
-```
-
-For the demo build, which type-checks and then serves the production bundle on `http://localhost:4173`:
-
-```bash
-npm --prefix web run build && npm --prefix web run preview
-```
-
-Both commands first copy `contracts/fixtures/` and then `data/public/` into the app, so real files win and fixtures fill any gaps.
-
-**Regenerate model outputs** (lane B, details in [`models/README.md`](models/README.md)):
-
-```bash
-python models/build_forecast.py             # data/public/forecast.json
-python models/build_forecast.py --refresh   # re-download inputs first
-python models/build_copilot.py              # data/public/copilot.json
-```
-
-**Regenerate pipeline outputs** (lane A, run from `pipeline/`, details in [`pipeline/README.md`](pipeline/README.md)):
-
-```bash
-cd pipeline
-python -m turnup.backfill     # rebuild the lane A contract files in data/public/
-python -m turnup.validate     # check data/public/ against contracts/fixtures/
-python -m turnup.live         # refresh replay/live.json every 5 minutes (gitignored)
-python -m turnup.archiver     # archive point-in-time snapshots until stopped
-```
-
-**Run the tests:**
-
-```bash
-python -m pytest models -q
-cd pipeline && python -m pytest -q
-```
-
-### Repository layout
-
-| Folder | Owner | Contents |
-| --- | --- | --- |
-| `web/` | Lane C | React, Vite and TypeScript static app |
-| `pipeline/` | Lane A | Data pipeline, snapshot archiver and live poller |
-| `models/` | Lane B | Forecast, request probability and Copilot |
-| `contracts/` | All lanes | The JSON data contract and fixtures; changes need all three lane owners |
-| `data/public/` | Producing lane | Generated JSON the app reads |
-| `docs/` | Team | Coordination docs, CI notes and the decision log |
-
-## Support
-
-There is no separate support channel. Open a GitHub issue using the work item template for a task or bug, or the agent-message template for a question or handoff. For repeatable agent start and resume checks, see [`docs/coordination/VARSHIL-AGENT-SETUP.md`](docs/coordination/VARSHIL-AGENT-SETUP.md).
-
-## Roadmap
-
-Planned or open items, tracked in [`PRD.md`](PRD.md) and GitHub Issues:
-
-- Score the forecast on our own archived snapshots so the backtest is no longer retrospective.
-- Confirm the DFS zone-to-region mapping with NESO before naming any region.
-- Re-run the Copilot per load type, size and zone, and model partial delivery from NESO's settled volumes.
-- A hosted deployment and live mode on the hosted site (the live feed is gitignored, so it is local-only for now).
-- Optional: a desk-turbine mirror and relay-driven demo load, and Tiger Data storage.
+The remaining folders (`web/`, `pipeline/`, `models/`, `contracts/`, `data/`) belong to the earlier project and are scheduled for removal or replacement in [#136](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/136).
 
 ## Contributing
 
-Read [`TEAMWORK.md`](TEAMWORK.md) for the quickstart and [`AGENTS.md`](AGENTS.md) for the working agreement, which applies to people and AI agents alike.
+- Read [`TEAMWORK.md`](TEAMWORK.md) for the quickstart and [`AGENTS.md`](AGENTS.md) for the working agreement, which applies to people and AI agents alike.
+- Read [`PRD.md`](PRD.md) for requirements and [issue #122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122) for the research spike and its evidence.
+- GitHub Issues are the work queue: one issue per change, one branch per issue, and a pull request to `main` with `Closes #<issue>`. Do not work directly on `main`.
 
-- GitHub Issues are the work queue. Use one issue per change, one branch per issue (`feature/<issue>-<slug>`, `fix/...`, `docs/...`, `chore/...`) and a pull request to `main` with `Closes #<issue>`.
-- Do not work directly on `main`. Each lane owns its own folder; contract changes go through a pull request approved by all three lane owners.
-- Branch protection needs an approval from an account other than the author. Update your branch from `main` before requesting approval, because new commits dismiss earlier approvals.
-- Follow the issue-to-branch-to-PR flow in [`docs/coordination/BOARD.md`](docs/coordination/BOARD.md); use [`docs/coordination/AGENT-MESSAGING.md`](docs/coordination/AGENT-MESSAGING.md) for agent messages, [`docs/coordination/CI-CD.md`](docs/coordination/CI-CD.md) for CI and deployment notes, and [`docs/coordination/DECISIONS.md`](docs/coordination/DECISIONS.md) to record significant shared decisions.
+## Team
 
-## Authors and acknowledgment
+The human team owns the product idea, requirements, issue triage, priority and merge decisions. Each work issue and branch has one directly responsible developer. Claude Code agents implement assigned issues and Codex agents review pull requests, as set out in [`AGENTS.md`](AGENTS.md). The PRD names the product owner.
 
-| Lane | Person | Developer agent | Reviewer |
-| --- | --- | --- | --- |
-| A: data and pipeline | Varshil (`varshil247`) | Varshil's Claude | Varshil's Codex |
-| B: models, validation and decision | sanamorii (`sanamorii`) | sanamorii's Claude | Persia's Codex |
-| C: front end, story and hardware; product owner | Persia (`PersiaF04`) | Persia's Claude | Persia's Codex |
+## AI-use disclosure
 
-Claude Code agents wrote and Codex agents reviewed the code, under human decisions on scope and merging.
+This project was built with AI coding agents. Claude Code agents wrote code and documentation, and Codex agents reviewed it, under human decisions on scope and merging.
 
-Data comes from NESO Open Data (published under the NESO Open Data Licence), Elexon open data, and DESNZ's Renewable Energy Planning Database (for farm coordinates). Please follow each source's own terms when reusing data.
+## Licence
 
-## License
-
-No licence has been chosen yet and the repository has no `LICENSE` file, so treat the code as not licensed for reuse until the team decides. This is an open decision for the product owner.
-
-## Project status
-
-Under active development for HackTheBurgh XIII (Edinburgh, 7 to 8 November 2026, 24 hours). The tracks are HRT "Best Use of Data for Predictions & Decision Making" and G-Research "Make the invisible visible". All seven screens, the data pipeline and the models are merged; the code freeze is 07:00 UTC on 8 November and the submission deadline is 12:00 GMT on 8 November. See [`PRD.md`](PRD.md) for the current state of requirements and risks.
+Not selected. The repository has no `LICENSE` file and the owner has not made a decision, so treat the code as not licensed for reuse until one is added.
