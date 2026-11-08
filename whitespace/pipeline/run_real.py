@@ -374,7 +374,12 @@ def run(corpus: Path, out: Path, config: RunConfig, *, caches_only: bool = False
     except ValueError as exc:
         raise RunError(f"purge check failed: {exc}") from None
     stages = Stages()
+    # exporters call backtest.is_real_run(manifest): "real" only for a real corpus, never for --dry-run
+    generator = {"name": "run_real.write_synthetic_corpus", "seed": 0} if dry_run else None
     manifest: dict = {
+        "data_label": "synthetic" if dry_run else "real", "generator": generator,
+        "corpus_description": "dry-run synthetic corpus of made-up words (not data)" if dry_run
+        else "OpenAlex corpus built by ingest (title and abstract, arXiv-id month dates)",
         "status": "started", "dry_run": dry_run, "caches_only": caches_only, "config": asdict(config),
         "config_hash": config.hash(), "seed": config.seed, "code_commit": _git_commit(),
         "libraries": {"python": platform.python_version(), "numpy": np.__version__},
@@ -395,8 +400,7 @@ def run(corpus: Path, out: Path, config: RunConfig, *, caches_only: bool = False
         metrics = stages.run(
             "backtest", backtest.run_backtest, lambda t: load_works(out, t), bt, guard=guard,
             override_one_shot=override_one_shot,
-            data_label="synthetic" if dry_run else "real",
-            generator=None, return_test_artifacts=True)
+            data_label=manifest["data_label"], generator=generator, return_test_artifacts=True)
         # the guarded artifacts are used here, once, to pick the example hits and misses (ids only);
         # they are not JSON and are not kept, so nothing downstream re-reads a test label
         artifacts = metrics.pop("artifacts", {})

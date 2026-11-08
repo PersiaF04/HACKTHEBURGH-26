@@ -6,7 +6,7 @@ import logging
 import pytest
 
 from whitespace.pipeline import run_real as R
-from whitespace.pipeline.backtest import OneShotError
+from whitespace.pipeline.backtest import HEADLINE, OneShotError, is_real_run
 from whitespace.pipeline.run_real import RunConfig, RunError
 
 CFG = RunConfig(fit_origins=(2010, 2011), calibration_origins=(2014,), test_origins=(2017,),
@@ -46,10 +46,25 @@ def test_dry_run_end_to_end(tmp_path, caplog):
         assert key in manifest
     assert manifest["corpus"]["sha256"] and "2020" in manifest["corpus"]["per_year"]
     metrics = json.loads((out / "metrics.json").read_text())
-    assert metrics["manifest"]["data_label"].== "synthetic"
+    assert metrics["manifest"]["data_label"] == "synthetic" and not is_real_run(metrics["manifest"])
+    assert manifest["data_label"] == "synthetic" and manifest["generator"] and not is_real_run(manifest)
+    assert "synthetic" in manifest["corpus_description"]
     assert set(metrics["manifest"]["n_works"]) == {"2010", "2011", "2014", "2017"}
     assert "2017" in metrics["test"]
     assert any("stage backtest" in r.message for r in caplog.records)
+
+
+def test_corpus_passed_as_real_is_labelled_real(tmp_path, corpus):
+    # Only exercises the label path: the file is the synthetic corpus, run as a non-dry-run
+    # ("real") corpus. It says nothing about real data.
+    out = tmp_path / "out"
+    manifest = R.run(corpus, out, CFG)
+    assert manifest["data_label"] == "real" and manifest["generator"] is None and is_real_run(manifest)
+    on_disk = json.loads((out / "run_manifest.json").read_text())
+    assert is_real_run(on_disk) and "corpus_description" in on_disk
+    metrics = json.loads((out / "metrics.json").read_text())
+    assert metrics["manifest"]["data_label"] == "real" and is_real_run(metrics["manifest"])
+    assert metrics["headline"] == HEADLINE  # pre-registered headline untouched
 
 
 def test_one_shot_guard_survives_rerun_and_cache_is_reused(tmp_path, corpus):
