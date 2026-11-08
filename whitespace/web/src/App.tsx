@@ -95,7 +95,11 @@ export default function App() {
         : path === "/coverage" ? coverage?.placeholder ?? true
           : backtest?.placeholder ?? true;
   const yearRange = meta.year_range ?? { min: 2015, max: 2026 };
-  const noDataForYear = (path === "/" && map?.no_data) || (path === "/coverage" && coverage?.no_data);
+  // Only once this year's request has resolved: a stale response from the previous year must
+  // not read as "no data" while the new file loads.
+  const noDataForYear = status === "ready" && (
+    (path === "/" && map?.no_data === true && map.year === year)
+    || (path === "/coverage" && coverage?.no_data === true && coverage.year === year));
 
   // Start inside the exported years: the corpus may end before the default year.
   useEffect(() => {
