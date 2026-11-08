@@ -9,7 +9,7 @@ import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
-type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind };
+type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string] };
 type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
@@ -203,6 +203,12 @@ export function MapCanvas3D({
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
+    // Branch drift: each branch (hub plus its concepts) floats gently; a hypothesis follows the mean of its two branches.
+    const groupIds = [...new Set(concepts.map((c) => c.branch).filter((b): b is string => !!b))];
+    const groupOf = new Map(groupIds.map((g, k) => [g, k]));
+    const group = Int16Array.from(concepts, (c) => (c.branch ? groupOf.get(c.branch) ?? -1 : -1));
+    const ends = Int16Array.from(concepts.flatMap((c) => (c.ends ? c.ends.map((e) => groupOf.get(e) ?? -1) : [-1, -1])));
+    const base = pos.slice();
     const labelOrder = concepts.map((_, i) => i).sort((a, b) => (concepts[b].paper_count ?? 0) - (concepts[a].paper_count ?? 0));
     const sums = new Map<string, { x: number; y: number; z: number; n: number }>();
     concepts.forEach((c, i) => {
@@ -213,7 +219,7 @@ export function MapCanvas3D({
     });
     const areas = [...sums].map(([name, s]) => ({ name, v: new THREE.Vector3(s.x / s.n, s.y / s.n, s.z / s.n) }));
     const center = layout.center;
-    return { n, pos, size, color, heat, bucket, indexById, labelOrder, areas, center };
+    return { n, pos, size, color, heat, bucket, indexById, labelOrder, areas, center, group, groupCount: groupIds.length, ends, base };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [concepts, layout, theme]);
 
@@ -283,6 +289,7 @@ export function MapCanvas3D({
     let edgeLines: THREE.LineSegments | null = null;
     let linkLines: THREE.LineSegments | null = null;
     const structLines: Array<THREE.LineSegments | null> = [null, null, null];
+    let lineSets: Array<{ geom: THREE.BufferGeometry; arr: Float32Array; pairs: Array<[number, number]> }> = [];
     const splitMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.95 });
     const memberMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.28 });
     const hypMat = new THREE.LineBasicMaterial({ color: 0x6b8cff, transparent: true, opacity: 0.8 });
@@ -626,12 +633,14 @@ export function MapCanvas3D({
         });
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+        lineSets.push({ geom: g, arr, pairs });
         const l = new THREE.LineSegments(g, mat);
         l.frustumCulled = false;
         if (dashed) l.computeLineDistances();
         scene.add(l);
         return l;
       };
+      lineSets = [];
       for (const l of [edgeLines, linkLines, ...structLines]) if (l) { scene.remove(l); l.geometry.dispose(); }
       const pred: Array<[number, number]> = [];
       if (s.showPredicted) {
@@ -657,6 +666,41 @@ export function MapCanvas3D({
       structLines[2] = build(parts.hypothesis, hypMat, false);
       requestRender();
     };
+    // Slow float of each branch. Off for reduced motion, hidden tabs and the flat views.
+    let driftId = 0, driftLast = 0;
+    const offs = new Float32Array(64 * 3);
+    const drift = (now: number) => {
+      driftId = requestAnimationFrame(drift);
+      const d = live.current.data;
+      if (!d.groupCount || document.hidden || now - driftLast < 33) return;
+      driftLast = now;
+      const G = Math.min(64, d.groupCount);
+      for (let g = 0; g < G; g += 1) {
+        offs[g * 3] = Math.sin(now * 0.00031 + g * 1.9) * 3.2;
+        offs[g * 3 + 1] = Math.cos(now * 0.00027 + g * 2.7) * 3.2;
+        offs[g * 3 + 2] = Math.sin(now * 0.00023 + g * 1.3) * 1.8;
+      }
+      for (let i = 0; i < d.n; i += 1) {
+        const g = d.group[i];
+        for (let k = 0; k < 3; k += 1) {
+          let o = 0;
+          if (g >= 0 && g < G) o = offs[g * 3 + k];
+          else if (d.ends[i * 2] >= 0 && d.ends[i * 2 + 1] >= 0) o = (offs[d.ends[i * 2] * 3 + k] + offs[d.ends[i * 2 + 1] * 3 + k]) / 2;
+          d.pos[i * 3 + k] = d.base[i * 3 + k] + o;
+        }
+      }
+      if (points) (points.geometry.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+      for (const set of lineSets) {
+        set.pairs.forEach(([a, b], k) => {
+          set.arr.set(d.pos.subarray(a * 3, a * 3 + 3), k * 6);
+          set.arr.set(d.pos.subarray(b * 3, b * 3 + 3), k * 6 + 3);
+        });
+        (set.geom.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+      }
+      projDirty = true;
+      requestRender();
+    };
+    if (!reduced) driftId = requestAnimationFrame(drift);
     const setHeatmap = (enabled: boolean) => {
       pointsMat.uniforms.uHeatmap.value = enabled ? 1 : 0;
       requestRender();
@@ -697,6 +741,7 @@ export function MapCanvas3D({
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
+      if (driftId) cancelAnimationFrame(driftId);
       flight = null;
       observer.disconnect();
       window.removeEventListener("resize", resize);

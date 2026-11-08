@@ -10,7 +10,7 @@ import type { ConceptPoint, GapSummary, PredictedEdge } from "../api";
 export type NodeKind = "branch" | "concept" | "hypothesis";
 export type StructureKind = "split" | "member" | "hypothesis";
 export type StructureEdge = { source: string; target: string; kind: StructureKind };
-export type HNode = ConceptPoint & { kind: NodeKind };
+export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string] };
 export type BranchInfo = { id: string; label: string; total: number; papers: number; growth: number | null; shown: ConceptPoint[]; hypotheses: GapSummary[] };
 export type Hierarchy = {
   nodes: HNode[]; structure: StructureEdge[]; branches: number;
@@ -18,6 +18,7 @@ export type Hierarchy = {
 };
 
 const K = 7;
+const RING = 2.3; // hub ring radius; a branch itself is about 0.45 wide, so the branches sit well apart
 export const DEFAULT_PER_BRANCH = 60;
 export const BRANCH_PREFIX = "branch:";
 export const HYPOTHESIS_PREFIX = "hyp:";
@@ -79,12 +80,12 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
     const growth = gs.length ? gs.reduce((s, m) => s + (m.growth as number), 0) / gs.length : null;
     const total = members.reduce((s, m) => s + (m.paper_count ?? 0), 0);
     const id = `${BRANCH_PREFIX}${b}`;
-    nodes.push({ id, label: name, x, y, paper_count: total, growth, kind: "branch" });
+    nodes.push({ id, label: name, x, y, paper_count: total, growth, kind: "branch", branch: id });
     hubs.push({ id, x, y });
     // Only each branch's largest concepts (and any concept in a ranked gap) are drawn, so the tree stays readable.
     const drawn = members.filter((m, i) => i < perBranch || inGap.has(m.id));
     branchInfo.set(id, { id, label: name, total: members.length, papers: total, growth, shown: drawn, hypotheses: [] });
-    for (const m of drawn) { nodes.push({ ...m, kind: "concept" }); conceptBranch.set(m.id, id); }
+    for (const m of drawn) { nodes.push({ ...m, kind: "concept", branch: id }); conceptBranch.set(m.id, id); }
     for (const m of drawn) structure.push({ source: id, target: m.id, kind: "member" });
   });
 
@@ -114,7 +115,7 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     nodes.push({
       id, label: `${a.label} × ${b.label}`, growth: null,
-      x: mx, y: my, kind: "hypothesis",
+      x: mx, y: my, kind: "hypothesis", ends: [conceptBranch.get(g.a) ?? "", conceptBranch.get(g.b) ?? ""],
     });
     hypothesisInfo.set(id, g);
     for (const end of new Set([conceptBranch.get(g.a), conceptBranch.get(g.b)])) if (end) branchInfo.get(end)?.hypotheses.push(g);
@@ -139,7 +140,8 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
   const order = [...hubs].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
   const ring = new Map(order.map((h, i) => {
     const a = (Math.PI * 2 * i) / order.length - Math.PI / 2;
-    return [h.id, { x: Math.cos(a), y: Math.sin(a) }];
+    const r = RING * (i % 2 ? 1.18 : 0.92); // alternate the radius so neighbouring branches are not side by side
+    return [h.id, { x: Math.cos(a) * r, y: Math.sin(a) * r }];
   }));
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const members = new Map<string, string[]>();
@@ -161,7 +163,7 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
     if (!a || !b) continue;
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const len = Math.hypot(mx, my) || 1;
-    n.x = mx + (mx / len) * 0.16;
-    n.y = my + (my / len) * 0.16;
+    n.x = mx + (mx / len) * 0.3;
+    n.y = my + (my / len) * 0.3;
   }
 }
