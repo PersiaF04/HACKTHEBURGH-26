@@ -165,3 +165,5 @@
 .whitespace-hyp__buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .whitespace-hyp__buttons button { min-height: 32px; max-width: 100%; padding: 0 10px; border: 1px solid var(--ws-border-strong); border-radius: 8px; background: var(--ws-surface); color: var(--ws-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .whitespace-hyp__buttons button:hover { background: var(--ws-selected); }
+
+.whitespace-concept__stats dd.whitespace-concept__pending { font-size: 14px; font-weight: 500; color: var(--ws-muted); font-family: inherit; letter-spacing: 0; }

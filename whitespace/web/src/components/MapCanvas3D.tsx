@@ -344,7 +344,7 @@ export function MapCanvas3D({
     const placeRing = (el: HTMLElement, i: number) => {
       const depth = i >= 0 ? screen[i * 3 + 2] : -1;
       if (!(depth > 0)) { el.style.display = "none"; return; }
-      const d = pxSize(i, depth) + 8;
+      const d = Math.max(pxSize(i, depth) + 12, el === selRing ? 34 : 0);
       el.style.display = "block";
       el.style.width = `${d}px`;
       el.style.height = `${d}px`;
@@ -437,8 +437,8 @@ export function MapCanvas3D({
         place(el, spot[0], spot[1] + (hub ? 0 : -1));
         return true;
       };
+      if (selIdx >= 0) tryLabel(selIdx, true, true); // the picked node is always named first, in the bold chip
       for (let i = 0; i < s.concepts.length; i += 1) if (s.concepts[i].kind === "branch") tryLabel(i, true, true);
-      if (selIdx >= 0) tryLabel(selIdx, true);
       if (hov >= 0 && hov !== selIdx) tryLabel(hov, true);
       let count = used;
       let checked = 0;
@@ -522,7 +522,7 @@ export function MapCanvas3D({
       let flying = false;
       if (flight) {
         const k = Math.min(1, (now - flight.t0) / flight.dur);
-        const e = 1 - (1 - k) ** 3;
+        const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2; // ease in and out: starts and settles gently
         controls.target.lerpVectors(flight.fromT, flight.toT, e);
         // Swing round the target on an arc (spherical interpolation) while the distance eases, instead of cutting straight through it.
         const lf = flight.fromO.length(), lt = flight.toO.length();
@@ -840,9 +840,36 @@ export function MapCanvas3D({
       const fromO = camera.position.clone().sub(controls.target);
       const isHub = live.current.concepts[index]?.kind === "branch";
       const dist = Math.max(controls.minDistance, Math.min(fromO.length(), isHub ? 70 : 45));
-      // Face the node from the centre side, so its own cluster fans out in front of the camera; tilt up a little for depth.
-      const outward = toT.clone().sub(d.center);
-      const toO = isHub || outward.lengthSq() < 1 ? fromO.clone().setLength(dist) : new THREE.Vector3(-outward.x, -outward.y, Math.max(18, -outward.z + 28)).setLength(dist);
+      // Choose the viewing direction that shows this node best: try many directions round it and keep the one with the
+      // fewest dots between the camera and the node (blocking it) and the fewest right behind it (clutter). A clear
+      // swing is still required, so a direction close to the current one is penalised.
+      const fromDir = fromO.clone().normalize();
+      const rel = new THREE.Vector3(), u = new THREE.Vector3();
+      let bestScore = Infinity;
+      let want = fromDir.clone();
+      const selSize = d.size[index];
+      for (let el = 0; el < 4; el += 1) {
+        const elev = [0.3, 0.6, 0.95, 1.25][el];
+        for (let az = 0; az < 24; az += 1) {
+          const ang = (az / 24) * Math.PI * 2;
+          u.set(Math.cos(elev) * Math.cos(ang), Math.cos(elev) * Math.sin(ang), Math.sin(elev));
+          let front = 0, behind = 0;
+          for (let j = 0; j < d.n; j += 1) {
+            if (j === index) continue;
+            rel.set(d.pos[j * 3] - toT.x, d.pos[j * 3 + 1] - toT.y, d.pos[j * 3 + 2] - toT.z);
+            const along = rel.dot(u);
+            if (along > dist * 0.95 || along < -dist) continue;
+            const perp = Math.sqrt(Math.max(0, rel.lengthSq() - along * along));
+            const reach = (selSize + d.size[j]) * 0.5 * 1.25 + 0.5;
+            if (along > 0 && perp < reach) front += 1;
+            else if (along <= 0 && perp < reach * 0.8) behind += 0.2;
+          }
+          const turn = u.angleTo(fromDir);
+          const score = front * 4 + behind + (turn < 0.9 ? 6 : 0) + (turn < 0.5 ? 6 : 0) + (1.25 - elev) * 0.2;
+          if (score < bestScore) { bestScore = score; want = u.clone(); }
+        }
+      }
+      const toO = want.setLength(dist);
       lockIdx = index;
       lockPrev.copy(toT);
       if (instant || reduced) {
@@ -853,7 +880,7 @@ export function MapCanvas3D({
         requestRender();
         return;
       }
-      flight = { t0: performance.now(), dur: 800, fromT: controls.target.clone(), toT, fromO, toO };
+      flight = { t0: performance.now(), dur: 1100, fromT: controls.target.clone(), toT, fromO, toO };
       requestRender();
     };
 
