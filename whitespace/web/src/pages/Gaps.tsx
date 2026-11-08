@@ -190,7 +190,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
           <li><strong>Likelihood</strong>: will the two topics connect?</li>
           <li><strong>Momentum</strong>: are both topics growing?</li>
           <li><strong>Novelty</strong>: is the combination still uncrowded?</li>
-          <li><strong>Stated gaps</strong>: do authors say it is unsolved?</li>
+          <li><strong>Stated gaps</strong>: do authors writing on either topic say problems remain open?</li>
         </ul>
 
         <details className="gx-how">
