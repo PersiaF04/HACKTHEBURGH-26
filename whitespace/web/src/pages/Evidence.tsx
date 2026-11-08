@@ -103,22 +103,23 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
     <section className="evidence-page" aria-label="Evidence">
       <header className="evidence-header">
         <h1>Evidence</h1>
-        <p>Held-out results, calibration, and limits of the current forecast.</p>
+        <p>Held-out backtest results and limits.</p>
       </header>
 
       {/* The frozen one-shot result (issue #122). Shown only with the real export, never over placeholder fixtures. */}
       {isFrozenRun && <section className="evidence-headline" aria-labelledby="evidence-verdict">
         <h2 id="evidence-verdict">{FROZEN_VERDICT.verdict}</h2>
-        <p>Average precision: <strong>{FROZEN_VERDICT.modelAP.toFixed(4)}</strong> model vs <strong>{FROZEN_VERDICT.baselineAP.toFixed(4)}</strong> current weight; paired difference <strong>+{formatMetric(FROZEN_VERDICT.difference)}</strong> (95% concept-block bootstrap interval {formatMetric(FROZEN_VERDICT.low)} to {formatMetric(FROZEN_VERDICT.high)}).</p>
+        <p>Average precision: <strong>{FROZEN_VERDICT.modelAP.toFixed(4)}</strong> model vs <strong>{FROZEN_VERDICT.baselineAP.toFixed(4)}</strong> current weight; paired difference <strong>+{FROZEN_VERDICT.difference.toFixed(4)}</strong> (95% concept-block bootstrap interval {FROZEN_VERDICT.low.toFixed(4)} to {FROZEN_VERDICT.high.toFixed(4)}).</p>
         <p>Scored once at frozen commit {FROZEN_VERDICT.commit}. Test origin {FROZEN_VERDICT.testOrigin}, outcomes {FROZEN_VERDICT.outcomes}; baseline chosen on {FROZEN_VERDICT.baselineOrigin}.</p>
         <ul className="evidence-caveats">
           <li>Aggregate only: within each starting-weight stratum the model is below the structural baselines on AP and AUC.</li>
           <li>Calibration is imperfect: ECE {formatMetric(eceFromNote(response?.calibration.note) ?? 0.143)}, and the model under-predicts at the top end.</li>
-          <li>P@100 is not distinctive: other baselines reach 0.91–1.00.</li>
+          <li>P@100 is indicative only: the model's 1.00 beats current weight's 0.66, but the other structural baselines also reach 0.91–1.00, so it does not distinguish the model.</li>
         </ul>
         <p className="evidence-muted">Pre-registered rule and full result: <a href="https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122" target="_blank" rel="noreferrer">issue #122</a>.</p>
-        <ModelNote />
       </section>}
+
+      <ModelNote />
 
       {placeholder && (
         <p className="evidence-notice" role="status">
@@ -131,7 +132,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
       {hasData && <>
       <section aria-labelledby="ranking-title" className="evidence-section">
         <h2 id="ranking-title">Ranking quality</h2>
-        <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight. Each ranking value is shown beside its own base rate.</p>
+        <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight, with each table's base rate in its caption. PR-AUC is not exported; average precision (AP) is shown instead.</p>
         <div className="evidence-strata">
           {strata.map((stratum) => <RankingTable key={stratum.key} label={stratum.label} metrics={stratum.metrics} />)}
         </div>

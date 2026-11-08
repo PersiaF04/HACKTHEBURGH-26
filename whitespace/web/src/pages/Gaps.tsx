@@ -188,6 +188,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
         </div>
 
         <ModelNote />
+        {response.held_out_test === false && response.label && <p className="gx-note" role="note">{response.label}</p>}
 
         <div className="gx-summary">
           {summary.map(([label, v, blue, cap]) => (
