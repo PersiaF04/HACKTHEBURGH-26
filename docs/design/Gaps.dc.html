@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Whitespace — Gaps and open problems</title>
+<script src="39390cbd-498b-46fb-a649-95ccabb9b867"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#15171C;text-decoration-color:#B9BCC4;text-underline-offset:3px}a:hover{color:#15171C;text-decoration-color:#15171C}
+</style>
+</helmet>
+<div style="min-height: 1500px; background: #F6F6F3; color: #15171C; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 14px; display: flex; flex-direction: column">
+
+<header style="min-height: 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 8px 20px; background: #FFFFFF; border-bottom: 1px solid #E6E6E1">
+<a href="Main.dc.html" aria-label="Whitespace home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #15171C">
+<svg width="28" height="28" sc-camel-view-box="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" fill="#15171C"></circle><circle cx="21" cy="8" r="4" fill="none" stroke="#15171C" stroke-width="2"></circle><line x1="10.5" y1="17" x2="17.5" y2="11" stroke="#2952E3" stroke-width="2" stroke-dasharray="2.5 2.5"></line></svg>
+<span style="font-weight: 600; font-size: 18px; letter-spacing: -0.01em">Whitespace</span>
+</a>
+<nav aria-label="Breadcrumb" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: #5B606B">
+<span aria-hidden="true" style="color: #B9BCC4">/</span>
+<a href="Main.dc.html" style="color: #5B606B; text-decoration: none">Thesis topic search</a>
+<span aria-hidden="true" style="color: #B9BCC4">/</span>
+<span aria-current="location" style="color: #15171C; font-weight: 500">Generative models for molecules</span>
+</nav>
+<div style="flex: 1"></div>
+<nav aria-label="Thread views" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="Explore.dc.html" style="padding: 8px 12px; border-radius: 6px; color: #3F444D; font-weight: 500; text-decoration: none">Explore</a>
+<a href="Gaps.dc.html" aria-current="page" style="padding: 8px 12px; border-radius: 6px; background: #ECECE7; color: #15171C; font-weight: 600; text-decoration: none">Gaps &amp; open problems</a>
+</nav>
+<span style="font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #FFFFFF; color: #5B606B; border: 1px solid #D1D1CB">Sample data</span>
+</header>
+
+<main style="flex: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<aside aria-label="Filters and area overview" style="flex: 1 1 280px; box-sizing: border-box; padding: 20px; background: #FFFFFF; border-right: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="gf-area" style="font-size: 12px; font-weight: 600; color: #3F444D">Research area</label>
+<sc-raw-select id="gf-area" value="{{area}}" sc-camel-on-change="{{onArea}}" style="height: 40px; padding: 0 10px; border: 1px solid #CFCFC8; border-radius: 8px; font: inherit; font-size: 13px; background: #FFFFFF; color: #15171C">
+<sc-for list="{{areaOpts}}" as="o" hint-placeholder-count="8"><option value="{{o.id}}">{{o.name}}</option></sc-for>
+</sc-raw-select>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between"><label for="gf-minp" style="font-size: 12px; font-weight: 600; color: #3F444D">Minimum P(link)</label><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{minPl}}</span></div>
+<input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value="{{minP}}" sc-camel-on-input="{{onMinP}}" style="width: 100%; margin: 0; accent-color: #15171C">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="gf-sort" style="font-size: 12px; font-weight: 600; color: #3F444D">Sort gaps by</label>
+<sc-raw-select id="gf-sort" value="{{sort}}" sc-camel-on-change="{{onSort}}" style="height: 40px; padding: 0 10px; border: 1px solid #CFCFC8; border-radius: 8px; font: inherit; font-size: 13px; background: #FFFFFF; color: #15171C">
+<option value="score">Gap score</option>
+<option value="p">P(link)</option>
+<option value="mom">Momentum</option>
+<option value="nov">Novelty</option>
+<option value="sg">Stated-gap rate</option>
+</sc-raw-select>
+</div>
+
+<section aria-labelledby="gf-ov" style="display: flex; flex-direction: column; gap: 10px">
+<h2 id="gf-ov" style="margin: 0; font-size: 12px; font-weight: 600; color: #3F444D">{{ov.title}}</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid #E6E6E1; border-radius: 8px">
+<sc-for list="{{ov.cells}}" as="oc" hint-placeholder-count="4">
+<div style="padding: 10px 12px; border-left: {{oc.bl}}; border-top: {{oc.bt}}; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; color: #5B606B">{{oc.label}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums">{{oc.v}}</span>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #3F444D">Fastest growing: <strong style="font-weight: 600; color: #15171C">{{ov.fast}}</strong>. Most stated gaps: <strong style="font-weight: 600; color: #15171C">{{ov.gappy}}</strong>.</p>
+</section>
+
+<section aria-labelledby="gf-conc" style="display: flex; flex-direction: column; gap: 6px">
+<h2 id="gf-conc" style="margin: 0; font-size: 12px; font-weight: 600; color: #3F444D">Concepts by stated-gap rate</h2>
+<p style="margin: 0 0 4px; font-size: 12px; color: #5B606B; line-height: 1.45">Share of a concept’s papers that name an open problem. Pick one to see its gaps and sentences.</p>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{concepts}}" as="c" hint-placeholder-count="8">
+<li><button type="button" sc-camel-on-click="{{c.pick}}" aria-pressed="{{c.sel}}" style="width: 100%; display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border: 0; border-radius: 8px; background: {{c.bg}}; font: inherit; text-align: left; cursor: pointer; color: #15171C">
+<span style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: {{c.w}}"><span>{{c.label}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{c.rate}}</span></span>
+<span style="display: block; height: 4px; background: #E9E9E4; border-radius: 2px"><span style="display: block; height: 4px; width: {{c.bw}}%; background: #3F444D; border-radius: 2px"></span></span>
+</button></li>
+</sc-for>
+</ul>
+<button type="button" sc-camel-on-click="{{toggleAll}}" style="align-self: flex-start; min-height: 36px; padding: 0 4px; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 500; color: #2952E3; cursor: pointer">{{allLabel}}</button>
+</section>
+
+</aside>
+
+<section aria-labelledby="gf-h" style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 id="gf-h" style="margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 24px; font-weight: 600; letter-spacing: -0.01em">Gaps &amp; open problems</h1>
+<p style="margin: 0; font-size: 13px; color: #5B606B">Concept pairs never studied together, ranked, with what authors themselves say is unsolved. <span style="font-family: 'IBM Plex Mono', monospace; color: #15171C">{{count}}</span> gaps shown · predicting links in 2027–2029.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px">
+<sc-for list="{{sum}}" as="sm" hint-placeholder-count="4">
+<div style="padding: 10px 16px; border-left: {{sm.bl}}; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 12px; color: #5B606B">{{sm.label}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; color: {{sm.c}}; font-variant-numeric: tabular-nums">{{sm.v}}</span>
+</div>
+</sc-for>
+</div>
+
+<sc-if value="{{hasFocus}}">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px">
+<span style="color: #3F444D">Gaps involving</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 4px; background: #15171C; color: #FFFFFF; font-weight: 500">{{focus}}
+<button type="button" aria-label="Clear concept filter" sc-camel-on-click="{{clearFocus}}" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: #3F444D; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+</span>
+</div>
+</sc-if>
+
+<div style="overflow-x: auto; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px">
+<sc-raw-table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px">
+<sc-raw-thead>
+<sc-raw-tr style="text-align: left; color: #5B606B; font-size: 11px">
+<sc-raw-th scope="col" style="padding: 12px 14px; font-weight: 600; border-bottom: 1px solid #E6E6E1; width: 28px">#</sc-raw-th>
+<sc-raw-th scope="col" style="padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #E6E6E1">Concept pair</sc-raw-th>
+<sc-raw-th scope="col" style="padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #E6E6E1; width: 170px">P(link) · bootstrap interval</sc-raw-th>
+<sc-raw-th scope="col" style="padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #E6E6E1; text-align: right">Momentum</sc-raw-th>
+<sc-raw-th scope="col" style="padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #E6E6E1; text-align: right">Novelty</sc-raw-th>
+<sc-raw-th scope="col" style="padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #E6E6E1; text-align: right">Stated gaps</sc-raw-th>
+<sc-raw-th scope="col" style="padding: 12px 14px 12px 8px; font-weight: 600; border-bottom: 1px solid #E6E6E1; width: 130px">Gap score</sc-raw-th>
+</sc-raw-tr>
+</sc-raw-thead>
+<sc-raw-tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<sc-raw-tr style="background: {{r.bg}}; box-shadow: {{r.bar}}">
+<sc-raw-td style="padding: 12px 14px; border-bottom: 1px solid #EFEFEA; font-family: 'IBM Plex Mono', monospace; color: #5B606B">{{r.rank}}</sc-raw-td>
+<sc-raw-td style="padding: 6px 8px; border-bottom: 1px solid #EFEFEA">
+<button type="button" sc-camel-on-click="{{r.pick}}" aria-pressed="{{r.sel}}" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; justify-content: center; padding: 0; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; color: #15171C">
+<span style="font-weight: 600">{{r.a}} <span style="color: #2952E3; font-weight: 500">↔</span> {{r.b}}</span>
+<span style="font-size: 12px; color: #5B606B">{{r.areas}}</span>
+</button>
+</sc-raw-td>
+<sc-raw-td style="padding: 12px 8px; border-bottom: 1px solid #EFEFEA">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; width: 34px">{{r.pl}}</span>
+<span style="position: relative; flex: 1; height: 14px">
+<span style="position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: #EFEFEA"></span>
+<span style="position: absolute; left: {{r.lo}}%; width: {{r.span}}%; top: 3px; height: 8px; background: #DCE3FB; border-radius: 2px"></span>
+<span style="position: absolute; left: {{r.p}}%; top: 1px; width: 3px; height: 12px; margin-left: -1.5px; background: #2952E3; border-radius: 1px"></span>
+</span>
+</div>
+</sc-raw-td>
+<sc-raw-td style="padding: 12px 8px; border-bottom: 1px solid #EFEFEA; text-align: right; font-family: 'IBM Plex Mono', monospace">{{r.mom}}</sc-raw-td>
+<sc-raw-td style="padding: 12px 8px; border-bottom: 1px solid #EFEFEA; text-align: right; font-family: 'IBM Plex Mono', monospace">{{r.nov}}</sc-raw-td>
+<sc-raw-td style="padding: 12px 8px; border-bottom: 1px solid #EFEFEA; text-align: right; font-family: 'IBM Plex Mono', monospace">{{r.sg}}</sc-raw-td>
+<sc-raw-td style="padding: 12px 14px 12px 8px; border-bottom: 1px solid #EFEFEA">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; width: 34px">{{r.sl}}</span>
+<span style="flex: 1; height: 6px; background: #EFEFEA; border-radius: 3px"><span style="display: block; height: 6px; width: {{r.sw}}%; background: #15171C; border-radius: 3px"></span></span>
+</div>
+</sc-raw-td>
+</sc-raw-tr>
+</sc-for>
+</sc-raw-tbody>
+</sc-raw-table>
+<sc-if value="{{empty}}"><p style="margin: 0; padding: 24px; font-size: 13px; color: #5B606B; text-align: center">No gaps pass these filters. Lower the minimum P(link), pick another area or clear the concept.</p></sc-if>
+</div>
+
+<section id="open-problems" aria-labelledby="op-h" style="padding: 18px; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 id="op-h" style="margin: 0; font-size: 16px; font-weight: 600">What authors say is still open</h2>
+<span style="font-size: 12px; color: #5B606B">{{opSub}}</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #3F444D">
+<sc-for list="{{legend}}" as="lg" hint-placeholder-count="2"><span style="display: flex; align-items: center; gap: 6px"><span style="width: 18px; height: 0; border-top: 2.5px solid {{lg.c}}"></span>{{lg.label}} · {{lg.rate}}</span></sc-for>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 18px; height: 0; border-top: 2px dotted #B9BCC4"></span>All AI/ML · 10%</span>
+</div>
+</div>
+
+<svg sc-camel-view-box="0 0 720 180" role="img" aria-label="{{chartLabel}}" style="width: 100%; height: auto; display: block">
+<g font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B606B">
+<line x1="48" y1="150" x2="700" y2="150" stroke="#D5D5CF"></line>
+<line x1="48" y1="105" x2="700" y2="105" stroke="#EFEFEA"></line>
+<line x1="48" y1="60" x2="700" y2="60" stroke="#EFEFEA"></line>
+<line x1="48" y1="15" x2="700" y2="15" stroke="#EFEFEA"></line>
+<text x="40" y="154" text-anchor="end">0%</text>
+<text x="40" y="109" text-anchor="end">10%</text>
+<text x="40" y="64" text-anchor="end">20%</text>
+<text x="40" y="19" text-anchor="end">30%</text>
+<text x="48" y="170" text-anchor="middle">2015</text>
+<text x="166.5" y="170" text-anchor="middle">2017</text>
+<text x="285" y="170" text-anchor="middle">2019</text>
+<text x="403.6" y="170" text-anchor="middle">2021</text>
+<text x="522.2" y="170" text-anchor="middle">2023</text>
+<text x="640.7" y="170" text-anchor="middle">2025</text>
+</g>
+<polyline points="{{avgLine}}" fill="none" stroke="#B9BCC4" stroke-width="2" stroke-dasharray="2 4" stroke-linecap="round"></polyline>
+<polyline points="{{line2}}" fill="none" stroke="#8A8F99" stroke-width="2.5" stroke-linejoin="round"></polyline>
+<polyline points="{{line1}}" fill="none" stroke="#15171C" stroke-width="2.5" stroke-linejoin="round"></polyline>
+</svg>
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="4">
+<button type="button" sc-camel-on-click="{{t.pick}}" aria-pressed="{{t.on}}" style="min-height: 36px; padding: 0 12px; border-radius: 4px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer">{{t.name}} · {{t.n}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{hasItems}}">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+<li style="padding: 12px 14px; background: #F6F6F3; border-radius: 8px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 14px; line-height: 1.5">“{{it.s}}”</span>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12px; color: #5B606B">
+<span style="font-weight: 600; padding: 2px 6px; border-radius: 4px; background: {{it.bg}}; color: {{it.fg}}">{{it.type}}</span>
+<span style="display: flex; align-items: center; gap: 6px; color: #3F444D"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{it.dot}}"></span>{{it.concept}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace">{{it.y}} · conf {{it.conf}}</span>
+<span style="flex: 1"></span>
+<a href="#" style="font-weight: 500">View paper →</a>
+</span>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{noItems}}"><p style="margin: 0; padding: 16px; border: 1px dashed #CFCFC8; border-radius: 8px; font-size: 13px; color: #5B606B">Sentences for these concepts load from /api/open-problems?concept=…</p></sc-if>
+</section>
+</section>
+
+<aside aria-label="Gap detail" style="flex: 1 1 380px; box-sizing: border-box; padding: 22px; background: #FFFFFF; border-left: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; color: #5B606B">Gap · rank {{d.rank}}</span>
+<h2 style="margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em">{{d.a}} <span style="color: #2952E3">↔</span> {{d.b}}</h2>
+<p style="margin: 0; font-size: 13px; color: #3F444D">Never studied together yet. <span style="font-family: 'IBM Plex Mono', monospace; color: #15171C">{{d.pPct}}</span> chance they share 3+ papers by 2029 (bootstrap range <span style="font-family: 'IBM Plex Mono', monospace">{{d.lo}}–{{d.hi}}</span>).</p>
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">How the score is made</h3>
+<div role="group" aria-label="{{d.formulaLabel}}" style="display: flex; flex-wrap: wrap; align-items: stretch; border: 1px solid #E6E6E1; border-radius: 8px; overflow: hidden">
+<sc-for list="{{d.factors}}" as="f" hint-placeholder-count="5">
+<sc-if value="{{f.showOp}}"><span aria-hidden="true" style="display: flex; align-items: center; padding: 0 4px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #5B606B; background: {{f.bg}}">{{f.op}}</span></sc-if>
+<div style="flex: 1 1 64px; min-width: 0; padding: 10px 8px; display: flex; flex-direction: column; gap: 3px; background: {{f.bg}}">
+<span style="font-size: 12px; color: #5B606B; white-space: nowrap">{{f.name}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: {{f.w}}; color: {{f.c}}; font-variant-numeric: tabular-nums">{{f.v}}</span>
+<span style="font-size: 11px; color: #5B606B; line-height: 1.35">{{f.why}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Closest papers on each side</h3>
+<sc-if value="{{d.hasPapers}}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; font-weight: 600; color: #5B606B">{{d.a}}</span>
+<sc-for list="{{d.pa}}" as="p" hint-placeholder-count="3">
+<a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid #E6E6E1; border-radius: 8px; text-decoration: none; color: #15171C"><span style="font-size: 12px; font-weight: 500; line-height: 1.4">{{p.t}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B606B">{{p.y}}</span></a>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; font-weight: 600; color: #5B606B">{{d.b}}</span>
+<sc-for list="{{d.pb}}" as="p" hint-placeholder-count="3">
+<a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid #E6E6E1; border-radius: 8px; text-decoration: none; color: #15171C"><span style="font-size: 12px; font-weight: 500; line-height: 1.4">{{p.t}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B606B">{{p.y}}</span></a>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{d.noPapers}}"><p style="margin: 0; font-size: 13px; color: #5B606B">Closest papers load from /api/gap/{a}/{b}.</p></sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Shared neighbouring concepts</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{d.shared}}" as="s" hint-placeholder-count="3"><span style="padding: 6px 10px; border: 1px solid #D5D5CF; border-radius: 4px; font-size: 12px">{{s}}</span></sc-for>
+</div>
+<a href="#open-problems" style="font-size: 12px; font-weight: 500">Stated open problems for this pair ↓</a>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid #E6E6E1; border-radius: 8px; background: #F7F7F4">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Research questions</h3>
+<span style="font-size: 12px; color: #3F444D">Drafted locally from the papers and open problems for this pair; every sentence is checked against its sources.</span>
+</div>
+<button type="button" sc-camel-on-click="{{draft}}" style="min-height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: #15171C; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{draftLabel}}</button>
+</div>
+<sc-if value="{{d.showQs}}">
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{d.qs}}" as="q" hint-placeholder-count="3">
+<li style="padding: 10px 12px; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; line-height: 1.45">{{q.t}}</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+<span style="font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: {{q.bg}}; color: {{q.fg}}">{{q.status}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5B606B">{{q.cites}}</span>
+</span>
+</li>
+</sc-for>
+</ol>
+</sc-if>
+<sc-if value="{{d.qsPending}}"><p style="margin: 0; font-size: 13px; color: #5B606B">Questions for this pair would stream in here.</p></sc-if>
+</section>
+</aside>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1500}}">
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = { area: 'all', minP: 0.3, sort: 'score', sel: 0, drafted: {}, focus: null, type: 'all', showAll: false };
+  }
+
+  data() {
+    if (this._d) return this._d;
+    const AREAS = { saf: 'Safety & reliability', lm: 'Language models', cv: 'Computer vision', gen: 'Generative models', gr: 'Graphs & molecules', rl: 'Reinforcement learning', opt: 'Efficient & federated ML' };
+    const C = {
+      'Flow matching': ['gen', 0.95, 0.09, 2022], 'Molecular property prediction': ['gr', 0.5, 0.16, 2017], 'Mechanistic interpretability': ['saf', 0.95, 0.21, 2022],
+      'RLHF': ['rl', 0.95, 0.12, 2017], 'Diffusion models': ['gen', 0.85, 0.08, 2020], 'Multi-agent RL': ['rl', 0.3, 0.12, 2016], 'Mixture of experts': ['opt', 0.9, 0.07, 2017],
+      'Knowledge graphs': ['gr', 0.1, 0.08, 2015], 'In-context learning': ['lm', 0.8, 0.15, 2020], 'Model-based RL': ['rl', 0.2, 0.10, 2016],
+      'Open-vocabulary detection': ['cv', 0.8, 0.10, 2021], 'Uncertainty quantification': ['saf', 0.3, 0.19, 2015], 'Chain-of-thought': ['lm', 0.9, 0.15, 2022],
+      'Graph neural networks': ['gr', 0.3, 0.06, 2016], 'Continual learning': ['opt', 0.3, 0.18, 2016], 'Offline RL': ['rl', 0.4, 0.11, 2019], 'Federated learning': ['opt', 0.2, 0.13, 2017]
+    };
+    const G = [
+      ['Flow matching', 'Molecular property prediction', 0.71, 0.62, 0.79, 0.18, ['Diffusion models', 'Graph neural networks', 'Variational autoencoders']],
+      ['Mechanistic interpretability', 'RLHF', 0.68, 0.58, 0.77, 0.31, ['Large language models', 'Chain-of-thought', 'Adversarial robustness']],
+      ['Diffusion models', 'Multi-agent RL', 0.64, 0.55, 0.72, 0.22, ['Deep RL', 'Text-to-image', 'Offline RL']],
+      ['Mixture of experts', 'Knowledge graphs', 0.59, 0.48, 0.69, 0.15, ['Large language models', 'Retrieval-augmented generation']],
+      ['In-context learning', 'Model-based RL', 0.55, 0.44, 0.65, 0.20, ['Large language models', 'Deep RL']],
+      ['Open-vocabulary detection', 'Uncertainty quantification', 0.52, 0.41, 0.62, 0.12, ['Object detection', 'Adversarial robustness', 'Semantic segmentation']],
+      ['Chain-of-thought', 'Graph neural networks', 0.49, 0.37, 0.60, 0.09, ['Large language models', 'Knowledge graphs']],
+      ['Diffusion models', 'Continual learning', 0.44, 0.33, 0.55, 0.14, ['GANs', 'Variational autoencoders', 'Model compression']],
+      ['Flow matching', 'Offline RL', 0.41, 0.29, 0.53, 0.10, ['Diffusion models', 'Deep RL']],
+      ['Federated learning', 'RLHF', 0.38, 0.27, 0.50, 0.17, ['Large language models', 'Model compression']]
+    ];
+    const sig = (x) => 1 / (1 + Math.exp(-x));
+    const gaps = G.map((g, i) => {
+      const A = C[g[0]];
+      const B = C[g[1]];
+      const mom = sig(A[1] + B[1]);
+      const nov = 1 - g[5];
+      const sg = 1 + A[2] + B[2];
+      return { i: i, a: g[0], b: g[1], p: g[2], lo: g[3], hi: g[4], ov: g[5], shared: g[6], aArea: A[0], bArea: B[0], areas: AREAS[A[0]] + ' · ' + AREAS[B[0]], gA: A[1], gB: B[1], grA: A[2], grB: B[2], mom: mom, nov: nov, sg: sg, score: g[2] * mom * nov * sg };
+    });
+    const S = {
+      'Flow matching': [
+        ['Future work', 'Applying the framework to geometric and molecular data is left for future work.', 2023, 0.87],
+        ['Limitation', 'Training assumes a fixed source distribution; learning it jointly is not addressed.', 2024, 0.79]
+      ],
+      'Molecular property prediction': [
+        ['Open problem', 'How to get calibrated predictions for molecules far from the training distribution remains open.', 2023, 0.90],
+        ['Limitation', 'Labelled property data are scarce, which limits supervised models on rare targets.', 2022, 0.86]
+      ],
+      'Mechanistic interpretability': [
+        ['Open problem', 'Whether circuits found in small models carry over to frontier-scale models remains open.', 2024, 0.91],
+        ['Limitation', 'Our analysis covers attention-only layers; MLP features are not explained.', 2023, 0.88],
+        ['Future work', 'Automating circuit discovery for arbitrary behaviours is left for future work.', 2024, 0.86],
+        ['Open problem', 'Little is known about how learned features change during preference fine-tuning.', 2025, 0.83]
+      ],
+      'RLHF': [
+        ['Open problem', 'Little is known about how reward-model errors propagate into the final policy.', 2024, 0.88],
+        ['Limitation', 'Preference data from a small pool of annotators may not reflect the wider population of users.', 2023, 0.82]
+      ],
+      'Uncertainty quantification': [
+        ['Open problem', 'How to quantify uncertainty for free-form text generation remains unclear.', 2024, 0.92],
+        ['Limitation', 'Calibration degrades under distribution shift, which our method does not address.', 2022, 0.87],
+        ['Future work', 'Combining conformal guarantees with deep ensembles is left for future work.', 2023, 0.81]
+      ],
+      'Continual learning': [
+        ['Open problem', 'Catastrophic forgetting in large pretrained models has not been characterised.', 2024, 0.89],
+        ['Limitation', 'Benchmarks assume clear task boundaries, which rarely hold in practice.', 2022, 0.85],
+        ['Future work', 'Extending replay-free methods to generative models is left for future work.', 2025, 0.80]
+      ],
+      'Diffusion models': [
+        ['Open problem', 'Reaching one-step sample quality without distillation remains open.', 2024, 0.90],
+        ['Limitation', 'Guidance strength trades diversity for fidelity, and no principled way to choose it is known.', 2023, 0.84],
+        ['Future work', 'Extending the approach to discrete and structured data such as graphs is left for future work.', 2024, 0.82]
+      ]
+    };
+    const DET = {
+      0: {
+        pa: [{ t: 'Flow Matching for Generative Modeling', y: '2023' }, { t: 'Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow', y: '2023' }, { t: 'Building Normalizing Flows with Stochastic Interpolants', y: '2023' }],
+        pb: [{ t: 'Neural Message Passing for Quantum Chemistry', y: '2017' }, { t: 'MoleculeNet: A Benchmark for Molecular Machine Learning', y: '2018' }, { t: 'Analyzing Learned Molecular Representations for Property Prediction', y: '2019' }],
+        qs: [
+          { t: 'Can flow-matching pretraining on unlabelled conformers improve property prediction when labels are scarce?', status: 'Grounded', cites: 'A1 · B2 · B3' },
+          { t: 'Does conditioning generation on predicted properties give better-calibrated out-of-distribution estimates than direct regression?', status: 'Partly grounded', cites: 'B2 · 1 of 2 claims supported' },
+          { t: 'How do straight-path (rectified) flows compare with message-passing networks as molecular encoders?', status: 'Grounded', cites: 'A2 · B1' }
+        ]
+      },
+      1: {
+        pa: [{ t: 'Toy Models of Superposition', y: '2022' }, { t: 'In-context Learning and Induction Heads', y: '2022' }, { t: 'Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small', y: '2023' }],
+        pb: [{ t: 'Deep reinforcement learning from human preferences', y: '2017' }, { t: 'Learning to summarize from human feedback', y: '2020' }, { t: 'Training language models to follow instructions with human feedback', y: '2022' }],
+        qs: [
+          { t: 'Which circuits identified in a base model change after preference fine-tuning, and which stay fixed?', status: 'Grounded', cites: 'A3 · B3' },
+          { t: 'Can features found in a reward model predict where the policy will over-optimise?', status: 'Partly grounded', cites: 'B1 · 1 of 2 claims supported' },
+          { t: 'Do induction-head mechanisms explain any of the gains from learning from human feedback?', status: 'Grounded', cites: 'A2 · B2' }
+        ]
+      }
+    };
+    const N = { 'Flow matching': 450, 'Molecular property prediction': 800, 'Mechanistic interpretability': 400, 'RLHF': 900, 'Diffusion models': 4300, 'Multi-agent RL': 1400, 'Mixture of experts': 650, 'Knowledge graphs': 2900, 'In-context learning': 2100, 'Model-based RL': 1000, 'Open-vocabulary detection': 600, 'Uncertainty quantification': 1600, 'Chain-of-thought': 1200, 'Graph neural networks': 4600, 'Continual learning': 1300, 'Offline RL': 1100, 'Federated learning': 3300 };
+    this._d = { AREAS: AREAS, C: C, N: N, gaps: gaps, S: S, DET: DET };
+    return this._d;
+  }
+
+  renderVals() {
+    const D = this.data();
+    const s = this.state;
+    const f2 = (v) => v.toFixed(2);
+    const pct = (v) => Math.round(v * 100) + '%';
+    const key = { score: 'score', p: 'p', mom: 'mom', nov: 'nov', sg: 'sg' }[s.sort];
+    const ranked = D.gaps.slice().sort((x, y) => y.score - x.score);
+    const rankOf = {};
+    ranked.forEach((g, i) => { rankOf[g.i] = i + 1; });
+    const list = D.gaps.filter((g) => g.p >= s.minP - 1e-9
+      && (s.area === 'all' || g.aArea === s.area || g.bArea === s.area)
+      && (!s.focus || g.a === s.focus || g.b === s.focus)).sort((x, y) => y[key] - x[key]);
+    const maxScore = ranked[0].score;
+    const rows = list.map((g) => {
+      const sel = g.i === s.sel;
+      return {
+        rank: rankOf[g.i], a: g.a, b: g.b, areas: g.areas, sel: sel,
+        bg: sel ? '#F3F3EF' : '#FFFFFF', bar: sel ? 'inset 2px 0 0 #15171C' : 'none',
+        pl: f2(g.p), p: g.p * 100, lo: g.lo * 100, span: (g.hi - g.lo) * 100,
+        mom: f2(g.mom), nov: f2(g.nov), sg: '×' + f2(g.sg), sl: f2(g.score), sw: Math.round((g.score / maxScore) * 100),
+        pick: () => this.setState({ sel: g.i, type: 'all' })
+      };
+    });
+
+    const names = Object.keys(D.C).sort((x, y) => D.C[y][2] - D.C[x][2]);
+    const maxRate = D.C[names[0]][2];
+    const shownNames = s.showAll ? names : names.slice(0, 8);
+    const concepts = shownNames.map((n) => ({
+      label: n, rate: pct(D.C[n][2]), bw: Math.round((D.C[n][2] / maxRate) * 100), sel: n === s.focus,
+      bg: n === s.focus ? '#ECECE7' : 'transparent', w: n === s.focus ? 600 : 400,
+      pick: () => {
+        if (this.state.focus === n) { this.setState({ focus: null, type: 'all' }); return; }
+        const first = D.gaps.filter((g) => g.a === n || g.b === n).sort((x, y) => y.score - x.score)[0];
+        this.setState({ focus: n, type: 'all', sel: first ? first.i : this.state.sel });
+      }
+    }));
+
+    const g = D.gaps[s.sel];
+    const det = D.DET[g.i];
+    const qTone = { 'Grounded': ['#E8F3EF', '#0F5F4B'], 'Partly grounded': ['#FFF4E5', '#8A4500'] };
+    const drafted = !!s.drafted[g.i];
+    const d = {
+      rank: rankOf[g.i], a: g.a, b: g.b, pPct: pct(g.p), lo: pct(g.lo), hi: pct(g.hi),
+      factors: [
+        { name: 'P(link)', v: f2(g.p), why: 'calibrated', showOp: false, op: '', bg: '#FFFFFF', w: 500, c: '#2952E3' },
+        { name: 'Momentum', v: f2(g.mom), why: 'σ(' + f2(g.gA) + ' + ' + f2(g.gB) + ')', showOp: true, op: '×', bg: '#FFFFFF', w: 500, c: '#15171C' },
+        { name: 'Novelty', v: f2(g.nov), why: '1 − ' + f2(g.ov) + ' overlap', showOp: true, op: '×', bg: '#FFFFFF', w: 500, c: '#15171C' },
+        { name: 'Stated gaps', v: f2(g.sg), why: '1 + ' + f2(g.grA) + ' + ' + f2(g.grB), showOp: true, op: '×', bg: '#FFFFFF', w: 500, c: '#15171C' },
+        { name: 'Gap score', v: f2(g.score), why: 'rank ' + rankOf[g.i] + ' of ' + D.gaps.length, showOp: true, op: '=', bg: '#F3F3EF', w: 600, c: '#15171C' }
+      ],
+      formulaLabel: 'Gap score ' + f2(g.score) + ' equals P(link) ' + f2(g.p) + ' times momentum ' + f2(g.mom) + ' times novelty ' + f2(g.nov) + ' times stated gaps ' + f2(g.sg),
+      score: f2(g.score), shared: g.shared,
+      hasPapers: !!det, noPapers: !det, pa: det ? det.pa : [], pb: det ? det.pb : [],
+      showQs: drafted && !!det, qsPending: drafted && !det,
+      qs: det ? det.qs.map((q) => ({ t: q.t, status: q.status, cites: q.cites, bg: qTone[q.status][0], fg: qTone[q.status][1] })) : []
+    };
+
+    const opConcepts = s.focus ? [s.focus] : [g.a, g.b];
+    const colors = ['#15171C', '#8A8F99'];
+    const X = (y) => 48 + ((y - 2015) / 11) * 652;
+    const Y = (v) => 150 - (v / 0.3) * 135;
+    const series = (name) => {
+      const c = D.C[name];
+      const pts = [];
+      for (let y = c[3]; y <= 2026; y++) {
+        const t = c[3] === 2026 ? 1 : (y - c[3]) / (2026 - c[3]);
+        const v = y === 2026 ? c[2] : Math.max(0.01, c[2] * (0.55 + 0.45 * t) + Math.sin(y * 1.7 + c[2] * 40) * 0.012);
+        pts.push(X(y).toFixed(1) + ',' + Y(v).toFixed(1));
+      }
+      return pts.join(' ');
+    };
+    const avgPts = [];
+    for (let y = 2015; y <= 2026; y++) avgPts.push(X(y).toFixed(1) + ',' + Y(0.08 + (y - 2015) * 0.0022 + Math.sin(y) * 0.004).toFixed(1));
+    const tone = { 'Open problem': ['#ECECE7', '#3F444D'], 'Limitation': ['#ECECE7', '#3F444D'], 'Future work': ['#ECECE7', '#3F444D'] };
+    const all = [];
+    opConcepts.forEach((cn, ci) => { (D.S[cn] || []).forEach((x) => all.push({ type: x[0], s: x[1], y: x[2], conf: x[3].toFixed(2), concept: cn, dot: colors[ci], bg: tone[x[0]][0], fg: tone[x[0]][1] })); });
+    all.sort((x, y) => Number(y.conf) - Number(x.conf));
+    const types = ['all', 'Open problem', 'Limitation', 'Future work'].map((t) => {
+      const on = s.type === t;
+      return {
+        name: t === 'all' ? 'All' : t, n: t === 'all' ? all.length : all.filter((x) => x.type === t).length, on: on,
+        bg: on ? '#15171C' : '#FFFFFF', fg: on ? '#FFFFFF' : '#15171C', bd: on ? '#15171C' : '#D5D5CF',
+        pick: () => this.setState({ type: t })
+      };
+    });
+    const items = all.filter((x) => s.type === 'all' || x.type === s.type);
+
+    const areaOpts = [{ id: 'all', name: 'All areas' }].concat(Object.keys(D.AREAS).map((k) => ({ id: k, name: D.AREAS[k] })));
+    return {
+      rows: rows, count: rows.length, empty: rows.length === 0, d: d,
+      sum: (() => {
+        const ps = list.map((x) => x.p).sort((a, b) => a - b);
+        const med = ps.length ? (ps.length % 2 ? ps[(ps.length - 1) / 2] : (ps[ps.length / 2 - 1] + ps[ps.length / 2]) / 2) : null;
+        const top = list.length ? Math.max.apply(null, list.map((x) => x.score)) : null;
+        const both = list.filter((x) => x.grA >= 0.1 && x.grB >= 0.1).length;
+        return [
+          { label: 'Gaps shown', v: String(list.length), bl: 'none', c: '#15171C' },
+          { label: 'Median P(link)', v: med === null ? '–' : f2(med), bl: '1px solid #E6E6E1', c: '#2952E3' },
+          { label: 'Top gap score', v: top === null ? '–' : f2(top), bl: '1px solid #E6E6E1', c: '#15171C' },
+          { label: 'Open problems on both sides', v: String(both), bl: '1px solid #E6E6E1', c: '#15171C' }
+        ];
+      })(),
+      ov: (() => {
+        const inArea = Object.keys(D.C).filter((n) => s.area === 'all' || D.C[n][0] === s.area);
+        const papers = inArea.reduce((a, n) => a + D.N[n], 0);
+        const gapsIn = D.gaps.filter((x) => s.area === 'all' || x.aArea === s.area || x.bArea === s.area).length;
+        const avg = inArea.length ? inArea.reduce((a, n) => a + D.C[n][2], 0) / inArea.length : 0;
+        const fast = inArea.slice().sort((a, b) => D.C[b][1] - D.C[a][1])[0] || '–';
+        const gappy = inArea.slice().sort((a, b) => D.C[b][2] - D.C[a][2])[0] || '–';
+        return {
+          title: s.area === 'all' ? 'All areas at a glance' : D.AREAS[s.area] + ' at a glance',
+          fast: fast, gappy: gappy,
+          cells: [
+            { label: 'Concepts', v: String(inArea.length), bl: 'none', bt: 'none' },
+            { label: 'Papers', v: papers.toLocaleString('en-GB'), bl: '1px solid #E6E6E1', bt: 'none' },
+            { label: 'Predicted gaps', v: String(gapsIn), bl: 'none', bt: '1px solid #E6E6E1' },
+            { label: 'Avg stated-gap rate', v: Math.round(avg * 100) + '%', bl: '1px solid #E6E6E1', bt: '1px solid #E6E6E1' }
+          ]
+        };
+      })(),
+      area: s.area, areaOpts: areaOpts, onArea: (e) => this.setState({ area: e.target.value }),
+      minP: s.minP, minPl: f2(s.minP), onMinP: (e) => this.setState({ minP: Number(e.target.value) }),
+      sort: s.sort, onSort: (e) => this.setState({ sort: e.target.value }),
+      concepts: concepts, allLabel: s.showAll ? 'Show fewer' : 'Show all ' + names.length + ' concepts', toggleAll: () => this.setState({ showAll: !this.state.showAll }),
+      hasFocus: !!s.focus, focus: s.focus, clearFocus: () => this.setState({ focus: null, type: 'all' }),
+      opSub: s.focus ? 'Stated in abstracts about ' + s.focus + ' · classifier confidence ≥ 0.6' : 'For the selected gap: ' + g.a + ' and ' + g.b + ' · classifier confidence ≥ 0.6',
+      legend: opConcepts.map((cn, ci) => ({ label: cn, c: colors[ci], rate: pct(D.C[cn][2]) })),
+      line1: series(opConcepts[0]), line2: opConcepts[1] ? series(opConcepts[1]) : '',
+      avgLine: avgPts.join(' '),
+      chartLabel: 'Share of papers stating an open problem, 2015 to 2026, for ' + opConcepts.join(' and ') + ', against an AI/ML average near 10%',
+      types: types, items: items, hasItems: items.length > 0, noItems: items.length === 0,
+      draftLabel: drafted ? 'Redraft' : 'Draft 3 questions',
+      draft: () => { const dr = Object.assign({}, this.state.drafted); dr[this.state.sel] = true; this.setState({ drafted: dr }); }
+    };
+  }
+}
+</script>
+
+
+</body></html>
