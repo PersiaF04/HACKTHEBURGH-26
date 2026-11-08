@@ -89,13 +89,13 @@
   },
   "files": {
     "backtest.json": "171fe67e1f9bab79273c90d6345f060548c68933cc1e278fe8dec0e9e523b74c",
-    "concepts.json": "149ca2fea7e635cffec76e7bc92619a4246686da8fce375401962b949416e8b0",
+    "concepts.json": "202e78e8a741df64f5052a45827a1bd9e5ad9b4d0795fe941b9cce0f7408b1d8",
     "coverage-2023.json": "41d168f978b9dcb171dc62a9006748fc19102993626d1a4461166a322ea07cc3",
-    "gap-details.json": "bb4941f4fff222d2be85b1b8894b864fbbe18e51c77ec314fc2d9ccca989742f",
-    "gaps.json": "5ed0c83d5217a0bc72adca5aad297571cc6ab0aa102d298609bf9e2a5c57ed9a",
+    "gap-details.json": "7998788dbe7ee0858891f1a95dbff4a8e59f3b592cb785b4e6689d744db7a57b",
+    "gaps.json": "7a91253d4f039cdf1f33bbf919812bfedca029f88cac53ebf6c3c9df0eabcdd2",
     "map-2023.json": "34496090cd1b39b812ac56c41375a52e6d84545b253329154575c35c812b8520",
-    "meta.json": "81da0d54be8e2faf91c0dd26230998cdb25a92662509845be03a4eeb654a383e",
-    "open-problems.json": "7927bfd0bd3cee9a4d821c0077f6b6612e4372928a26a87ed0593adef9f6d54b",
+    "meta.json": "3169a0ffdccf0e09e3878d17765ab88ca0847cf78c46c234d3637768739581cf",
+    "open-problems.json": "159d6856455c2ba120cc7f2739d0bfc9e93ff6243a0dbaf90a2ce00a06bf7851",
     "search.json": "9a476d3f0dec809d786be6edcc10f062e2bad43190eaa1556124a450423a13fb",
     "routes.json": "d53b721d940d0d9a9cb7e33100296dc7dfe53cb8d3258bf85fcba20cf1461a1f"
   },
@@ -136,18 +136,19 @@
       "cache_hits": 22913,
       "gap_rates": 4984,
       "gaps_with_rates": 50,
-      "items": 923,
+      "items": 911,
       "quality": "unmeasured",
       "gaps_with_sentences": 50,
       "concepts_with_sentences": 246,
       "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
       "display_only": "rates are not used in any gap score or backtest",
       "post_process": "open_problems attach",
-      "tool_commit": "74aab1c606e92c5acfcaa510d1167a61b91e89ea",
+      "tool_commit": "8d11af54234eac9ce5eedd807eca09952f93ccca",
       "cache_sha256": {
-        "hits.jsonl": "16a344765fb1e43f885dd56dcdb80cf36f70dd4d8bd6f7b0fa7b424304addf79",
-        "counts.json": "4b407530f97f97bee401e4e0824e264aa24772972e2255c74253358fb6eed5c7"
-      }
+        "hits.jsonl": "392d0bd76a539fd08f3772c34f25d87ad6b44648ee14c7c50ddc4f431fc3987f",
+        "counts.json": "676c21220eb3eb8d972c6c888094926b9abfe7d73628f7952b5c0274ad3ed79d"
+      },
+      "quality_measurement": "AI-labelled precision 24/34 (not human-validated)"
     }
   }
 }
