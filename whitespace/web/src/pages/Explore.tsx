@@ -63,8 +63,9 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   }
   /** Picked from search or the side panel: select it and bring the map to it. */
   function pickAndFocus(id: string) {
+    const wasSelected = useWhitespaceStore.getState().selectedConcepts.includes(id);
     pick(id);
-    if (map.concepts.some((c) => c.id === id)) setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 }));
+    if (!wasSelected && map.concepts.some((c) => c.id === id)) setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 }));
   }
 
   useEffect(() => {
@@ -195,7 +196,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 selectedConceptId={synth ?? selectedId}
                 focus={map.focus}
                 focusRequest={focusReq}
-                onSelectConcept={pick}
+                onSelectConcept={pickAndFocus}
                 placeholder={false}
               />
             </div>
