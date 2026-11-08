@@ -17,7 +17,7 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 ![Whitespace research map](docs/images/research-map.png)
 
-*Research map on the live site, real data: OpenAlex export with map and gap snapshots 2021–2023 (840 records dated 2024–2026 are excluded). Gap scores come from a model trained through 2020, which has no held-out test of its own; the held-out result below describes the backtest model.*
+*Research map on the live site, real data: OpenAlex export with a single 2023 map and gap snapshot (840 records dated 2024–2026 are excluded). Gap scores come from a model trained through 2020, which has no held-out test of its own; the held-out result below describes the backtest model.*
 
 **Contents:** [Problem](#the-problem) · [What it does](#what-it-does) · [Results](#results) · [How it works](#how-it-works) · [Tracks](#tracks) · [Tech stack](#tech-stack) · [Run locally](#run-locally) · [Deployment](#deployment) · [Data and limitations](#data-and-limitations) · [Team](#team) · [Licence](#licence)
 
@@ -28,19 +28,21 @@ Research moves faster than people can read it. Search finds work that already ex
 ## What it does
 
 - **Research map:** explore the latest snapshot as a 3D graph. Branch hubs are clusters found in the map layout and named for the words their concepts share; they are derived in the app, not exported by the pipeline. Each branch links to its largest concepts, coloured from red for the biggest to blue for the smallest. An option draws the top-ranked gaps as bridges between the two concepts they join. Selecting a branch, concept or gap opens its details; a concept shows its papers per year, its growth and the gaps it appears in. The summary counts distinct papers in the corpus. The map has no time slider.
-- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Summary stats count only concepts with positive growth. Search matches concept names only; paper search and author-stated open problems are not in the current export, so those views say so instead of showing data.
+- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Momentum counts only when both concepts are growing, and summary stats count only concepts with positive growth. A list of 534 generic filler phrases (for example "vice versa" or non-English function words) is hidden from this list only; the vocabulary, model and backtest are unchanged. Search matches concept names only; paper search is not built.
+- **Open problems:** read 923 future-work, open-problem and limitation sentences quoted from papers, each linked to its source. They were selected by a pattern filter and not hand-labelled, so their quality is unmeasured. Filter by concept or statement type, and compare the stated-problem rate over time with the wider AI scope.
 - **Evidence:** at [`/evidence`](https://whitespace-hacktheburgh-26.vercel.app/evidence), a headline card states the pre-registered verdict (aggregate only) with its caveats and a link to issue #122. A technical-detail section holds ranking tables comparing each method's P@100, AP and ROC AUC against the base rate, calibration, and hits and misses. The paper-to-code hand-check is shown as not yet measured.
 - **Code coverage:** explore the concept-by-year archive coverage and papers without a linked record at [`/coverage`](https://whitespace-hacktheburgh-26.vercel.app/coverage). Coverage uses publication years, so its range can differ from the map's snapshot years.
 
 The header navigation has three tabs: Research map, Gap finder and Open problems. Evidence and Code coverage are available through footer links and the direct URLs above. The header badge shows the data source and the snapshot year range.
 
 <p align="center">
-  <img alt="Gap finder with real data" src="docs/images/gaps.png" width="32%">
-  <img alt="Evidence page with the pre-registered verdict" src="docs/images/evidence.png" width="32%">
-  <img alt="Code coverage page" src="docs/images/coverage.png" width="32%">
+  <img alt="Gap finder with real data" src="docs/images/gaps.png" width="49%">
+  <img alt="Open problems page with author-stated sentences" src="docs/images/open-problems.png" width="49%">
+  <img alt="Evidence page with the pre-registered verdict" src="docs/images/evidence.png" width="49%">
+  <img alt="Code coverage page" src="docs/images/coverage.png" width="49%">
 </p>
 
-*Gap finder, Evidence and Code coverage on the live site, real data (snapshots 2021–2023). The gap list is a production forecast whose outcomes are not yet observed; read its likelihoods as a ranking, not as calibrated chances.*
+*Gap finder, Open problems, Evidence and Code coverage on the live site, real data (2023 snapshot). The gap list is a production forecast whose outcomes are not yet observed; read its likelihoods as a ranking, not as calibrated chances.*
 
 ## Results
 
@@ -111,7 +113,7 @@ Changes to `whitespace/web/` merged to `main` deploy production through [`.githu
 
 ## Data and limitations
 
-- **Papers:** [OpenAlex](https://openalex.org) metadata (CC0). Raw abstracts are not committed or published. The live export ends in 2023: map and gap snapshots cover 2021–2023, and the 840 records dated 2024–2026 are excluded because those years are too thin. The topic filter uses OpenAlex topic assignments made after October 2026, so they are not as known at each historical origin.
+- **Papers:** [OpenAlex](https://openalex.org) metadata (CC0). Raw abstracts are not committed or published. The live export ends in 2023: the map and gaps use a single 2023 snapshot, and the 840 records dated 2024–2026 are excluded because those years are too thin. The topic filter uses OpenAlex topic assignments made after October 2026, so they are not as known at each historical origin.
 - **Code links:** the [Papers with Code archive](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code), CC BY-SA 4.0, snapshot of 28 July 2025. Coverage is a lower bound: a missing link means the archive has no link, not that no code exists. Papers after mid-2025 will look unlinked. The 100-row hand-check frame remains unlabelled; join precision and archive recall are not established.
 - **Link definition:** a link means co-occurrence in at least three papers. This measures attention, not importance or truth.
 - **Forecast:** the held-out result comes from one 2020 test origin. The production forecast has no held-out test of its own; the published aggregate comparison is against `current_weight`, selected on 2017. Within each starting-weight stratum the model is below the five structural baselines on AP and AUC.
