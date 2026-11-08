@@ -105,11 +105,28 @@ class BacktestConfig:
     n_boot: int = 200
 
 
-def config_hash(config: BacktestConfig, works: list[Work]) -> str:
-    """Hash of the configuration plus a fingerprint of the corpus (ids and dates)."""
+def works_at(works, origin: int) -> list[Work]:
+    """The works to use at ``origin``: the list itself, or ``works(origin)`` when callable.
+
+    A callable lets each origin carry its own concept assignment (real data: the vocabulary of
+    origin T is counted from works dated <= 31 Dec T, and labels for T use it up to T+horizon).
+    """
+    return list(works(origin)) if callable(works) else works
+
+
+def _origins(config: BacktestConfig) -> list[int]:
+    return sorted({*config.fit_origins, *config.calibration_origins, *config.test_origins})
+
+
+def config_hash(config: BacktestConfig, works) -> str:
+    """Hash of the configuration plus a fingerprint of the corpus (ids, dates, concepts).
+    With a ``works_for_origin`` callable the fingerprint covers every origin's works."""
     corpus = hashlib.sha256()
-    for w in sorted(works, key=lambda w: w.id):
-        corpus.update(f"{w.id}|{w.date.isoformat()}|{','.join(w.concepts)};".encode())
+    lists = [(None, works)] if not callable(works) else [(o, works(o)) for o in _origins(config)]
+    for origin, ws in lists:
+        corpus.update(f"[{origin}]".encode())
+        for w in sorted(ws, key=lambda w: w.id):
+            corpus.update(f"{w.id}|{w.date.isoformat()}|{','.join(w.concepts)};".encode())
     payload = json.dumps({"config": asdict(config), "corpus": corpus.hexdigest()}, sort_keys=True)
     return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -137,14 +154,15 @@ def origin_context(works: list[Work], origin: int, n_min: int):
     return pairs, build_context(works, snap, pairs)
 
 
-def train(works: list[Work], config: BacktestConfig) -> Trained:
+def train(works, config: BacktestConfig) -> Trained:
     """Fit on the fit origins (subsampled negatives) then Platt-calibrate on the calibration
     origins' full universes. Reads no test origin and no work dated after the latest label
     window of the calibration origins."""
     xs, ys, sizes = [], [], {}
     for origin in config.fit_origins:
-        pairs, ctx = origin_context(works, origin, config.n_min)
-        y = labels(works, origin, pairs, config.horizon)
+        ws = works_at(works, origin)
+        pairs, ctx = origin_context(ws, origin, config.n_min)
+        y = labels(ws, origin, pairs, config.horizon)
         if not y.any() or y.all():
             raise ValueError(f"fit origin {origin} has no positives or no negatives")
         idx = subsample_negatives(y, config.neg_ratio, config.seed + origin)
@@ -154,8 +172,9 @@ def train(works: list[Work], config: BacktestConfig) -> Trained:
     model = LogisticModel(config.l2).fit(np.vstack(xs), np.concatenate(ys))
     ds, yc = [], []
     for origin in config.calibration_origins:
-        pairs, ctx = origin_context(works, origin, config.n_min)
-        yc.append(labels(works, origin, pairs, config.horizon))
+        ws = works_at(works, origin)
+        pairs, ctx = origin_context(ws, origin, config.n_min)
+        yc.append(labels(ws, origin, pairs, config.horizon))
         ds.append(_decision(model, ctx))
         sizes[origin] = {"universe": len(pairs), "positives": int(yc[-1].sum()), "train_rows": 0}
     platt = Platt().fit(np.concatenate(ds), np.concatenate(yc))
@@ -170,7 +189,7 @@ def train(works: list[Work], config: BacktestConfig) -> Trained:
 
 def score_origin(works: list[Work], trained: Trained, origin: int, n_min: int):
     """Full-universe scores at ``origin``: (pairs, ctx, decision, calibrated probability)."""
-    pairs, ctx = origin_context(works, origin, n_min)
+    pairs, ctx = origin_context(works_at(works, origin), origin, n_min)
     d = _decision(trained.model, ctx)
     return pairs, ctx, d, trained.platt.predict(d)
 
@@ -219,10 +238,17 @@ def _verdict(diff: M.BootstrapResult, best: str) -> str:
     return f"no improvement: model does not beat best baseline ({best}) on {HEADLINE['metric']}"
 
 
-def evaluate_origin(works, trained, config, origin, best_baseline: str) -> dict:
-    """Metrics for one test origin on the full eligible universe (labels read here)."""
-    pairs, ctx, d, prob = score_origin(works, trained, origin, config.n_min)
-    y = labels(works, origin, pairs, config.horizon)
+def evaluate_origin(works, trained, config, origin, best_baseline: str, artifacts: dict | None = None) -> dict:
+    """Metrics for one test origin on the full eligible universe (labels read here).
+
+    If ``artifacts`` is a dict, the origin's pair set (canonical order), calibrated scores, labels and
+    starting weights are stored in it under ``origin`` (numpy arrays; no text)."""
+    ws = works_at(works, origin)
+    pairs, ctx, d, prob = score_origin(ws, trained, origin, config.n_min)
+    y = labels(ws, origin, pairs, config.horizon)
+    if artifacts is not None:
+        artifacts[origin] = {"pairs": pairs, "calibrated_score": prob.copy(), "labels": y.copy(),
+                             "starting_weight": pairs.weight.copy()}
     perm = np.random.default_rng(config.seed + 1000 + origin).permutation(len(y))
     pairs_p = PairSet(pairs.names, pairs.i[perm], pairs.j[perm], pairs.weight[perm])
     y, d, prob = y[perm], d[perm], prob[perm]
@@ -281,8 +307,9 @@ def choose_best_baseline(works, trained, config) -> tuple[str, dict]:
     (dev data, never a test origin). Returns its name and every baseline's score."""
     ys, scores = [], {}
     for origin in config.calibration_origins:
-        pairs, ctx = origin_context(works, origin, config.n_min)
-        ys.append(labels(works, origin, pairs, config.horizon))
+        ws = works_at(works, origin)
+        pairs, ctx = origin_context(ws, origin, config.n_min)
+        ys.append(labels(ws, origin, pairs, config.horizon))
         for k, v in ctx.scores.items():
             scores.setdefault(k, []).append(v)
     y = np.concatenate(ys)
@@ -299,21 +326,27 @@ def run_backtest(
     override_one_shot: bool = False,
     data_label: str = "unlabelled",
     generator: dict | None = None,
+    return_test_artifacts: bool = False,
 ) -> dict:
-    """Run the purged backtest and return the ``metrics`` dict (see whitespace/README.md)."""
-    works = list(works)
+    """Run the purged backtest and return the ``metrics`` dict (see whitespace/README.md).
+
+    ``works`` is a list of ``Work`` or a ``works_for_origin(T)`` callable returning the works (with
+    concepts from the vocabulary of T) dated up to T + horizon."""
+    works = works if callable(works) else list(works)
     assert_purged(config.fit_origins, config.calibration_origins, config.test_origins, config.horizon)
     key = config_hash(config, works)
     trained = train(works, config)
     best, dev_ap = choose_best_baseline(works, trained, config)
     # last gate before any test label is read
     overridden = (guard or DEFAULT_GUARD).claim(key, override_one_shot)
-    per_origin = {str(o): evaluate_origin(works, trained, config, o, best) for o in config.test_origins}
-    return {
+    arts: dict | None = {} if return_test_artifacts else None
+    per_origin = {str(o): evaluate_origin(works, trained, config, o, best, arts) for o in config.test_origins}
+    result = {
         "manifest": {
             "config_hash": key, "seed": config.seed, "config": asdict(config),
             "fit_origins": list(config.fit_origins), "calibration_origins": list(config.calibration_origins),
-            "test_origins": list(config.test_origins), "n_works": len(works),
+            "test_origins": list(config.test_origins),
+            "n_works": len(works) if not callable(works) else {str(o): len(works(o)) for o in _origins(config)},
             "link_threshold": LINK_THRESHOLD, "data_label": check_data_label(data_label),
             "generator": generator, "generator_size": (generator or {}).get("n_works"),
         },
@@ -323,3 +356,6 @@ def run_backtest(
         "headline": HEADLINE,
         "test": per_origin,
     }
+    if arts is not None:  # opt-in, not JSON-serialisable (numpy); computed after the guard claim
+        result["artifacts"] = {str(o): a for o, a in arts.items()}
+    return result
