@@ -9,6 +9,7 @@ import { MapLegend } from "../components/MapLegend";
 import { MapSkeleton } from "../components/MapSkeleton";
 import { SearchBar } from "../components/SearchBar";
 import { fmtInt } from "../lib/format";
+import { buildHierarchy, isSynthetic } from "../lib/hierarchy";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
 import "./explore-page.css";
@@ -39,6 +40,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [detail, setDetail] = useState<ConceptResponse | null | undefined>(undefined);
   const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
+  const [ranked, setRanked] = useState<GapSummary[]>([]);
 
   const showMap = map.year === selectedYear && !loading;
   const skeleton = showMap && (map.placeholder || (map.concepts.length === 0 && !map.no_data));
@@ -48,7 +50,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
   // Single selection: the store toggles and appends, so set the list directly.
   function pick(id: string) {
-    if (!live) return;
+    if (!live || isSynthetic(id)) return;
     const current = useWhitespaceStore.getState().selectedConcepts;
     if (current.length !== 1 || current[0] !== id) useWhitespaceStore.setState({ selectedConcepts: [id] });
     else onSelectConcept(id); // clicking the selected concept again toggles it off
@@ -69,6 +71,13 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     return () => { current = false; };
   }, [selectedId]);
 
+  useEffect(() => {
+    let current = true;
+    api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
+    return () => { current = false; };
+  }, [selectedYear]);
+  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, ranked) : null), [live, map.concepts, ranked]);
+
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
   const areas = useMemo(() => {
     const counts = new Map<string, number>();
@@ -83,6 +92,15 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     return true;
   }), [map.concepts, filters.minPapers, filters.growth, offAreas]);
   const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
+  const shownNodes = useMemo(
+    () => (hierarchy ? hierarchy.nodes.filter((n) => n.kind !== "concept" || visibleIds.has(n.id)) : visible),
+    [hierarchy, visible, visibleIds],
+  );
+  const shownStructure = useMemo(() => {
+    const ids = new Set(shownNodes.map((n) => n.id));
+    return (hierarchy?.structure ?? []).filter((e) => ids.has(e.source) && ids.has(e.target));
+  }, [hierarchy, shownNodes]);
+
   const edges = useMemo(
     () => map.edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
     [map.edges, visibleIds],
@@ -91,6 +109,12 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     () => (map.linked_edges ?? []).filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
     [map.linked_edges, visibleIds],
   );
+  // Supporting links: the strongest predicted links, plus every link of the selected concept.
+  const supportEdges = useMemo(() => {
+    const top = [...edges].sort((x, y) => y.p_link - x.p_link).slice(0, 40);
+    const own = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId) : [];
+    return [...new Set([...top, ...own])];
+  }, [edges, selectedId]);
   const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
   const hasCounts = visible.some((c) => typeof c.paper_count === "number");
   const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
@@ -109,7 +133,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
   const nothing = skeleton || !live;
   const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
-    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: "Dots on the map" },
+    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? `${fmtInt(shownNodes.filter((n) => (n as { kind?: string }).kind === "concept").length)} drawn in the graph` : "Dots on the map" },
     { label: "Links", value: nothing || !hasLinked ? fmtInt(null) : fmtInt(linkedEdges.length), help: STAT_HELP.links, caption: "Pairs sharing 3+ papers" },
     { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
     { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
@@ -155,11 +179,13 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           <>
             <div className="ex__mapwrap">
               <MapCanvas3DLazy
-                concepts={visible}
-                allConcepts={map.concepts}
+                concepts={shownNodes}
+                allConcepts={hierarchy?.nodes ?? map.concepts}
                 resetKey={selectedYear}
-                edges={edges}
+                edges={hierarchy ? supportEdges : edges}
+                showAreaLabels={false}
                 linkedEdges={linkedEdges}
+                structure={shownStructure}
                 selectedConceptId={selectedId}
                 focus={map.focus}
                 focusRequest={focusReq}
@@ -169,6 +195,11 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
               />
             </div>
             <MapLegend view="3d" hasLinked={hasLinked} />
+            {hierarchy && (
+              <p className="ws-note ex__structure-note">
+                Graph structure: large white dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Grey dots are the largest concepts in each branch. Blue dots are the top ranked hypotheses (gaps), linked to the two concepts they join; dashed lines are other predicted links. Branches are derived in the app, not exported by the pipeline.
+              </p>
+            )}
           </>
         ) : (
           <div className="ex__loading" role="status" aria-live="polite">

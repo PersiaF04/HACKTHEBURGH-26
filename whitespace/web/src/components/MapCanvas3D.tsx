@@ -3,12 +3,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { ConceptPoint, PredictedEdge } from "../api";
 import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import type { NodeKind, StructureEdge } from "../lib/hierarchy";
 import { readMapTheme } from "../lib/mapTheme";
 import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
-type MapConcept = ConceptPoint & { area?: string };
+type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind };
 type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
@@ -25,6 +26,8 @@ export type MapCanvas3DProps = {
   placeholder: boolean;
   onSelectConcept: (id: string) => void;
   linkedEdges?: LinkedEdge[];
+  /** Branch splits, branch-to-concept and hypothesis links. Drawn as solid lines of three weights. */
+  structure?: StructureEdge[];
   showPredicted?: boolean;
   showAreaLabels?: boolean;
   /** Called once if WebGL cannot be created, so the host can report unavailable 3D. */
@@ -109,7 +112,7 @@ type Flight = { t0: number; dur: number; fromT: THREE.Vector3; toT: THREE.Vector
 
 export function MapCanvas3D({
   concepts, allConcepts, resetKey, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
-  linkedEdges, showPredicted = true, showAreaLabels = true, onUnsupported,
+  linkedEdges, structure, showPredicted = true, showAreaLabels = true, onUnsupported,
 }: MapCanvas3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -183,7 +186,8 @@ export function MapCanvas3D({
     const heat = new Float32Array(n);
     const bucket = new Uint8Array(n);
     const tmp = new THREE.Color();
-    const palette = readMapTheme().growth;
+    const themeHues = readMapTheme();
+    const palette = themeHues.growth;
     concepts.forEach((c, i) => {
       const k = (layout.slot.get(c.id) ?? 0) * 3;
       pos[i * 3] = layout.pos[k]; pos[i * 3 + 1] = layout.pos[k + 1]; pos[i * 3 + 2] = layout.pos[k + 2];
@@ -192,7 +196,10 @@ export function MapCanvas3D({
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
-      tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
+      if (c.kind === "branch") size[i] = 3.8;
+      else if (c.kind === "hypothesis") size[i] = 1.5;
+      const hue = c.kind === "branch" ? themeHues.ink : c.kind === "hypothesis" ? themeHues.accent : palette[b];
+      tmp.set(hue).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
@@ -211,8 +218,8 @@ export function MapCanvas3D({
   }, [concepts, layout, theme]);
 
   // Latest props for the render loop (no re-creation of the engine).
-  const live = useRef({ resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
-  live.current = { resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
+  const live = useRef({ resetKey, data, concepts, edges, linkedEdges, structure, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
+  live.current = { resetKey, data, concepts, edges, linkedEdges, structure, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
 
   // Engine: renderer, camera, controls, picking, overlay. Created once per mount.
   useEffect(() => {
@@ -275,6 +282,10 @@ export function MapCanvas3D({
     let points: THREE.Points | null = null;
     let edgeLines: THREE.LineSegments | null = null;
     let linkLines: THREE.LineSegments | null = null;
+    const structLines: Array<THREE.LineSegments | null> = [null, null, null];
+    const splitMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.95 });
+    const memberMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.28 });
+    const hypMat = new THREE.LineBasicMaterial({ color: 0x6b8cff, transparent: true, opacity: 0.8 });
     const edgeMat = new THREE.LineDashedMaterial({ color: 0x6b8cff, dashSize: 1.6, gapSize: 1.0, transparent: true, opacity: 0.85 });
     const linkMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.6 });
 
@@ -574,6 +585,9 @@ export function MapCanvas3D({
       renderer.setClearColor(new THREE.Color(T.mapBg), 1);
       edgeMat.color.set(T.accent);
       linkMat.color.set(T.rule);
+      splitMat.color.set(T.ink);
+      memberMat.color.set(T.muted);
+      hypMat.color.set(T.accent);
       const rim = new THREE.Color(T.surface).convertLinearToSRGB(); // shader writes raw values
       (pointsMat.uniforms.uRim.value as THREE.Vector3).set(rim.r, rim.g, rim.b);
       requestRender();
@@ -618,7 +632,7 @@ export function MapCanvas3D({
         scene.add(l);
         return l;
       };
-      for (const l of [edgeLines, linkLines]) if (l) { scene.remove(l); l.geometry.dispose(); }
+      for (const l of [edgeLines, linkLines, ...structLines]) if (l) { scene.remove(l); l.geometry.dispose(); }
       const pred: Array<[number, number]> = [];
       if (s.showPredicted) {
         for (const e of s.edges) {
@@ -633,6 +647,14 @@ export function MapCanvas3D({
         if (a !== undefined && b !== undefined) lk.push([a, b]);
       }
       linkLines = build(lk, linkMat, false);
+      const parts: Record<StructureEdge["kind"], Array<[number, number]>> = { split: [], member: [], hypothesis: [] };
+      for (const e of s.structure ?? []) {
+        const a = d.indexById.get(e.source), b = d.indexById.get(e.target);
+        if (a !== undefined && b !== undefined) parts[e.kind].push([a, b]);
+      }
+      structLines[0] = build(parts.split, splitMat, false);
+      structLines[1] = build(parts.member, memberMat, false);
+      structLines[2] = build(parts.hypothesis, hypMat, false);
       requestRender();
     };
     const setHeatmap = (enabled: boolean) => {
@@ -688,8 +710,8 @@ export function MapCanvas3D({
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       stage.removeEventListener("keydown", onKey);
-      for (const o of [points, edgeLines, linkLines]) if (o) o.geometry.dispose();
-      pointsMat.dispose(); edgeMat.dispose(); linkMat.dispose();
+      for (const o of [points, edgeLines, linkLines, ...structLines]) if (o) o.geometry.dispose();
+      pointsMat.dispose(); edgeMat.dispose(); linkMat.dispose(); splitMat.dispose(); memberMat.dispose(); hypMat.dispose();
       for (const el of [...labelEls, ...areaEls, ...chipEls, hoverRing, selRing]) el.remove();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -703,7 +725,7 @@ export function MapCanvas3D({
   useEffect(() => { engineRef.current?.applyTheme(); engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
   useEffect(() => { engineRef.current?.applyTheme(); }, [theme]);
   useEffect(() => { engineRef.current?.setHeatmap(heatmap); }, [heatmap]);
-  useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, showPredicted, data]);
+  useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, structure, showPredicted, data]);
   useEffect(() => { engineRef.current?.requestRender(); }, [selectedConceptId, showAreaLabels]);
 
   // Camera focus: an explicit request (search, panel link) wins; otherwise the map's initial focus point.
