@@ -127,13 +127,16 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
       <header>
         {areaName && <span className="whitespace-concept__area">{fmtText(areaName)}</span>}
         <h2>{fmtText(concept.label)}</h2>
-        <span className="whitespace-concept__first">First appears {fmtYear(first)}</span>
+        {first !== null && <span className="whitespace-concept__first">First appears {fmtYear(first)}</span>}
       </header>
 
       <dl className="whitespace-concept__stats">
         <div><dt>Papers</dt><dd>{fmtInt(concept.paper_count)}</dd></div>
         <div><dt>3-yr growth</dt><dd className={growthClass}>{fmtGrowth(concept.growth)}</dd></div>
-        <div><dt>Stated-gap rate</dt><dd>{fmtPct(rate)}</dd></div>
+        <div title={rate === null ? RATE_MISSING : RATE_HELP}>
+          <dt>Stated gaps</dt>
+          <dd className={rate === null ? "whitespace-concept__pending" : undefined}>{rate === null ? "Not yet" : fmtPct(rate)}</dd>
+        </div>
       </dl>
 
       {counts.length > 0 && (
@@ -208,6 +211,8 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
   );
 }
 
+const RATE_HELP = "Share of this concept's papers whose abstract states an open problem, future work or limitation.";
+const RATE_MISSING = "Share of papers whose abstract states an open problem. The sentence extraction is not in the current export, so no rate is shown rather than a made-up one.";
 const SKELETON_SECTIONS: [string, string][] = [
   ["Papers per year", "Yearly paper count for the concept, with a dashed 3-year forecast."],
   ["Predicted gaps", "Concepts it is most likely to be linked with next, with a link probability."],
@@ -227,7 +232,7 @@ export function ConceptPanelSkeleton() {
       <dl className="whitespace-concept__stats">
         <div><dt>Papers</dt><dd>{fmtInt(null)}</dd></div>
         <div><dt>3-yr growth</dt><dd>{fmtGrowth(null)}</dd></div>
-        <div><dt>Stated-gap rate</dt><dd>{fmtPct(null)}</dd></div>
+        <div title={RATE_MISSING}><dt>Stated gaps</dt><dd className="whitespace-concept__pending">Not yet</dd></div>
       </dl>
       <ul className="whitespace-concept__preview">
         {SKELETON_SECTIONS.map(([name, text]) => (

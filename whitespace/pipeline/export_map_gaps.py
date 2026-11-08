@@ -363,15 +363,54 @@ def gap_score_parts(
     }
 
 
+# Display-level diversity for the PRODUCTION GAP LIST ONLY (issue #287). The model gives hub concepts
+# (e.g. "covid", "pretrained language model") a very high p_link with almost everything, so a global
+# top-``pool`` by p_link is mostly hub pairs (seven of the top ten live pairs involved two hubs).
+# POOL_PER_CONCEPT: each concept contributes at most this many of its highest-p_link pairs to the
+# candidate pool (the pool stays bounded by ``pool``). MAX_GAPS_PER_CONCEPT: in the final list a concept
+# appears at most this many times; if the pool runs out, skipped pairs are re-admitted in rank order
+# and counted as ``relaxed_slots``. 10 per concept lets a non-hub reach the pool with its own best
+# pairs (a hub can no longer add more than 10 pairs); 3 per concept keeps a hub visible without letting
+# it own a fifth of a 50-row list. Both are curated presentation choices, not model outputs.
+POOL_PER_CONCEPT = 10
+MAX_GAPS_PER_CONCEPT = 3
+DIVERSITY_NOTE = ("max {n} gaps per concept; candidate pool built per concept; "
+                  "vocabulary, model and backtest unchanged")
+
+
+def per_concept_pool(pairs: PairSet, prob: np.ndarray, per_concept: int, pool: int,
+                     exclude: np.ndarray | None = None) -> np.ndarray:
+    """Indices of the candidate pairs: each concept's top ``per_concept`` by p_link, merged, de-duplicated,
+    then cut to the ``pool`` highest p_link. ``exclude`` (bool per pair) removes pairs first."""
+    order = np.argsort(-prob, kind="stable")
+    if exclude is not None:
+        order = order[~exclude[order]]
+    pos = np.arange(len(order), dtype=np.int64)
+    concept = np.concatenate([pairs.i[order], pairs.j[order]]).astype(np.int32)
+    where = np.concatenate([pos, pos])
+    srt = np.lexsort((where, concept))  # by concept, then by p_link rank
+    c_sorted = concept[srt]
+    starts = np.r_[0, np.flatnonzero(c_sorted[1:] != c_sorted[:-1]) + 1]
+    group_start = np.repeat(starts, np.diff(np.r_[starts, len(c_sorted)]))
+    keep = (np.arange(len(c_sorted)) - group_start) < per_concept
+    chosen = np.unique(where[srt][keep])  # positions in ``order``, ascending = descending p_link
+    return order[chosen[:pool]]
+
+
 def build_gaps(
     works: Sequence[Work], year: int, predictor: Predictor, *, n_min: int, pool: int, limit: int,
     labels: dict[str, str] | None = None, gap_rates: dict[str, float] | None = None,
-    stoplist: frozenset[str] | None = None,
+    stoplist: frozenset[str] | None = None, max_per_concept: int | None = None,
+    pool_per_concept: int = POOL_PER_CONCEPT,
 ) -> tuple[dict, dict]:
     """Ranked gaps at ``year`` (``GapListResponse``) and the context needed for gap details.
 
     ``stoplist`` (default None: off) drops pool candidates where either concept is in it, BEFORE the
     top-``limit`` cut, so the list is still filled from the pool. gaps then carry a ``stoplist`` record.
+
+    ``max_per_concept`` (default None: off) turns on display diversity (issue #287): the pool is built per
+    concept (``pool_per_concept`` best pairs each) and no concept appears more than ``max_per_concept``
+    times in the list; gaps then carry a ``diversity`` record. Scores of surviving pairs are unchanged.
 
     The ranking is over the ``pool`` eligible pairs with the highest p_link (the full universe
     can be ~12M pairs), sorted by gap score then p_link then pair order.
@@ -382,13 +421,22 @@ def build_gaps(
     pairs, prob = predictor(visible, year)
     names = pairs.names
     adj = _linked_adjacency(snap, names)
-    top = np.argsort(-prob, kind="stable")[:pool]
+    global_top = np.argsort(-prob, kind="stable")[:pool]
     items = []
     hidden = 0
+    if max_per_concept:
+        stop_arr = np.array([n in stoplist for n in names], dtype=bool) if stoplist else None
+        exclude = (stop_arr[pairs.i] | stop_arr[pairs.j]) if stoplist else None
+        top = per_concept_pool(pairs, prob, pool_per_concept, pool, exclude)
+        # hidden_candidates keeps its meaning: stoplisted pairs among the global top-``pool`` by p_link
+        hidden = sum(1 for k in global_top if stoplist and (names[int(pairs.i[k])] in stoplist
+                                                          or names[int(pairs.j[k])] in stoplist))
+    else:
+        top = global_top
     for k in top:
         i, j = int(pairs.i[k]), int(pairs.j[k])
         a, b = names[i], names[j]
-        if stoplist and (a in stoplist or b in stoplist):
+        if not max_per_concept and stoplist and (a in stoplist or b in stoplist):
             hidden += 1
             continue
         ga, gb = growth(series.get(a, {}), year), growth(series.get(b, {}), year)
@@ -409,7 +457,11 @@ def build_gaps(
                         "gap_factor": parts["gap_factor"]},
         })
     items.sort(key=lambda r: (-r["gap_score"], -r["p_link"], r["a"], r["b"]))
-    items = items[:limit]
+    diversity = None
+    if max_per_concept:
+        items, diversity = apply_diversity_cap(items, limit, max_per_concept, pool_per_concept)
+    else:
+        items = items[:limit]
     for rank, row in enumerate(items, 1):
         row["rank"] = rank
     omitted = ["cosine (no embeddings yet)"]
@@ -420,9 +472,35 @@ def build_gaps(
         "formula_used": gap_formula(bool(gap_rates)), "momentum_formula": MOMENTUM_FORMULA, "omitted_components": omitted,
         "ranking_pool": f"top {pool} eligible pairs by p_link",
     }
+    if diversity:
+        gaps["ranking_pool"] = (f"top {pool} eligible pairs by p_link, built from each concept's "
+                                f"top {pool_per_concept} pairs")
+        gaps["diversity"] = diversity
     if stoplist:
         gaps["stoplist"] = stoplist_record(stoplist, hidden)
     return gaps, {"visible": visible, "adj": adj, "names": names}
+
+
+def apply_diversity_cap(items: list[dict], limit: int, cap: int, pool_per_concept: int) -> tuple[list[dict], dict]:
+    """Walk the ranked ``items`` and skip a pair whose concept is already in the list ``cap`` times. If the
+    list stays short of ``limit``, re-admit the skipped pairs in rank order (``relaxed_slots``)."""
+    count: dict[str, int] = {}
+    chosen: list[dict] = []
+    skipped: list[dict] = []
+    for row in items:
+        if len(chosen) >= limit:
+            break
+        if count.get(row["a"], 0) >= cap or count.get(row["b"], 0) >= cap:
+            skipped.append(row)
+            continue
+        chosen.append(row)
+        count[row["a"]] = count.get(row["a"], 0) + 1
+        count[row["b"]] = count.get(row["b"], 0) + 1
+    relaxed = skipped[:max(0, limit - len(chosen))]
+    chosen = sorted(chosen + relaxed, key=lambda r: (-r["gap_score"], -r["p_link"], r["a"], r["b"]))
+    return chosen, {"applied": True, "max_gaps_per_concept": cap, "pool_per_concept": pool_per_concept,
+                    "skipped_by_cap": len(skipped) - len(relaxed), "relaxed_slots": len(relaxed),
+                    "note": DIVERSITY_NOTE.format(n=cap)}
 
 
 def stoplist_record(stoplist: frozenset[str], hidden: int) -> dict:
