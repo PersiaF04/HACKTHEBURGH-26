@@ -45,7 +45,7 @@ const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right"
   { label: "Momentum", cls: "gx-th--r", align: "right", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
   { label: "Novelty", cls: "gx-th--r", align: "right", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
   { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "Share of each topic's papers that state an open problem. Shown for context only; it is not part of the gap score." },
-  { label: "Strength", cls: "gx-th--score", align: "right", help: "Strong, moderate or weak compared with the top gap in this list. It combines the four factors and is not a probability. Hover a value to see the exact score." },
+  { label: "Strength", cls: "gx-th--score", align: "right", help: "Strong, moderate or weak compared with the top gap in this list. It combines likelihood, momentum and novelty, and is not a probability. Hover a value to see the exact score." },
 ];
 
 /** Header row with real column names and a (?) explanation on each. */
