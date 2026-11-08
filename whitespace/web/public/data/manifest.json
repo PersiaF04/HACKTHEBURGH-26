@@ -89,13 +89,13 @@
   },
   "files": {
     "backtest.json": "171fe67e1f9bab79273c90d6345f060548c68933cc1e278fe8dec0e9e523b74c",
-    "concepts.json": "598014cc131a79c567aa55e43acfda9dba898c4bfbc6f33802a4f7175469c721",
+    "concepts.json": "149ca2fea7e635cffec76e7bc92619a4246686da8fce375401962b949416e8b0",
     "coverage-2023.json": "41d168f978b9dcb171dc62a9006748fc19102993626d1a4461166a322ea07cc3",
-    "gap-details.json": "fcee9ebab7da8655c77908bac2cbe81027d57f27ce00d27a74588f5b30bc4d85",
-    "gaps.json": "51c33905c2c4425ba23179a8ea845fe0d2f67989a0751d0a640de56042f4509e",
+    "gap-details.json": "bb4941f4fff222d2be85b1b8894b864fbbe18e51c77ec314fc2d9ccca989742f",
+    "gaps.json": "5ed0c83d5217a0bc72adca5aad297571cc6ab0aa102d298609bf9e2a5c57ed9a",
     "map-2023.json": "34496090cd1b39b812ac56c41375a52e6d84545b253329154575c35c812b8520",
-    "meta.json": "1dc68705c98815016189addc0d236dbf3867a7f01b39ce0d11d8c8c2b1420aa0",
-    "open-problems.json": "5c19f4b9f85133c93d4daa554e06ed84ea5840c5026be76c77bc241b1b5133c7",
+    "meta.json": "81da0d54be8e2faf91c0dd26230998cdb25a92662509845be03a4eeb654a383e",
+    "open-problems.json": "7927bfd0bd3cee9a4d821c0077f6b6612e4372928a26a87ed0593adef9f6d54b",
     "search.json": "9a476d3f0dec809d786be6edcc10f062e2bad43190eaa1556124a450423a13fb",
     "routes.json": "d53b721d940d0d9a9cb7e33100296dc7dfe53cb8d3258bf85fcba20cf1461a1f"
   },
@@ -134,6 +134,8 @@
     "path_check": null,
     "open_problems": {
       "cache_hits": 22913,
+      "gap_rates": 4984,
+      "gaps_with_rates": 50,
       "items": 923,
       "quality": "unmeasured",
       "gaps_with_sentences": 50,
@@ -141,7 +143,7 @@
       "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
       "display_only": "rates are not used in any gap score or backtest",
       "post_process": "open_problems attach",
-      "tool_commit": "6600716643e91b15b4e927e04d0febe445499851",
+      "tool_commit": "74aab1c606e92c5acfcaa510d1167a61b91e89ea",
       "cache_sha256": {
         "hits.jsonl": "16a344765fb1e43f885dd56dcdb80cf36f70dd4d8bd6f7b0fa7b424304addf79",
         "counts.json": "4b407530f97f97bee401e4e0824e264aa24772972e2255c74253358fb6eed5c7"
