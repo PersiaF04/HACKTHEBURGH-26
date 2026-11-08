@@ -20,6 +20,7 @@ export interface GapTableProps {
 }
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v * 100));
+const fmtScore = (v: number | null | undefined) => isNum(v) ? new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(v) : NA;
 
 /** Stated-gaps multiplier: 1 + both concepts' stated-gap rates, only when both are in the data. */
 export function statedGapsFactor(g: GapSummary): number | null {
@@ -142,7 +143,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
                 <td className="gx-td gx-td--r gx-mono">{fmtFactor(statedGapsFactor(gap))}</td>
                 <td className="gx-td gx-td--score">
                   <div className="gx-score">
-                    <span className="gx-score__v">{fmtDec(gap.gap_score)}</span>
+                    <span className="gx-score__v">{fmtScore(gap.gap_score)}</span>
                     <span className="gx-score__track"><span className="gx-score__fill" style={{ width: `${isNum(gap.gap_score) && maxScore > 0 ? Math.round((gap.gap_score / maxScore) * 100) : 0}%` }} /></span>
                   </div>
                 </td>
