@@ -4,7 +4,7 @@
 
 **Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)**
 
-Whitespace is a research-discovery tool for AI/ML literature. It builds a concept graph from about 730,000 OpenAlex papers, follows how it changes year by year, and ranks the concept pairs that aren't linked yet by how likely they are to become linked within three years. Alongside the forecast it shows what authors say is still open, and where published work has no linked code.
+Whitespace is a research-discovery tool for AI/ML literature. It builds a concept graph from OpenAlex works in AI (subfield 1702), follows how it changes year by year, and ranks the concept pairs that aren't linked yet by how likely they are to become linked within three years. Alongside the forecast it shows where published work has no linked code in the Papers with Code archive. Mining the open problems authors state is planned, not built.
 
 Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
@@ -20,15 +20,17 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 ## What it does
 
-- **Explore:** a research map with a time slider from 2015. Concepts are sized by paper count and coloured by growth. Search for papers and concepts, and open a concept to see its trend, predicted gaps, top papers and open problems.
-- **Gaps:** unlinked concept pairs ranked by the probability that they link within three years, with an interval, score components, supporting papers and the open problems authors state for each side.
-- **Evidence:** the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
-- **Code coverage:** a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
+- **Explore:** a research map with a time slider from 2015. Concepts are sized by paper count and coloured by growth. Open a concept to see its trend, predicted gaps and top papers. Search and the open-problems view are placeholders for now.
+- **Gaps:** unlinked concept pairs ranked by the calibrated probability that they link within three years, with score components and supporting papers.
+- **Evidence** (at `/evidence`): the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
+- **Code coverage** (at `/coverage`): a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
 
-## Two tracks, one body of evidence
+## The two tracks
 
-- **HRT: "Which research gap should I pursue?"** The probabilities come from a purged temporal backtest: the model is fit on origins through 2014, calibrated on 2017 and tested once on 2020, with outcomes in 2021–2023, so no outcome window leaks into a later split. The pre-registered headline is the model's average precision minus the best baseline's (the baseline is chosen on 2017, never on the test year), with a 95% bootstrap interval. The verdict is "beats the baseline" only if the whole interval is above zero.
-- **G-Research: "Make the invisible visible."** The map and time slider show where research is moving, the open-problems view collects the limitations and future work authors write down, and the coverage view shows where published work has no linked code.
+The track framings below are the team's own wording; the official prompts aren't confirmed.
+
+- **HRT track: which research gap to pursue.** The probabilities come from a purged temporal backtest: the model is fit on origins through 2014, calibrated on 2017 and tested once on 2020, with outcomes in 2021–2023, so no outcome window leaks into a later split. The pre-registered headline is the model's average precision minus the best baseline's (the baseline is chosen on 2017, never on the test year), with a 95% bootstrap interval. The verdict is "beats the baseline" only if the whole interval is above zero.
+- **G-Research track: making the invisible visible.** The map and time slider show where research is moving, and the coverage view shows where published work has no linked code. Mining limitations and future work from abstracts is planned.
 
 ## How it works
 
