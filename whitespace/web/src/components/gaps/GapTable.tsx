@@ -1,104 +1,84 @@
 import type { GapSummary } from "../../api";
-import "./gaps.css";
+import { f2, isNum } from "./format";
 
-export type GapSortKey = "p_link" | "momentum" | "novelty" | "gap_rate" | "gap_score";
+export interface GapRow {
+  gap: GapSummary;
+  rank: number;
+}
 
 export interface GapTableProps {
-  items: GapSummary[];
-  selectedId?: string | null;
-  sort?: GapSortKey;
-  sortDirection?: "asc" | "desc";
+  rows: GapRow[];
+  maxScore: number;
+  selectedId: string | null;
   loading?: boolean;
   error?: string | null;
-  placeholder?: boolean;
-  onSort?: (key: GapSortKey) => void;
   onSelect: (gap: GapSummary) => void;
 }
 
-const columns: Array<{ key: GapSortKey; label: string; description: string }> = [
-  { key: "p_link", label: "P(link)", description: "Modelled probability the pair links within three years" },
-  { key: "momentum", label: "Momentum", description: "Recent growth signal in the model" },
-  { key: "novelty", label: "Novelty", description: "Novelty component returned by the model" },
-  { key: "gap_rate", label: "Stated-gap rate", description: "Share of papers with a stated open problem" },
-  { key: "gap_score", label: "Gap score", description: "Combined ranking score; this is not a probability" },
-];
+const clamp = (v: number) => Math.max(0, Math.min(100, v * 100));
 
-function formatValue(value: number | null | undefined, key: GapSortKey): string {
-  if (value == null || !Number.isFinite(value)) return "Not available";
-  if (key === "p_link" || key === "gap_rate") return `${(value * 100).toFixed(1)}%`;
-  return value.toFixed(3);
+/** Stated-gaps multiplier: 1 + both concepts' stated-gap rates, only when both are in the data. */
+export function statedGapsFactor(g: GapSummary): number | null {
+  return isNum(g.gap_rate_a) && isNum(g.gap_rate_b) ? 1 + g.gap_rate_a + g.gap_rate_b : null;
 }
 
-function gapId(gap: GapSummary): string {
-  return `${gap.a}::${gap.b}`;
-}
+export const gapKey = (g: GapSummary) => `${g.a}::${g.b}`;
 
-export function GapTable({
-  items,
-  selectedId,
-  sort,
-  sortDirection = "desc",
-  loading = false,
-  error,
-  placeholder = false,
-  onSort,
-  onSelect,
-}: GapTableProps) {
-  if (loading) return <p className="gap-state" role="status">Loading ranked gaps…</p>;
-  if (error) return <p className="gap-state gap-state--error" role="alert">Could not load gaps: {error}</p>;
-  if (items.length === 0) {
-    return <p className="gap-state">{placeholder ? "No gap results are included in these placeholder fixtures." : "No gaps match these filters."}</p>;
-  }
-
+export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect }: GapTableProps) {
   return (
-    <div className="gap-table-wrap">
-      {placeholder && <p className="gap-placeholder" role="note">Placeholder data — these values are examples, not measured results.</p>}
-      <table className="gap-table">
-        <caption className="visually-hidden">Ranked concept pairs and model score components</caption>
+    <div className="gx-tablecard">
+      <table className="gx-table">
         <thead>
           <tr>
-            <th scope="col">Concept pair</th>
-            {columns.map(({ key, label, description }) => (
-              <th
-                scope="col"
-                key={key}
-                aria-sort={sort === key ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <button
-                  className="gap-sort"
-                  type="button"
-                  onClick={() => onSort?.(key)}
-                  aria-label={`Sort by ${label}${key === "gap_score" ? "; this is not a probability" : ""}`}
-                  title={description}
-                >
-                  {label}{sort === key ? (sortDirection === "asc" ? " ↑" : " ↓") : ""}
-                </button>
-              </th>
-            ))}
+            <th scope="col" className="gx-th gx-th--rank">#</th>
+            <th scope="col" className="gx-th">Concept pair</th>
+            <th scope="col" className="gx-th gx-th--p">P(link) · bootstrap interval</th>
+            <th scope="col" className="gx-th gx-th--r">Momentum</th>
+            <th scope="col" className="gx-th gx-th--r">Novelty</th>
+            <th scope="col" className="gx-th gx-th--r">Stated gaps</th>
+            <th scope="col" className="gx-th gx-th--score">Gap score</th>
           </tr>
         </thead>
         <tbody>
-          {items.slice(0, 50).map((gap) => {
-            const id = gapId(gap);
+          {rows.map(({ gap, rank }) => {
+            const sel = selectedId === gapKey(gap);
+            const hasInterval = isNum(gap.p_lo) && isNum(gap.p_hi) && gap.p_lo <= gap.p_hi;
+            const sg = statedGapsFactor(gap);
             return (
-              <tr key={id} className={selectedId === id ? "is-selected" : undefined}>
-                <th scope="row">
-                  <button className="gap-pair" type="button" onClick={() => onSelect(gap)} aria-label={`Open gap: ${gap.a_label} and ${gap.b_label}`}>
-                    <span>{gap.a_label}</span><span className="gap-pair__join" aria-hidden="true">↔</span><span>{gap.b_label}</span>
+              <tr key={gapKey(gap)} className={sel ? "gx-row is-selected" : "gx-row"}>
+                <td className="gx-td gx-td--rank">{rank}</td>
+                <td className="gx-td gx-td--pair">
+                  <button type="button" className="gx-pair" aria-pressed={sel} onClick={() => onSelect(gap)}>
+                    <span className="gx-pair__names">{gap.a_label} <span className="gx-pair__join">↔</span> {gap.b_label}</span>
                   </button>
-                </th>
-                {columns.map(({ key }) => (
-                  <td key={key} className={key === "gap_score" ? "gap-score-cell" : undefined}>
-                    {formatValue(gap[key], key)}
-                    {key === "gap_score" && <span className="visually-hidden">, ranking score, not a probability</span>}
-                  </td>
-                ))}
+                </td>
+                <td className="gx-td">
+                  <div className="gx-plink">
+                    <span className="gx-plink__v">{f2(gap.p_link)}</span>
+                    <span className="gx-plink__bar" aria-hidden="true">
+                      <span className="gx-plink__line" />
+                      {hasInterval && <span className="gx-plink__range" style={{ left: `${clamp(gap.p_lo as number)}%`, width: `${clamp(gap.p_hi as number) - clamp(gap.p_lo as number)}%` }} />}
+                      {isNum(gap.p_link) && <span className="gx-plink__pt" style={{ left: `${clamp(gap.p_link)}%` }} />}
+                    </span>
+                  </div>
+                </td>
+                <td className="gx-td gx-td--r gx-mono">{f2(gap.momentum)}</td>
+                <td className="gx-td gx-td--r gx-mono">{f2(gap.novelty)}</td>
+                <td className="gx-td gx-td--r gx-mono">{sg == null ? "—" : `×${sg.toFixed(2)}`}</td>
+                <td className="gx-td gx-td--score">
+                  <div className="gx-score">
+                    <span className="gx-score__v">{f2(gap.gap_score)}</span>
+                    <span className="gx-score__track"><span className="gx-score__fill" style={{ width: `${isNum(gap.gap_score) && maxScore > 0 ? Math.round((gap.gap_score / maxScore) * 100) : 0}%` }} /></span>
+                  </div>
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p className="gap-table-note">P(link) is a model probability. Gap score is a separate ranking score.</p>
+      {loading && <p className="gx-empty" role="status">Loading ranked gaps…</p>}
+      {error && <p className="gx-empty" role="alert">Could not load gaps: {error}</p>}
+      {!loading && !error && rows.length === 0 && <p className="gx-empty">No gaps pass these filters. Lower the minimum P(link) or clear the concept.</p>}
     </div>
   );
 }
