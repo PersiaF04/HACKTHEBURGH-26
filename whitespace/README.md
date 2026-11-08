@@ -150,18 +150,6 @@ python -m whitespace.pipeline.code_join_local --corpus corpus.jsonl --links link
 
 Writes `papers.csv` (per work: `has_linked_code`, `has_official_code`, `match_key`, `join_method`, `date_source`, topic), `coverage.json` (`code_layer.coverage_table`), `report.json` (counts: works with an arXiv id by year, archive ids present or absent in the corpus, linked papers by year) and `handcheck_frame.csv` (seeded 100 matched pairs, stratified by year band, official or not, own or merged record; title and the arXiv abstract link; no abstracts). Archive ids missing from the corpus are expected: the corpus is one OpenAlex subfield. `join_method` comes from the corpus field `arxiv_id_source` (`doi`/`both` = own arXiv-DOI record, `location` = merged record found through a location URL); an older corpus without the field gives `unknown_source`. **First author is not in the frame** (the download did not select authorships and re-fetching is out of budget); the column `arxiv_abs_url` replaces it so the checker reads authors on the arXiv abstract page.
 
-## OpenAlex ingest (`pipeline/ingest.py`, issue #147)
-
-```sh
-python -m whitespace.pipeline.ingest plan                       # keyless, about 30 count requests
-OPENALEX_API_KEY=... python -m whitespace.pipeline.ingest download --max-calls 9000
-python -m whitespace.pipeline.ingest build                      # corpus.jsonl + manifest.json
-```
-
-- `plan` counts works per date window (one `group_by` year call, then bisection) and prints the total and the number of list calls at 100 per page. Windows still over 10,000 after the count budget are flagged "needs cursor".
-- `download` needs a free key in `OPENALEX_API_KEY` (never printed, logged, stored in a URL or the manifest). It cursor-pages each window, archives raw pages under `whitespace/artifacts/raw/` (git-ignored) with URL, time, count and sha256, and resumes: finished windows (`done.json`) are skipped, an interrupted window restarts. `--max-calls` stops the run before it is exceeded; re-run to continue. 429 and 5xx are retried with backoff.
-- `build` rebuilds abstracts, drops those under 50 words, dates each paper (arXiv-id month, else OpenAlex date), de-duplicates by arXiv id and writes `corpus.jsonl` (local only, not Parquet) and `manifest.json`.
-
 ## Coverage export (`pipeline/export_coverage.py`, issue #163)
 
 `to_coverage_response(year, coverage_table, archive_info)` returns the frontend's `CoverageResponse` (`web/src/api.ts`): concepts, per-year cells (`paper_count`, `linked_paper_count`, `code_rate`, `state`), caveat and archive info (revision, snapshot 2025-07-28, `cc-by-sa-4.0`, row count, attribution, low-coverage cutoff year). Grey years keep their counts but have `code_rate` null (`thin` before the cutoff, `outside_archive_vintage` after 2025). Cells carry "no linked code in this archive"; non-arXiv papers stay in the denominator and are flagged `unmatchable_by_construction`. Extra keys beyond the frontend type (`row_count`, `attribution`, `low_coverage_cutoff_year`, `min_linked`, per-cell flags) are additive.
