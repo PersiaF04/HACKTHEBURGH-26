@@ -170,6 +170,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           areas={areas}
           selectedAreaIds={areas.filter((a) => !offAreas.has(a.id)).map((a) => a.id)}
           onToggleArea={(id) => setOffAreas((prev) => { const next = new Set(prev); if (!next.delete(id)) next.add(id); return next; })}
+          graph={hierarchy ? { perBranch, onPerBranch: setPerBranch, showGaps, onShowGaps: setShowGaps, gapCount, onGapCount: setGapCount } : undefined}
         />
       </aside>
 
@@ -216,24 +217,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 <span>Dot size = papers</span>
               </div>
             ) : <MapLegend view="3d" hasLinked={hasLinked} />}
-            {hierarchy && (
-              <div className="ex__perbranch">
-                <label htmlFor="ex-per-branch">Concepts per branch</label>
-                <input id="ex-per-branch" type="range" min={10} max={1000} step={10} value={perBranch} onChange={(e) => setPerBranch(Number(e.currentTarget.value))} />
-                <span className="whitespace-mono">{perBranch}</span>
-                <label className="ex__perbranch-gaps">
-                  <input type="checkbox" checked={showGaps} onChange={(e) => setShowGaps(e.currentTarget.checked)} />
-                  Show gaps and their links
-                </label>
-                {showGaps && (
-                  <label className="ex__perbranch-gaps">
-                    Gaps shown
-                    <input type="range" min={3} max={50} step={1} value={gapCount} onChange={(e) => setGapCount(Number(e.currentTarget.value))} />
-                    <span className="whitespace-mono">{gapCount}</span>
-                  </label>
-                )}
-              </div>
-            )}
             {hierarchy && (
               <p className="ws-note ex__structure-note">
                 Graph structure: the hot red dots are branches (clusters found in the map layout, named for the words their concepts share), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, the top ranked gaps are drawn as bridges between the two concepts they join (choose how many with “Gaps shown”); selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
