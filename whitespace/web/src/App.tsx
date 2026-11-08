@@ -141,7 +141,9 @@ export default function App() {
   const snapshotRange = meta.year_range
     ? meta.year_range.min === meta.year_range.max ? fmtYear(meta.year_range.max) : `${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}`
     : "";
-  const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${snapshotRange ? ` · snapshots ${snapshotRange}` : ""}`;
+  const works = meta.counts?.works;
+  const worksLabel = typeof works === "number" ? `${works >= 1000 ? `${Math.round(works / 1000)}k` : works} papers` : "";
+  const badge = isPlaceholder ? "Placeholder data" : ["Real data", worksLabel, snapshotRange].filter(Boolean).join(" · ");
   const badgeTip = isPlaceholder ? PLACEHOLDER_TIP
     : `${REAL_TIP}${snapshotRange ? `. Map and gap snapshots: ${snapshotRange}. Code coverage uses each paper's publication year, so its range can differ.` : ""}`;
   const tabActive = (route: string) => route === path;

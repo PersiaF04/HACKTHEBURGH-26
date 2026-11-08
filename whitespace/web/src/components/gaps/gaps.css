@@ -229,3 +229,11 @@
   .gx-centre, .gx-detail, .gx-rail { padding: 16px; }
   .gx-papers { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Plain-language framing (#259) */
+.gx-question { color: var(--ws-ink); font-weight: 600; font-size: 15px; }
+.gx-factors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 13px; color: var(--ws-ink-2); }
+.gx-factors strong { color: var(--ws-ink); }
+.gx-how summary { cursor: pointer; font-size: 13px; color: var(--ws-ink-2); }
+.gx-how[open] summary { margin-bottom: 8px; }
+@media (max-width: 480px) { .gx-factors { grid-template-columns: minmax(0, 1fr); } }

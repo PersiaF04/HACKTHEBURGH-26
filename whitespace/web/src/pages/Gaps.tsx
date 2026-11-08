@@ -3,7 +3,7 @@ import type { GapDetailResponse, GapListResponse, GapSummary } from "../api";
 import { GapDetailPanel, GapTable, GapTableSkeleton, gapKey } from "../components/gaps";
 import type { GapRow } from "../components/gaps";
 import { ModelNote } from "../components/ModelNote";
-import { NA, fmtDec, fmtInt, fmtP, fmtText, isNum } from "../lib/format";
+import { NA, fmtDec, fmtInt, fmtPct, fmtText, isNum } from "../lib/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -108,14 +108,12 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   const focusLabel = focus ? concepts.find((c) => c.id === focus)?.label ?? focus : null;
 
   const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
-  const topScore = rows.reduce<number | null>((m, r) => isNum(r.gap.gap_score) && (m == null || r.gap.gap_score > m) ? r.gap.gap_score : m, null);
-  const hasMomentum = response.items.some((g) => isNum(g.momentum) && g.momentum !== 0);
   const topProbability = rows.reduce<number | null>((m, r) => isNum(r.gap.p_link) && (m == null || r.gap.p_link > m) ? r.gap.p_link : m, null);
   const maxScore = Math.max(0, ...response.items.map((g) => g.gap_score ?? 0));
   const summary: Array<[string, string, boolean, string]> = [
     ["Gaps shown", empty ? NA : fmtInt(rows.length), false, "Pairs that pass the filters"],
-    ["Median P(link)", empty ? NA : fmtP(medianP), true, "Typical chance of linking among them"],
-    [hasMomentum ? "Top gap score" : "Top P(link)", empty ? NA : hasMomentum ? fmtScore(topScore) : fmtP(topProbability), false, hasMomentum ? "Highest score among them" : "Gap score unavailable; highest predicted link probability"],
+    ["Typical likelihood", empty ? NA : fmtPct(medianP), true, "Median model estimate among them"],
+    ["Top likelihood", empty ? NA : fmtPct(topProbability), false, "Highest model estimate among them"],
     ["Focused area", focusLabel ? fmtText(focusLabel) : "All concepts", false, "Use the left rail to narrow the list"],
   ];
   const stats: Array<[string, string]> = [
@@ -184,11 +182,22 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
       <section className="gx-centre" aria-labelledby="gf-h">
         <div className="gx-titles" data-tour="gap-list">
           <h1 id="gf-h" className="gx-h1">Gap Finder</h1>
-          <p className="gx-desc">Concept pairs not yet linked (fewer than 3 shared papers), ranked by model probability, momentum and novelty.{!empty && <> <span className="gx-mono gx-ink">{fmtInt(rows.length)}</span> gaps shown.</>}</p>
+          <p className="gx-desc gx-question">Which pairs of AI topics aren't studied together yet, but probably will be?</p>
+          <p className="gx-desc">Each row is two topics with fewer than 3 shared papers so far.{!empty && <> <span className="gx-mono gx-ink">{fmtInt(rows.length)}</span> gaps shown.</>}</p>
         </div>
 
-        <ModelNote />
-        {response.held_out_test === false && response.label && <p className="gx-note" role="note">{response.label}</p>}
+        <ul className="gx-factors" aria-label="What the ranking combines">
+          <li><strong>Likelihood</strong>: will the two topics connect?</li>
+          <li><strong>Momentum</strong>: are both topics growing?</li>
+          <li><strong>Novelty</strong>: is the combination still uncrowded?</li>
+          <li><strong>Stated gaps</strong>: do authors say it is unsolved?</li>
+        </ul>
+
+        <details className="gx-how">
+          <summary>How this is measured</summary>
+          <ModelNote />
+          {response.held_out_test === false && response.label && <p className="gx-note" role="note">{response.label}</p>}
+        </details>
 
         <div className="gx-summary">
           {summary.map(([label, v, blue, cap]) => (
@@ -218,6 +227,3 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   );
 }
 
-function fmtScore(value: number | null): string {
-  return value == null ? NA : new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(value);
-}

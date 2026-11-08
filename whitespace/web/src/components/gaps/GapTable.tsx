@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from "react";
 import type { GapSummary } from "../../api";
-import { NA, fmtDec, fmtP, fmtText, isNum } from "../../lib/format";
+import { NA, fmtDec, fmtPct, fmtText, isNum } from "../../lib/format";
 import { HelpTip } from "./HelpTip";
 
 export interface GapRow {
@@ -19,6 +19,8 @@ export interface GapTableProps {
   onReset?: () => void;
 }
 
+/** Relative to the top gap in the list, so the label never claims an absolute meaning. */
+const strength = (v: number | null | undefined, max: number) => !isNum(v) || max <= 0 ? NA : v / max >= 2 / 3 ? "Strong" : v / max >= 1 / 3 ? "Moderate" : "Weak";
 const clamp = (v: number) => Math.max(0, Math.min(100, v * 100));
 const fmtScore = (v: number | null | undefined) => isNum(v) ? new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(v) : NA;
 
@@ -35,11 +37,11 @@ export const gapKey = (g: GapSummary) => `${g.a}::${g.b}`;
 const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right" }> = [
   { label: "#", cls: "gx-th--rank", help: "Position in the full ranking by gap score, whatever the current filters." },
   { label: "Concept pair", cls: "", help: "Two research concepts that do not yet share three or more papers." },
-  { label: "P(link) · interval", cls: "gx-th--p", help: "Model's estimated chance that these two concepts share 3+ papers within three years. The shaded bar is an interval, shown only when it has been validated." },
+  { label: "Likelihood", cls: "gx-th--p", help: "The model's estimate that these two topics will share 3+ papers within three years. Calibration is imperfect, so read it as a ranking rather than an exact chance." },
   { label: "Momentum", cls: "gx-th--r", align: "right", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
   { label: "Novelty", cls: "gx-th--r", align: "right", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
   { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "A boost when authors writing about either concept say problems remain open." },
-  { label: "Gap score", cls: "gx-th--score", align: "right", help: "Ranks pairs by combining the four; not a probability." },
+  { label: "Strength", cls: "gx-th--score", align: "right", help: "Strong, moderate or weak compared with the top gap in this list. It combines the four factors and is not a probability. Hover a value to see the exact score." },
 ];
 
 /** Header row with real column names and a (?) explanation on each. */
@@ -130,7 +132,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
                 </td>
                 <td className="gx-td">
                   <div className="gx-plink">
-                    <span className="gx-plink__v">{fmtP(gap.p_link)}</span>
+                    <span className="gx-plink__v">{fmtPct(gap.p_link)}</span>
                     <span className="gx-plink__bar" aria-hidden="true">
                       <span className="gx-plink__line" />
                       {hasInterval && <span className="gx-plink__range" style={{ left: `${clamp(gap.p_lo as number)}%`, width: `${clamp(gap.p_hi as number) - clamp(gap.p_lo as number)}%` }} />}
@@ -143,7 +145,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
                 <td className="gx-td gx-td--r gx-mono">{fmtFactor(statedGapsFactor(gap))}</td>
                 <td className="gx-td gx-td--score">
                   <div className="gx-score">
-                    <span className="gx-score__v">{fmtScore(gap.gap_score)}</span>
+                    <span className="gx-score__v" title={`Gap score ${fmtScore(gap.gap_score)}`}>{strength(gap.gap_score, maxScore)}</span>
                     <span className="gx-score__track"><span className="gx-score__fill" style={{ width: `${isNum(gap.gap_score) && maxScore > 0 ? Math.round((gap.gap_score / maxScore) * 100) : 0}%` }} /></span>
                   </div>
                 </td>
