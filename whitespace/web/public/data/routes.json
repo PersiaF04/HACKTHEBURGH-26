@@ -3,8 +3,6 @@
  "data_label": "real",
  "layout_version": 1,
  "map_years": [
-  2021,
-  2022,
   2023
  ],
  "note": "Static route map for the files in this directory. Strip the query string except 'year'; 'kind' says how to find the payload; 'status' is placeholder when the file has no data.",
@@ -20,20 +18,6 @@
    "kind": "static",
    "route": "/api/backtest",
    "status": "real"
-  },
-  {
-   "file": "map-2021.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2021",
-   "status": "real",
-   "year": 2021
-  },
-  {
-   "file": "map-2022.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2022",
-   "status": "real",
-   "year": 2022
   },
   {
    "file": "map-2023.json",
@@ -75,23 +59,9 @@
   {
    "file": "open-problems.json",
    "kind": "static",
-   "note": "query ignored; placeholder",
+   "note": "query ignored here; the client filters. Reduced first version (top gaps and concepts).",
    "route": "/api/open-problems",
-   "status": "placeholder"
-  },
-  {
-   "file": "coverage-2021.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2021",
-   "status": "real",
-   "year": 2021
-  },
-  {
-   "file": "coverage-2022.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2022",
-   "status": "real",
-   "year": 2022
+   "status": "real"
   },
   {
    "file": "coverage-2023.json",
