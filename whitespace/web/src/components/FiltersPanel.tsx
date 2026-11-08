@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { fmtInt } from "../lib/format";
 import "./explore.css";
 
 export type GrowthFilter = "all" | "up" | "down";
@@ -18,6 +19,8 @@ type FiltersPanelProps = {
   /** Ids of areas currently shown. Defaults to all. */
   selectedAreaIds?: string[];
   onToggleArea?: (id: string) => void;
+  /** Skeleton state: controls are shown but cannot be used until data loads. */
+  disabled?: boolean;
 };
 
 const GROWTH: { id: GrowthFilter; label: string }[] = [
@@ -26,14 +29,17 @@ const GROWTH: { id: GrowthFilter; label: string }[] = [
   { id: "down", label: "Shrinking" },
 ];
 
-export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, selectedAreaIds, onToggleArea }: FiltersPanelProps) {
+export const GROWTH_HELP = "Growth is the change in a concept's yearly paper count over the last 3 years. Growing: more papers than 3 years ago. Shrinking: fewer.";
+export const MIN_PAPERS_HELP = "Hide concepts with fewer papers than this in the corpus. Raise it to see only well-established topics.";
+
+export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, selectedAreaIds, onToggleArea, disabled = false }: FiltersPanelProps) {
   const uid = useId();
   const max = Math.max(10, Math.ceil(maxPapers / 10) * 10);
   const step = Math.max(1, Math.round(max / 30));
   const set = (patch: Partial<ExploreFilters>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="whitespace-filters">
+    <div className={disabled ? "whitespace-filters is-disabled" : "whitespace-filters"}>
       {areas && areas.length > 0 && (
         <section aria-labelledby={`${uid}-areas`} className="whitespace-filters__section whitespace-filters__areas">
           <h2 id={`${uid}-areas`}>Research areas</h2>
@@ -45,7 +51,7 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
                 onChange={() => onToggleArea?.(area.id)}
               />
               <span>{area.name}</span>
-              {typeof area.count === "number" && <span className="whitespace-mono">{area.count.toLocaleString("en-GB")}</span>}
+              <span className="whitespace-mono" title="Concepts in this area">{fmtInt(area.count)}</span>
             </label>
           ))}
         </section>
@@ -55,8 +61,8 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
         <h2 id={`${uid}-filters`}>Filters</h2>
         <div className="whitespace-filters__row">
           <div className="whitespace-filters__label">
-            <label htmlFor={`${uid}-min`}>Minimum papers</label>
-            <span className="whitespace-mono">{filters.minPapers.toLocaleString("en-GB")}</span>
+            <label htmlFor={`${uid}-min`} title={MIN_PAPERS_HELP}>Minimum papers</label>
+            <span className="whitespace-mono">{disabled ? "—" : fmtInt(filters.minPapers)}</span>
           </div>
           <input
             id={`${uid}-min`}
@@ -64,17 +70,22 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
             min={0}
             max={max}
             step={step}
+            disabled={disabled}
             value={Math.min(filters.minPapers, max)}
+            title={MIN_PAPERS_HELP}
+            aria-describedby={`${uid}-min-help`}
             onChange={(event) => set({ minPapers: Number(event.currentTarget.value) })}
           />
+          <p className="whitespace-help" id={`${uid}-min-help`}>Hide concepts with fewer papers than this.</p>
         </div>
         <div className="whitespace-filters__row">
-          <span id={`${uid}-growth`}>Growth</span>
-          <div className="whitespace-seg whitespace-seg--small" role="group" aria-labelledby={`${uid}-growth`}>
+          <span id={`${uid}-growth`} title={GROWTH_HELP}>Growth</span>
+          <div className="whitespace-seg" role="group" aria-labelledby={`${uid}-growth`} aria-describedby={`${uid}-growth-help`} title={GROWTH_HELP}>
             {GROWTH.map((option) => (
               <button
                 key={option.id}
                 type="button"
+                disabled={disabled}
                 aria-pressed={filters.growth === option.id}
                 onClick={() => set({ growth: option.id })}
               >
@@ -82,18 +93,21 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
               </button>
             ))}
           </div>
+          <p className="whitespace-help" id={`${uid}-growth-help`}>Change in papers over the last 3 years.</p>
         </div>
         <label className="whitespace-check">
           <input
             type="checkbox"
+            disabled={disabled}
             checked={filters.showPredicted}
             onChange={(event) => set({ showPredicted: event.currentTarget.checked })}
           />
           <span>Show predicted links</span>
         </label>
-        <button type="button" className="whitespace-filters__reset" onClick={onReset}>
+        <button type="button" className="whitespace-filters__reset" disabled={disabled} onClick={onReset}>
           Reset filters
         </button>
+        {disabled && <p className="whitespace-help">Filters switch on once the pipeline export is loaded.</p>}
       </section>
     </div>
   );

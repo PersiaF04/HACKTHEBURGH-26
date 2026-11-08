@@ -1,5 +1,7 @@
+import type { KeyboardEvent } from "react";
 import type { GapSummary } from "../../api";
-import { f2, isNum } from "./format";
+import { NA, fmtDec, fmtP, fmtText, isNum } from "../../lib/format";
+import { HelpTip } from "./HelpTip";
 
 export interface GapRow {
   gap: GapSummary;
@@ -13,6 +15,8 @@ export interface GapTableProps {
   loading?: boolean;
   error?: string | null;
   onSelect: (gap: GapSummary) => void;
+  /** Clears the minimum P(link) and the concept filter. */
+  onReset?: () => void;
 }
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v * 100));
@@ -22,39 +26,110 @@ export function statedGapsFactor(g: GapSummary): number | null {
   return isNum(g.gap_rate_a) && isNum(g.gap_rate_b) ? 1 + g.gap_rate_a + g.gap_rate_b : null;
 }
 
+/** "×1.23", or the shared missing-value mark. */
+export const fmtFactor = (v: number | null | undefined): string => (isNum(v) ? `×${fmtDec(v)}` : NA);
+
 export const gapKey = (g: GapSummary) => `${g.a}::${g.b}`;
 
-export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect }: GapTableProps) {
+const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right" }> = [
+  { label: "#", cls: "gx-th--rank", help: "Position in the full ranking by gap score, whatever the current filters." },
+  { label: "Concept pair", cls: "", help: "Two research concepts that do not yet share three or more papers." },
+  { label: "P(link) · interval", cls: "gx-th--p", help: "Model's estimated chance that these two concepts share 3+ papers within three years. The shaded bar is an interval, shown only when it has been validated." },
+  { label: "Momentum", cls: "gx-th--r", align: "right", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
+  { label: "Novelty", cls: "gx-th--r", align: "right", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
+  { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "A boost when authors writing about either concept say problems remain open." },
+  { label: "Gap score", cls: "gx-th--score", align: "right", help: "Ranks pairs by combining the four; not a probability." },
+];
+
+/** Header row with real column names and a (?) explanation on each. */
+export function GapTableHead() {
   return (
-    <div className="gx-tablecard">
+    <thead>
+      <tr>
+        {COLUMNS.map((c) => (
+          <th key={c.label} scope="col" className={`gx-th ${c.cls}`.trim()}>
+            <span className="gx-th__in">{c.label}<HelpTip label={c.label} text={c.help} align={c.align ?? "left"} /></span>
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+const SKELETON_ROWS = 8;
+
+export interface GapTableSkeletonProps {
+  loading?: boolean;
+  error?: string | null;
+}
+
+/** Neutral stand-in for the ranked table: no numbers, no names. */
+export function GapTableSkeleton({ loading, error }: GapTableSkeletonProps) {
+  return (
+    <div className={`gx-tablecard gx-skel${loading ? " is-loading" : ""}`} aria-busy={loading || undefined}>
       <table className="gx-table">
-        <thead>
-          <tr>
-            <th scope="col" className="gx-th gx-th--rank">#</th>
-            <th scope="col" className="gx-th">Concept pair</th>
-            <th scope="col" className="gx-th gx-th--p">P(link) · bootstrap interval</th>
-            <th scope="col" className="gx-th gx-th--r">Momentum</th>
-            <th scope="col" className="gx-th gx-th--r">Novelty</th>
-            <th scope="col" className="gx-th gx-th--r">Stated gaps</th>
-            <th scope="col" className="gx-th gx-th--score">Gap score</th>
-          </tr>
-        </thead>
+        <GapTableHead />
+        <tbody aria-hidden="true">
+          {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+            <tr key={i} className="gx-row gx-row--skel">
+              <td className="gx-td gx-td--rank"><span className="gx-bar gx-bar--xs" /></td>
+              <td className="gx-td"><span className="gx-bar gx-bar--pair" style={{ width: `${58 + ((i * 17) % 30)}%` }} /></td>
+              <td className="gx-td"><span className="gx-bar gx-bar--full" /></td>
+              <td className="gx-td gx-td--r"><span className="gx-bar gx-bar--sm" /></td>
+              <td className="gx-td gx-td--r"><span className="gx-bar gx-bar--sm" /></td>
+              <td className="gx-td gx-td--r"><span className="gx-bar gx-bar--sm" /></td>
+              <td className="gx-td gx-td--score"><span className="gx-bar gx-bar--full" /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {error
+        ? <p className="gx-empty" role="alert">Could not load gaps: {error}</p>
+        : <p className="gx-empty" role="status">{loading ? "Loading ranked gaps…" : "Ranked gaps appear here when the pipeline export is loaded"}</p>}
+    </div>
+  );
+}
+
+export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect, onReset }: GapTableProps) {
+  function onKey(e: KeyboardEvent<HTMLTableRowElement>, gap: GapSummary) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(gap); return; }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const sib = (e.key === "ArrowDown" ? e.currentTarget.nextElementSibling : e.currentTarget.previousElementSibling) as HTMLTableRowElement | null;
+    sib?.focus();
+    const idx = rows.findIndex((r) => gapKey(r.gap) === gapKey(gap)) + (e.key === "ArrowDown" ? 1 : -1);
+    if (rows[idx]) onSelect(rows[idx].gap);
+  }
+  return (
+    <div className={`gx-tablecard${loading ? " is-loading" : ""}`} aria-busy={loading || undefined}>
+      <table className="gx-table">
+        <GapTableHead />
         <tbody>
           {rows.map(({ gap, rank }) => {
-            const sel = selectedId === gapKey(gap);
+            const key = gapKey(gap);
+            const sel = selectedId === key;
             const hasInterval = isNum(gap.p_lo) && isNum(gap.p_hi) && gap.p_lo <= gap.p_hi;
-            const sg = statedGapsFactor(gap);
+            const pair = `${fmtText(gap.a_label)} and ${fmtText(gap.b_label)}`;
             return (
-              <tr key={gapKey(gap)} className={sel ? "gx-row is-selected" : "gx-row"}>
+              <tr
+                key={key}
+                className={sel ? "gx-row is-selected" : "gx-row"}
+                tabIndex={0}
+                aria-current={sel ? "true" : undefined}
+                aria-label={`Rank ${rank}: ${pair}${sel ? ", selected" : ""}`}
+                onClick={() => onSelect(gap)}
+                onKeyDown={(e) => onKey(e, gap)}
+              >
                 <td className="gx-td gx-td--rank">{rank}</td>
                 <td className="gx-td gx-td--pair">
-                  <button type="button" className="gx-pair" aria-pressed={sel} onClick={() => onSelect(gap)}>
-                    <span className="gx-pair__names">{gap.a_label} <span className="gx-pair__join">↔</span> {gap.b_label}</span>
-                  </button>
+                  <span className="gx-pair">
+                    <span className="gx-pair__names">{fmtText(gap.a_label)} <span className="gx-pair__join">↔</span> {fmtText(gap.b_label)}</span>
+                    {sel && <span className="gx-pair__sel">Selected · details on the right</span>}
+                  </span>
                 </td>
                 <td className="gx-td">
                   <div className="gx-plink">
-                    <span className="gx-plink__v">{f2(gap.p_link)}</span>
+                    <span className="gx-plink__v">{fmtP(gap.p_link)}</span>
                     <span className="gx-plink__bar" aria-hidden="true">
                       <span className="gx-plink__line" />
                       {hasInterval && <span className="gx-plink__range" style={{ left: `${clamp(gap.p_lo as number)}%`, width: `${clamp(gap.p_hi as number) - clamp(gap.p_lo as number)}%` }} />}
@@ -62,12 +137,12 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect 
                     </span>
                   </div>
                 </td>
-                <td className="gx-td gx-td--r gx-mono">{f2(gap.momentum)}</td>
-                <td className="gx-td gx-td--r gx-mono">{f2(gap.novelty)}</td>
-                <td className="gx-td gx-td--r gx-mono">{sg == null ? "—" : `×${sg.toFixed(2)}`}</td>
+                <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.momentum)}</td>
+                <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.novelty)}</td>
+                <td className="gx-td gx-td--r gx-mono">{fmtFactor(statedGapsFactor(gap))}</td>
                 <td className="gx-td gx-td--score">
                   <div className="gx-score">
-                    <span className="gx-score__v">{f2(gap.gap_score)}</span>
+                    <span className="gx-score__v">{fmtDec(gap.gap_score)}</span>
                     <span className="gx-score__track"><span className="gx-score__fill" style={{ width: `${isNum(gap.gap_score) && maxScore > 0 ? Math.round((gap.gap_score / maxScore) * 100) : 0}%` }} /></span>
                   </div>
                 </td>
@@ -78,7 +153,13 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect 
       </table>
       {loading && <p className="gx-empty" role="status">Loading ranked gaps…</p>}
       {error && <p className="gx-empty" role="alert">Could not load gaps: {error}</p>}
-      {!loading && !error && rows.length === 0 && <p className="gx-empty">No gaps pass these filters. Lower the minimum P(link) or clear the concept.</p>}
+      {!loading && !error && rows.length === 0 && (
+        <div className="gx-empty gx-empty--filters" role="status">
+          <p className="gx-empty__t">No gaps pass these filters</p>
+          <p>Lower the minimum P(link) or clear the concept filter.</p>
+          {onReset && <button type="button" className="gx-btn" onClick={onReset}>Reset filters</button>}
+        </div>
+      )}
     </div>
   );
 }

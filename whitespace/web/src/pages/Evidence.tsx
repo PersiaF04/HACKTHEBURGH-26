@@ -1,6 +1,57 @@
 import type { BacktestHit, BacktestResponse, CalibrationBin, RankingMetrics } from "../api";
 import { PaperLink } from "../components/PaperLink";
+import { EmptyNote, SkeletonBlock } from "../components/Skeleton";
+import { NA, fmtDec, fmtInt, fmtText, fmtYear, isNum } from "../lib/format";
 import "./evidence.css";
+
+export const EVIDENCE_CAPTION = "Evidence appears once the held-out backtest has run: the model is tested once, on a test year, and the result is published whichever way it falls.";
+
+const METRIC_CARDS: [string, string][] = [
+  ["Average precision", "How high the pairs that really became links sit in the ranked list."],
+  ["Precision@k", "Share of the top k ranked pairs that became real links."],
+  ["Calibration", "Whether a predicted probability matches how often it happened."],
+  ["Base rate", "Share of all candidate pairs that became links with no model at all."],
+  ["vs each baseline", "The model's result next to each simple rule, on the same pairs."],
+];
+const BASELINE_NAMES = ["Current weight", "Degree product", "Preferential attachment", "Adamic-Adar", "Cosine"];
+
+function hasMetric(value: unknown): boolean {
+  return isNum(value as number) || (typeof value === "string" && value.trim() !== "");
+}
+
+function EvidenceSkeleton({ loading }: { loading: boolean }) {
+  return (
+    <div className="evidence-skeleton" aria-label="Evidence layout, not yet measured">
+      <div className="ws-skel-card-grid">
+        {METRIC_CARDS.map(([title, text]) => (
+          <div className="ws-skel-card" key={title}><h3>{title}</h3><p className="ws-skel-value">{NA}</p><p>{text}</p></div>
+        ))}
+      </div>
+      <section className="ws-skel-panel" aria-labelledby="skel-baselines"><h2 id="skel-baselines">Baseline comparison</h2>
+        <div className="evidence-table-scroll"><table className="ws-skel-table"><thead><tr><th scope="col">Method</th><th scope="col">Average precision</th><th scope="col">Precision@100</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Model</th><td><SkeletonBlock className="ws-skel--bar" /></td><td><SkeletonBlock className="ws-skel--bar" /></td></tr>
+            {BASELINE_NAMES.map((name) => <tr key={name}><th scope="row">{name}</th><td><SkeletonBlock className="ws-skel--bar" /></td><td><SkeletonBlock className="ws-skel--bar" /></td></tr>)}
+          </tbody></table></div>
+      </section>
+      <div className="ws-skel-pair">
+        <section className="ws-skel-panel" aria-labelledby="skel-cal"><h2 id="skel-cal">Calibration</h2>
+          <svg className="ws-skel-chart" viewBox="0 0 220 220" role="img" aria-label="Empty calibration chart frame">
+            <rect x="30" y="10" width="180" height="170" fill="#F0F0EC" stroke="#CFCFC8" />
+            <line x1="30" y1="180" x2="210" y2="10" stroke="#CFCFC8" strokeDasharray="4 4" />
+            <text x="120" y="204" textAnchor="middle">Predicted probability</text>
+            <text x="12" y="95" textAnchor="middle" transform="rotate(-90 12 95)">Observed rate</text>
+          </svg></section>
+        <section className="ws-skel-panel" aria-labelledby="skel-hits"><h2 id="skel-hits">Hits and misses</h2>
+          {["Top hits", "Misses"].map((title) => <div key={title}><strong>{title}</strong>
+            {[0, 1, 2].map((i) => <div className="ws-skel-row" key={i}><SkeletonBlock height={10} width={i === 1 ? "70%" : "90%"} /><SkeletonBlock height={10} /></div>)}</div>)}
+        </section>
+      </div>
+      <p className="ws-skel-caption" role="status">{loading ? "Loading evidence… " : ""}{EVIDENCE_CAPTION}</p>
+    </div>
+  );
+}
+
 
 type EvidencePageProps = {
   response: BacktestResponse | null;
@@ -28,6 +79,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
   const hits = response?.hits ?? [];
   const misses = response?.misses ?? [];
   const codeLink = response?.code_link_evaluation;
+  const hasData = !!aggregate && [aggregate.average_precision, aggregate.precision_at_100, aggregate.pr_auc, aggregate.roc_auc].some(hasMetric);
 
   return (
     <section className="evidence-page" aria-label="Evidence">
@@ -40,9 +92,10 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
           Placeholder data - evaluation artifacts have not been loaded. No forecast performance is claimed.
         </p>
       )}
-      {status === "loading" && <p role="status">Loading evaluation evidence...</p>}
-      {status === "error" && <p className="evidence-error" role="alert">{errorMessage || "Evidence could not be loaded."}</p>}
+            {status === "error" && <EmptyNote role="alert">{errorMessage || "Evidence could not be loaded."}</EmptyNote>}
 
+      {!hasData && status !== "error" && <EvidenceSkeleton loading={status === "loading"} />}
+      {hasData && <>
       <section aria-labelledby="ranking-title" className="evidence-section">
         <h2 id="ranking-title">Ranking quality</h2>
         <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight. Each ranking value is shown beside its own base rate.</p>
@@ -55,7 +108,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
         <h2 id="calibration-title">Calibration</h2>
         {bins.length ? <CalibrationPlot bins={bins} /> : (
           <div className="evidence-empty">
-            <strong>Not yet measured</strong>
+            <strong>{NA}</strong>
             <p>A calibration plot appears only when predicted probabilities and observed outcomes are present in the evaluation artifact.</p>
           </div>
         )}
@@ -70,18 +123,20 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
         <EvidenceTable title="Misses" rows={misses} empty="No measured misses are available yet." error={status === "error"} />
       </section>
 
+      </>}
+
       <section className="evidence-section">
         <h2>Paper-to-code matching</h2>
         <p>Code-link precision: <strong>{formatMetric(codeLink?.precision)}</strong></p>
-        <p>Binomial precision interval: <strong>{codeLink?.interval_method === "binomial" ? `${formatMetric(codeLink.lower)} to ${formatMetric(codeLink.upper)}` : "Not yet measured"}</strong></p>
-        <p>Hand-checked sample size: <strong>{formatMetric(codeLink?.sample_size)}</strong></p>
-        <p>Correct matches: <strong>{formatMetric(codeLink?.correct_matches)}</strong></p>
-        <p>Sampling protocol: <strong>{codeLink?.protocol || "Not yet available"}</strong></p>
+        <p>Binomial precision interval: <strong>{codeLink?.interval_method === "binomial" ? `${formatMetric(codeLink.lower)} to ${formatMetric(codeLink.upper)}` : NA}</strong></p>
+        <p>Hand-checked sample size: <strong>{fmtInt(codeLink?.sample_size)}</strong></p>
+        <p>Correct matches: <strong>{fmtInt(codeLink?.correct_matches)}</strong></p>
+        <p>Sampling protocol: <strong>{fmtText(codeLink?.protocol)}</strong></p>
         <div>
           <strong>Sample composition</strong>
           {codeLink?.sample_composition && Object.keys(codeLink.sample_composition).length > 0
             ? <ul>{Object.entries(codeLink.sample_composition).map(([kind, count]) => <li key={kind}>{kind}: {count}</li>)}</ul>
-            : <p>Not yet available.</p>}
+            : <p>{NA}</p>}
         </div>
         <p className="evidence-muted">Coverage is a lower bound from an incomplete historical archive. "No linked code in this archive" does not mean no implementation exists.</p>
       </section>
@@ -113,7 +168,7 @@ function CalibrationTable({ bins }: { bins: CalibrationBin[] }) {
   return (
     <div className="evidence-table-scroll" tabIndex={0} aria-label="Scrollable calibration data">
       <table><caption>Predicted and observed probability by bin</caption><thead><tr><th scope="col">Predicted</th><th scope="col">Observed</th><th scope="col">Pairs</th></tr></thead>
-        <tbody>{bins.map((bin, index) => <tr key={`${bin.predicted}-${index}`}><td>{formatMetric(bin.predicted)}</td><td>{formatMetric(bin.observed)}</td><td>{formatMetric(bin.count)}</td></tr>)}</tbody>
+        <tbody>{bins.map((bin, index) => <tr key={`${bin.predicted}-${index}`}><td>{formatMetric(bin.predicted)}</td><td>{formatMetric(bin.observed)}</td><td>{fmtInt(bin.count)}</td></tr>)}</tbody>
       </table>
     </div>
   );
@@ -138,7 +193,7 @@ function RankingTable({ label, metrics }: { label: string; metrics: RankingMetri
         <table><caption>Ranking metrics and corresponding base rate</caption><thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Base rate</th></tr></thead>
           <tbody>{metricRows.map(([name, value]) => <tr key={name}><th scope="row">{name}</th><td>{formatMetric(value)}</td><td>{formatMetric(metrics.base_rate)}</td></tr>)}</tbody>
         </table>
-      </div> : <p className="evidence-empty">Not yet measured for this starting weight.</p>}
+      </div> : <p className="evidence-empty">{NA} for this starting weight.</p>}
     </section>
   );
 }
@@ -150,7 +205,7 @@ function EvidenceTable({ title, rows, empty, error }: { title: string; rows: Bac
       {error ? <p>Unable to load examples.</p> : rows.length ? (
         <div className="evidence-table-scroll" tabIndex={0} aria-label={`Scrollable ${title.toLowerCase()} table`}>
           <table><caption>{title} from the evaluation artifact</caption><thead><tr><th scope="col">Concept pair</th><th scope="col">Score</th><th scope="col">Starting weight</th><th scope="col">Year</th></tr></thead>
-            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}{row.paper && <><br /><PaperLink paper={row.paper} /></>}</td><td>{formatMetric(row.score)}</td><td>{formatMetric(row.starting_weight)}</td><td>{formatMetric(row.year)}</td></tr>)}</tbody>
+            <tbody>{rows.map((row, index) => <tr key={`${row.a}-${row.b}-${index}`}><td>{row.a} / {row.b}{row.paper && <><br /><PaperLink paper={row.paper} /></>}</td><td>{formatMetric(row.score)}</td><td>{fmtInt(row.starting_weight)}</td><td>{fmtYear(row.year)}</td></tr>)}</tbody>
           </table>
         </div>
       ) : <p>{empty}</p>}
@@ -159,7 +214,6 @@ function EvidenceTable({ title, rows, empty, error }: { title: string; rows: Bac
 }
 
 function formatMetric(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  if (typeof value === "string" && value.trim()) return value;
-  return "Not yet measured";
+  if (typeof value === "number") return fmtDec(value, 3);
+  return fmtText(typeof value === "string" ? value : null);
 }

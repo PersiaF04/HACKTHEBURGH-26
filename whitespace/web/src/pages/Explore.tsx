@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import type { ConceptResponse, FocusPoint, GapSummary, MapResponse, SearchResponse, YearRange } from "../api";
-import { ConceptPanel } from "../components/ConceptPanel";
+import type { ConceptResponse, GapSummary, MapResponse, SearchResponse, YearRange } from "../api";
+import { ConceptPanel, ConceptPanelSkeleton } from "../components/ConceptPanel";
 import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
 import { MapCanvas } from "../components/MapCanvas";
 import MapCanvas3DLazy from "../components/MapCanvas3DLazy";
+import { MapLegend } from "../components/MapLegend";
+import { MapSkeleton } from "../components/MapSkeleton";
 import { SearchBar } from "../components/SearchBar";
+import { fmtInt } from "../lib/format";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
 import "./explore-page.css";
 
+/** The Research map page (file kept as Explore.tsx). */
 type ExploreProps = {
   map: MapResponse;
   selectedYear: number;
@@ -22,34 +26,42 @@ type ExploreProps = {
   onSearch: (query: string) => Promise<SearchResponse>;
 };
 
-const fmt = (value: number) => Math.round(value).toLocaleString("en-GB");
-const DASH = "—";
+const SKELETON_CAPTION = "The map shows one dot per research concept. Size = papers, colour = 3-year growth, dashed lines = predicted links. Data loads from the pipeline export.";
+
+const STAT_HELP = {
+  shown: "Research concepts currently on the map, after filters.",
+  links: "Pairs of concepts that already share 3 or more papers.",
+  papers: "Papers tagged with the concepts shown. A paper with several concepts is counted for each.",
+  predicted: "Predicted new links that involve the selected concept.",
+} as const;
 
 export function Explore({ map, selectedYear, loading, selectedConceptId, onSelectConcept, onSearch }: ExploreProps) {
   const [view, setView] = useState<"3d" | "2d">("3d");
   const [webglFailed, setWebglFailed] = useState(false);
-  const [searchFocus, setSearchFocus] = useState<FocusPoint>(null);
-  const [searchFocusSet, setSearchFocusSet] = useState(false);
+  // Explicit "go to this concept" request; each new tick recentres the map (search, panel links).
+  const [focusReq, setFocusReq] = useState<{ id: string; tick: number } | null>(null);
   const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
   const [detail, setDetail] = useState<ConceptResponse | null | undefined>(undefined);
   const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
 
   const showMap = map.year === selectedYear && !loading;
-  const selected = showMap ? map.concepts.find((concept) => concept.id === selectedConceptId) : undefined;
+  const skeleton = showMap && (map.placeholder || (map.concepts.length === 0 && !map.no_data));
+  const live = showMap && !skeleton && !map.no_data;
+  const selected = live ? map.concepts.find((concept) => concept.id === selectedConceptId) : undefined;
   const selectedId = selected?.id ?? null;
 
   // Single selection: the store toggles and appends, so set the list directly.
-  function selectConcept(id: string) {
-    if (!showMap) return;
+  function pick(id: string) {
+    if (!live) return;
     const current = useWhitespaceStore.getState().selectedConcepts;
     if (current.length !== 1 || current[0] !== id) useWhitespaceStore.setState({ selectedConcepts: [id] });
     else onSelectConcept(id); // clicking the selected concept again toggles it off
-    const point = map.concepts.find((concept) => concept.id === id);
-    if (point) {
-      setSearchFocus({ x: point.x, y: point.y });
-      setSearchFocusSet(true);
-    }
+  }
+  /** Picked from search or the side panel: select it and bring the map to it. */
+  function pickAndFocus(id: string) {
+    pick(id);
+    if (map.concepts.some((c) => c.id === id)) setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 }));
   }
 
   useEffect(() => {
@@ -71,8 +83,8 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const visible = useMemo(() => map.concepts.filter((concept) => {
     if (concept.area && offAreas.has(concept.area)) return false;
     if (filters.minPapers > 0 && (concept.paper_count ?? 0) < filters.minPapers) return false;
-    if (filters.growth === "up") return concept.growth !== null && concept.growth > 0;
-    if (filters.growth === "down") return concept.growth !== null && concept.growth < 0;
+    if (filters.growth === "up") return concept.growth !== null && concept.growth !== undefined && concept.growth > 0;
+    if (filters.growth === "down") return concept.growth !== null && concept.growth !== undefined && concept.growth < 0;
     return true;
   }), [map.concepts, filters.minPapers, filters.growth, offAreas]);
   const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
@@ -91,23 +103,43 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
   // The design always shows a concept: start on the one with the most papers.
   useEffect(() => {
-    if (!showMap || selectedConceptId || map.concepts.length === 0) return;
+    if (!live || selectedConceptId || map.concepts.length === 0) return;
     const top = map.concepts.reduce((best, c) => ((c.paper_count ?? 0) > (best.paper_count ?? 0) ? c : best));
     useWhitespaceStore.setState({ selectedConcepts: [top.id] });
-  }, [showMap, selectedConceptId, map.concepts]);
+  }, [live, selectedConceptId, map.concepts]);
 
-  const stats: [string, string, boolean?][] = [
-    ["Concepts shown", fmt(visible.length)],
-    ["Links", hasLinked ? fmt(linkedEdges.length) : DASH],
-    ["Papers covered", hasCounts ? fmt(papers) : DASH],
-    ["Predicted from selection", selectedId ? fmt(fromSelection) : DASH, true],
+  // Search result with only a map position: bring the nearest concept into view.
+  function focusPoint(point: { x: number; y: number } | null) {
+    if (!point || map.concepts.length === 0) return;
+    let best = map.concepts[0], bd = Infinity;
+    for (const c of map.concepts) {
+      const d = (c.x - point.x) ** 2 + (c.y - point.y) ** 2;
+      if (d < bd) { bd = d; best = c; }
+    }
+    setFocusReq((prev) => ({ id: best.id, tick: (prev?.tick ?? 0) + 1 }));
+  }
+
+  const nothing = skeleton || !live;
+  const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
+    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: "Dots on the map" },
+    { label: "Links", value: nothing || !hasLinked ? fmtInt(null) : fmtInt(linkedEdges.length), help: STAT_HELP.links, caption: "Pairs sharing 3+ papers" },
+    { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
+    { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
   ];
+  const mapView = view === "3d" && !webglFailed ? "3d" : "2d";
 
   return (
     <div className="ex">
       <aside className="ex__left" aria-label="Search and filters">
-        <SearchBar onSearch={onSearch} onResults={(r) => { setSearchFocus(r.focus); setSearchFocusSet(true); }} onSelectConcept={selectConcept} concepts={map.concepts} />
+        <SearchBar
+          disabled={nothing}
+          onSearch={onSearch}
+          onResults={(r) => focusPoint(r.focus)}
+          onSelectConcept={pickAndFocus}
+          concepts={live ? map.concepts : undefined}
+        />
         <FiltersPanel
+          disabled={nothing}
           filters={filters}
           maxPapers={maxPapers}
           onChange={setFilters}
@@ -121,43 +153,60 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
       <section className="ex__centre" aria-label="Research map">
         <div className="ex__title">
           <h1>Research map</h1>
-          <span>Click a concept for its details</span>
+          <span>{skeleton ? "Waiting for data from the pipeline export" : "Click a concept for its details"}</span>
         </div>
         <dl className="ex-stats" aria-label="Map summary">
-          {stats.map(([label, value, accent]) => (
-            <div key={label}><dt>{label}</dt><dd className={accent ? "ex-stats__accent" : undefined}>{value}</dd></div>
+          {stats.map(({ label, value, help, caption, accent }) => (
+            <div key={label} title={help}>
+              <dt>{label}</dt>
+              <dd className={accent ? "ex-stats__accent" : undefined}>{value}</dd>
+              <dd className="ex-stats__caption">{caption}</dd>
+            </div>
           ))}
         </dl>
-        {showMap && !map.no_data ? (
-          <div className="ex__mapwrap">
-            <div className="ex__viewtoggle" role="group" aria-label="Map view">
-              <button type="button" aria-pressed={view === "3d" && !webglFailed} onClick={() => setView("3d")}>3D</button>
-              <button type="button" aria-pressed={view === "2d" || webglFailed} onClick={() => setView("2d")}>2D</button>
-            </div>
-            {view === "3d" && !webglFailed ? (
-              <MapCanvas3DLazy
-                concepts={visible}
-                edges={edges}
-                linkedEdges={linkedEdges}
-                selectedConceptId={selectedId}
-                focus={searchFocusSet ? searchFocus : map.focus}
-                showPredicted={filters.showPredicted}
-                onSelectConcept={selectConcept}
-                placeholder={map.placeholder}
-                onUnsupported={() => setWebglFailed(true)}
-              />
-            ) : (
-              <MapCanvas
-                concepts={visible}
-                edges={edges}
-                linkedEdges={linkedEdges}
-                selectedConceptId={selectedId}
-                focus={searchFocusSet ? searchFocus : map.focus}
-                showPredicted={filters.showPredicted}
-                onSelectConcept={selectConcept}
-              />
+        {skeleton ? (
+          <>
+            <MapSkeleton caption={SKELETON_CAPTION} />
+            <MapLegend view="none" skeleton />
+          </>
+        ) : live ? (
+          <>
+            {webglFailed && (
+              <p className="ex__notice" role="status">3D needs WebGL, which this browser did not provide. Showing the 2D map instead.</p>
             )}
-          </div>
+            <div className="ex__mapwrap">
+              <div className="ex__viewtoggle" role="group" aria-label="Map view">
+                <button type="button" aria-pressed={mapView === "3d"} disabled={webglFailed} title={webglFailed ? "3D is not available in this browser" : "Rotatable 3D view: height shows growth"} onClick={() => setView("3d")}>3D</button>
+                <button type="button" aria-pressed={mapView === "2d"} title="Flat 2D view" onClick={() => setView("2d")}>2D</button>
+              </div>
+              {mapView === "3d" ? (
+                <MapCanvas3DLazy
+                  concepts={visible}
+                  edges={edges}
+                  linkedEdges={linkedEdges}
+                  selectedConceptId={selectedId}
+                  focus={map.focus}
+                  focusRequest={focusReq}
+                  showPredicted={filters.showPredicted}
+                  onSelectConcept={pick}
+                  placeholder={false}
+                  onUnsupported={() => setWebglFailed(true)}
+                />
+              ) : (
+                <MapCanvas
+                  concepts={visible}
+                  edges={edges}
+                  linkedEdges={linkedEdges}
+                  selectedConceptId={selectedId}
+                  focus={map.focus}
+                  focusRequest={focusReq}
+                  showPredicted={filters.showPredicted}
+                  onSelectConcept={pick}
+                />
+              )}
+            </div>
+            <MapLegend view={mapView} hasLinked={hasLinked} />
+          </>
         ) : (
           <div className="ex__loading" role="status" aria-live="polite">
             {loading || !showMap ? `Loading ${selectedYear}…` : `No data for ${selectedYear}`}
@@ -165,13 +214,17 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
         )}
       </section>
 
-      <ConceptPanel
-        concept={selected}
-        detail={detail}
-        gaps={gaps}
-        year={selectedYear}
-        onSelectConcept={selectConcept}
-      />
+      {skeleton ? (
+        <ConceptPanelSkeleton />
+      ) : (
+        <ConceptPanel
+          concept={selected}
+          detail={detail}
+          gaps={gaps}
+          year={selectedYear}
+          onSelectConcept={pickAndFocus}
+        />
+      )}
     </div>
   );
 }
