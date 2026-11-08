@@ -232,6 +232,40 @@ def label_frame(hits: list[dict], n: int = 100, seed: int = 270, stratify: bool 
              "sentence": h["sentence"]} for i, h in enumerate(picked)]
 
 
+def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    """95% Wilson score interval for k correct out of n."""
+    if n == 0:
+        return 0.0, 1.0
+    p = k / n
+    d = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / d
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / d
+    return max(0.0, centre - half), min(1.0, centre + half)
+
+
+def label_stats(frame: list[dict], labels: dict, who: str = "AI") -> dict:
+    """Precision of the extractor from a labelled frame. ``labels`` = {"correct": [i..], "incorrect": [i..], "unsure": [i..]}.
+
+    Unsure and unlabelled items count as NOT correct (the conservative reading), so ``X/N`` never overstates.
+    """
+    ids = {f["i"] for f in frame}
+    right = set(labels.get("correct", [])) & ids
+    n = len(frame)
+
+    def part(items: list[dict]) -> dict:
+        k = sum(1 for f in items if f["i"] in right)
+        lo, hi = wilson(k, len(items))
+        return {"correct": k, "n": len(items), "precision": round(k / len(items), 4) if items else None,
+                "ci95": [round(lo, 4), round(hi, 4)]}
+
+    out = {"overall": part(frame), "by_type": {t: part([f for f in frame if f["type"] == t]) for t in TYPES},
+           "unsure": len(set(labels.get("unsure", [])) & ids), "labeller": who}
+    k = out["overall"]["correct"]
+    out["wording"] = f"{who}-labelled precision {k}/{n} (not human-validated)" if who == "AI" else \
+        f"Human-labelled precision {k}/{n}"
+    return out
+
+
 # ------------------------------------------------------------------ export (reduced version)
 
 TOP_CONCEPTS, PER_CONCEPT, PER_GAP, MAX_ITEMS = 200, 5, 5, 1200
@@ -332,7 +366,8 @@ def _tool_commit() -> str | None:
         return None
 
 
-def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None) -> dict:
+def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None, *, frame: Path | None = None,
+           labels: Path | None = None, labeller: str = "AI") -> dict:
     """Add open problems to an already exported folder (the same selection as ``export_all --open-problems``).
 
     Reads gaps/concepts/gap-details/meta/manifest/routes, runs ``export_all.attach_open_problems`` (no second
@@ -360,8 +395,23 @@ def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None) -> di
     info.update({"post_process": "open_problems attach", "tool_commit": _tool_commit(),
                  "cache_sha256": {n: _sha256(Path(cache_dir) / n) for n in ("hits.jsonl", "counts.json")}})
     files["open-problems.json"]["data_label"] = files["gaps.json"].get("data_label")
-    files["meta.json"]["open_problems"] = {"quality": "unmeasured", "items": info["items"], "attribution": ATTRIBUTION,
-                                           "note": QUALITY_NOTE}
+    quality, note, measured = "unmeasured", QUALITY_NOTE, None
+    if labels is not None:
+        if frame is None:
+            raise AttachError("--labels needs --frame (the label frame the labels refer to)")
+        measured = label_stats(json.loads(Path(frame).read_text(encoding="utf-8")),
+                               json.loads(Path(labels).read_text(encoding="utf-8")), labeller)
+        o = measured["overall"]
+        quality = "ai_labelled" if labeller == "AI" else "human_labelled"
+        note = (f"{measured['wording']}: {o['correct']} of {o['n']} sampled sentences judged to be a real author-stated open "
+                f"problem, future work or limitation (95% interval {o['ci95'][0]:.2f} to {o['ci95'][1]:.2f}). "
+                "The sample is stratified by type; the rest of the corpus was not labelled.")
+        files["open-problems.json"]["quality_measurement"] = measured
+        info["quality_measurement"] = measured["wording"]
+    files["open-problems.json"]["quality"] = quality
+    files["open-problems.json"]["note"] = note
+    files["meta.json"]["open_problems"] = {"quality": quality, "items": info["items"], "attribution": ATTRIBUTION,
+                                           "note": note}
     for r in files["routes.json"]["routes"]:
         if r["file"] == "open-problems.json":
             r["status"] = "real"
@@ -403,13 +453,16 @@ def main(argv: list[str] | None = None) -> int:
     at.add_argument("--export-dir", type=Path, required=True)
     at.add_argument("--cache", type=Path, required=True, help="the extract cache directory")
     at.add_argument("--out", type=Path, help="write to a copy of the export instead of in place")
+    at.add_argument("--frame", type=Path, help="label_frame.json the labels refer to")
+    at.add_argument("--labels", type=Path, help='JSON {"correct": [i..], "incorrect": [i..], "unsure": [i..]}')
+    at.add_argument("--labeller", choices=("AI", "human"), default="AI")
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] not in ("extract", "attach", "-h", "--help"):
         argv = ["extract", *argv]  # the first version took the corpus path directly
     a = ap.parse_args(argv)
     if a.cmd == "attach":
         try:
-            res = attach(a.export_dir, a.cache, a.out)
+            res = attach(a.export_dir, a.cache, a.out, frame=a.frame, labels=a.labels, labeller=a.labeller)
         except AttachError as exc:
             print(f"attach failed: {exc}", file=sys.stderr)
             return 1

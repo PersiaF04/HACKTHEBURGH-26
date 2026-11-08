@@ -227,3 +227,34 @@ def test_cli_extract_still_accepts_the_old_positional_form(tmp_path):
     out = tmp_path / "o"
     assert op.main([str(corpus), "--vocabulary", str(vocab), "--out", str(out), "--workers", "1"]) == 0
     assert (out / "hits.jsonl").is_file() and (out / "label_frame.json").is_file()
+
+
+def test_wilson_interval_and_label_stats_count_unsure_as_not_correct():
+    lo, hi = op.wilson(50, 100)
+    assert 0.40 < lo < 0.41 and 0.59 < hi < 0.60
+    assert op.wilson(0, 0) == (0.0, 1.0)
+    frame = [{"i": i, "type": t} for i, t in enumerate(["open_problem"] * 4 + ["future_work"] * 4 + ["limitation"] * 2, 1)]
+    st = op.label_stats(frame, {"correct": [1, 2, 5], "incorrect": [3], "unsure": [4, 6]})
+    assert st["overall"]["correct"] == 3 and st["overall"]["n"] == 10 and st["unsure"] == 2
+    assert st["by_type"]["open_problem"]["correct"] == 2 and st["by_type"]["limitation"]["correct"] == 0
+    assert st["wording"] == "AI-labelled precision 3/10 (not human-validated)"
+
+
+@pytest.mark.skipif(not (DATA / "manifest.json").is_file(), reason="no committed export to attach to")
+def test_attach_with_labels_writes_the_measured_wording_and_still_validates(tmp_path):
+    gaps = json.loads((DATA / "gaps.json").read_text(encoding="utf-8"))
+    if gaps.get("placeholder"):
+        pytest.skip("committed export is a placeholder")
+    cache = _cache(tmp_path, [(gaps["items"][0]["a"], gaps["items"][0]["b"])])
+    frame = [{"i": i, "type": ["open_problem", "future_work", "limitation"][i % 3]} for i in range(1, 11)]
+    (tmp_path / "frame.json").write_text(json.dumps(frame), encoding="utf-8")
+    (tmp_path / "labels.json").write_text(json.dumps({"correct": [1, 2, 3, 4, 5, 6], "incorrect": [7, 8], "unsure": [9, 10]}),
+                                          encoding="utf-8")
+    res = op.attach(DATA, cache, tmp_path / "out", frame=tmp_path / "frame.json", labels=tmp_path / "labels.json")
+    assert res["problems"] == []
+    f = json.loads((tmp_path / "out" / "open-problems.json").read_text(encoding="utf-8"))
+    assert f["quality"] == "ai_labelled" and f["note"].startswith("AI-labelled precision 6/10 (not human-validated)")
+    meta = json.loads((tmp_path / "out" / "meta.json").read_text(encoding="utf-8"))
+    assert meta["open_problems"]["quality"] == "ai_labelled"
+    with pytest.raises(op.AttachError):
+        op.attach(DATA, cache, tmp_path / "out2", labels=tmp_path / "labels.json")  # labels without their frame

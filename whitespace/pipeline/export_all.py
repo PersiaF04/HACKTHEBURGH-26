@@ -1003,7 +1003,7 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
         if _keys(payload, contract("open-problems.json"), name, errs):
             _check_open_problem_items(payload["items"], name, errs)
             if payload["items"] and (payload.get("placeholder") is not False or not payload.get("attribution")
-                                     or payload.get("quality") != "unmeasured"):
+                                     or payload.get("quality") not in ("unmeasured", "ai_labelled", "human_labelled")):
                 errs.append(f"{name}: quoted sentences need placeholder false, an attribution and a quality label")
     else:
         errs.append(f"{name}: not a file of the frontend contract")
