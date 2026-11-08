@@ -103,6 +103,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
     <section className="evidence-page" aria-label="Evidence">
       <header className="evidence-header">
         <h1>Evidence</h1>
+        <p className="evidence-question">Does the model really find future links, or is it luck?</p>
         <p>Held-out backtest results and limits.</p>
       </header>
 
@@ -129,7 +130,8 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
       {status === "error" && <EmptyNote role="alert">{errorMessage || "Evidence could not be loaded."}</EmptyNote>}
 
       {!hasData && status !== "error" && <EvidenceSkeleton loading={status === "loading"} />}
-      {hasData && <>
+      {hasData && <details className="evidence-tech">
+        <summary>Technical detail: ranking metrics by stratum, calibration, hits and misses</summary>
       <section aria-labelledby="ranking-title" className="evidence-section">
         <h2 id="ranking-title">Ranking quality</h2>
         <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight, with each table's base rate in its caption. PR-AUC is not exported; average precision (AP) is shown instead.</p>
@@ -157,7 +159,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
         <EvidenceTable title="Misses" rows={misses} empty="No measured misses are available yet." error={status === "error"} />
       </section>
 
-      </>}
+      </details>}
 
       <section className="evidence-section">
         <h2>Paper-to-code matching</h2>

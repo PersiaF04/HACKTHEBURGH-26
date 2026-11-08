@@ -42,3 +42,10 @@
   .evidence-section, .evidence-headline { padding: 1rem .85rem; }
   .evidence-table-scroll th, .evidence-table-scroll td { padding: .45rem .4rem; }
 }
+
+/* Plain-language framing (#259) */
+.evidence-question { color: var(--ws-ink) !important; font-weight: 600; font-size: 1.1rem; }
+.evidence-tech { margin-top: 1.5rem; }
+.evidence-tech > summary { cursor: pointer; padding: .75rem 0; font-weight: 600; }
+.model-note__more { display: inline; }
+.model-note__more summary { display: inline; cursor: pointer; text-decoration: underline; }
