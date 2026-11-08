@@ -39,7 +39,7 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
   const set = (patch: Partial<ExploreFilters>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className={disabled ? "whitespace-filters is-disabled" : "whitespace-filters"}>
+    <div className={disabled ? "whitespace-filters is-disabled" : "whitespace-filters"} data-tour="map-filters">
       {areas && areas.length > 0 && (
         <section aria-labelledby={`${uid}-areas`} className="whitespace-filters__section whitespace-filters__areas">
           <div className="whitespace-filters__heading">

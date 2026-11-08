@@ -97,7 +97,7 @@ function PapersPerYear({ counts, forecast }: { counts: { year: number; count: nu
 }
 
 export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, area, firstYear, gapRate }: ConceptPanelProps) {
-  if (!concept) return <aside className="whitespace-concept ex__right" aria-label="Concept details"><div className="whitespace-try">
+  if (!concept) return <aside className="whitespace-concept ex__right" aria-label="Concept details" data-tour="concept-panel"><div className="whitespace-try">
     <h2>Try this</h2>
     <ol>
       <li><strong>Click a dot</strong> on the map.</li>
@@ -123,7 +123,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
   const growthClass = concept.growth !== null && concept.growth !== undefined && concept.growth < 0 ? "is-down" : "is-up";
 
   return (
-    <aside className="whitespace-concept ex__right" aria-label="Concept details" aria-live="polite">
+    <aside className="whitespace-concept ex__right" aria-label="Concept details" aria-live="polite" data-tour="concept-panel">
       <header>
         {areaName && <span className="whitespace-concept__area">{fmtText(areaName)}</span>}
         <h2>{fmtText(concept.label)}</h2>
