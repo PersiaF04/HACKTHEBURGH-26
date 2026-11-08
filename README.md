@@ -16,7 +16,7 @@ Whitespace is a research-discovery tool for AI/ML literature. It turns a histori
 
 Both tracks use the same evidence and limitations; only the opening framing changes ([`PRD.md`](PRD.md) section 18).
 
-- **HRT: which research gap should I pursue?** Rank unlinked concept pairs by the probability that they link within three years. The model is tested on a purged temporal backtest (fit through 2014, calibrate at 2017, test once at 2020 with outcomes in 2021 to 2023) so no outcome window leaks into a later split. Probabilities are calibrated and reported with the base rate, precision@k and PR-AUC on all eligible pairs, against every declared baseline. If the model does not beat the strongest baseline, that is reported.
+- **HRT: which research gap should I pursue?** Rank unlinked concept pairs by the probability that they link within three years. The model will be tested once on a purged temporal backtest (fit through 2014, calibrate at 2017, test once at 2020 with outcomes in 2021 to 2023) so no outcome window leaks into a later split. Probabilities are calibrated on the 2017 origin and will be reported with the base rate, precision@k and average precision on all eligible pairs; if the model does not beat the strongest baseline, that will be reported.
 - **G-Research: make the invisible visible.** A research map with a time slider, an explorer of author-stated open problems (limitations, future work), and a code-coverage view from the archived Papers with Code links. Coverage is a lower bound: a paper without a link has no linked code in that archive, not necessarily no code.
 
 The exact track prompts are not yet confirmed against the official event site (see the PRD).
