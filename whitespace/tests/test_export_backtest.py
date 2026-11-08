@@ -60,7 +60,7 @@ def test_real_run_shape_field_by_field(relabelled):
     out = to_backtest_response(relabelled, [], [])
     assert out["placeholder"] is False and out["synthetic"] is False
     assert set(FIXTURE) <= set(out)
-    assert set(out) - set(FIXTURE) <= {"synthetic", "hits_note", "meta"}
+    assert set(out) - set(FIXTURE) <= {"synthetic", "data_label", "hits_note", "meta"}
     assert set(out["code_link_evaluation"]) == set(FIXTURE["code_link_evaluation"])
     assert set(out["calibration"]) == {"bins", "note"}
     assert set(out["by_starting_weight"]) == {"all", "0", "1", "2"}
@@ -188,3 +188,43 @@ def test_manifest_contents_and_file_hashes(synthetic_metrics, tmp_path):
     assert m["corpus"]["topic_assignment_vintage"] is None and "numpy" in m["library_versions"]
     assert len(m["files"]["backtest.json"]) == 64
     assert build_manifest(None)["real_run"] is False
+
+
+# ---- data label handling (shared predicate: backtest.is_real_run) -----------------------------
+
+NUMBER_KEYS = ("base_rate", "roc_auc", "pr_auc", "average_precision", "precision_at_100")
+
+
+def _with(metrics, label, generator):
+    m = copy.deepcopy(metrics)
+    if label is None:
+        m["manifest"].pop("data_label", None)
+    else:
+        m["manifest"]["data_label"] = label
+    m["manifest"]["generator"] = generator
+    return m
+
+
+@pytest.mark.parametrize("label,generator,placeholder,synthetic,shown", [
+    ("real", None, False, False, "real"),
+    ("synthetic", None, True, True, "synthetic"),
+    ("synthetic", {"signal": True}, True, True, "synthetic"),
+    ("unlabelled", None, True, False, "unlabelled"),
+    (None, None, True, False, "unlabelled"),
+    ("free text run", None, True, False, "unlabelled"),
+    ("real", {"signal": True}, True, True, "synthetic"),  # real plus a generator is not real
+])
+def test_label_matrix(synthetic_metrics, label, generator, placeholder, synthetic, shown):
+    metrics = _with(synthetic_metrics, label, generator)
+    out = to_backtest_response(metrics, [], [])
+    assert out["placeholder"] is placeholder and out["synthetic"] is synthetic
+    assert out["data_label"] == shown
+    man = build_manifest(metrics)
+    assert man["real_run"] is (not placeholder) and man["synthetic"] is synthetic and man["data_label"] == shown
+    if placeholder:
+        assert all(out[k] is None for k in NUMBER_KEYS)
+        assert out["baselines"] == {} and out["by_starting_weight"] == {} and out["calibration"]["bins"] == []
+        assert "withheld" in out["calibration"]["note"]
+        assert ("SYNTHETIC" in out["calibration"]["note"]) is synthetic
+    else:
+        assert out["average_precision"] is not None
