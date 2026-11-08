@@ -63,3 +63,9 @@ python -m whitespace.pipeline.code_layer --links path/to/links.parquet --revisio
 ```
 
 It draws 125 distinct new-style arXiv ids per year band (<=2017, 2018-2020, 2021-2023, 2024-2025), resolves them and prints resolved counts by band. Spike #122 measured 493/500 (98.6%) with its own draw; this command re-runs the procedure, and exact ids may differ if the sampling code differs. The figure is resolution only, not join correctness.
+
+## Coverage export (`pipeline/export_coverage.py`, issue #163)
+
+`to_coverage_response(year, coverage_table, archive_info)` returns the frontend's `CoverageResponse` (`web/src/api.ts`): concepts, per-year cells (`paper_count`, `linked_paper_count`, `code_rate`, `state`), caveat and archive info (revision, snapshot 2025-07-28, `cc-by-sa-4.0`, row count, attribution, low-coverage cutoff year). Grey years keep their counts but have `code_rate` null (`thin` before the cutoff, `outside_archive_vintage` after 2025). Cells carry "no linked code in this archive"; non-arXiv papers stay in the denominator and are flagged `unmatchable_by_construction`. Extra keys beyond the frontend type (`row_count`, `attribution`, `low_coverage_cutoff_year`, `min_linked`, per-cell flags) are additive.
+
+`code_link_evaluation(hand_check_rows)` computes correct matches, precision, 95% Wilson interval, sample composition and protocol text from the completed 100-pair frame (`final_label`). With no table, or any row unlabelled, every field is null and `placeholder` is true.
