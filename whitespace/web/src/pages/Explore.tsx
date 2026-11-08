@@ -219,7 +219,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           branch={hierarchy.branchInfo.get(synth)}
           hypothesis={hierarchy.hypothesisInfo.get(synth)}
           onSelectConcept={pickAndFocus}
-          onSelectNode={pick}
           onClose={() => setSynth(null)}
         />
       ) : (

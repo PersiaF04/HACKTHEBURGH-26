@@ -6,7 +6,6 @@ type Props = {
   branch?: BranchInfo;
   hypothesis?: GapSummary;
   onSelectConcept: (id: string) => void;
-  onSelectNode: (id: string) => void;
   onClose: () => void;
 };
 
@@ -18,7 +17,7 @@ const goToGaps = (event: React.MouseEvent) => {
 };
 
 /** Detail for a clicked branch hub or hypothesis node on the graph. Branches are derived in the app. */
-export function BranchPanel({ branch, hypothesis, onSelectConcept, onSelectNode, onClose }: Props) {
+export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Props) {
   if (hypothesis) {
     return (
       <aside className="whitespace-concept ex__right" aria-label="Hypothesis details" aria-live="polite">
@@ -45,7 +44,6 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onSelectNode,
   }
   if (!branch) return null;
   const top = [...branch.shown].sort((x, y) => (y.paper_count ?? 0) - (x.paper_count ?? 0));
-  const hyps = [...branch.hypotheses].sort((x, y) => y.p_link - x.p_link).slice(0, 6);
   return (
     <aside className="whitespace-concept ex__right" aria-label="Branch details" aria-live="polite">
       <header>
@@ -69,19 +67,6 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onSelectNode,
           ))}
         </ul>
         {branch.total > 12 && <p className="whitespace-help">Showing the 12 largest of {fmtInt(branch.total)} concepts in this branch.</p>}
-      </section>
-      <section className="whitespace-concept__card">
-        <h3>Hypotheses in this branch</h3>
-        {hyps.length ? (
-          <ul className="whitespace-concept__list">
-            {hyps.map((g) => (
-              <li key={`${g.a}|${g.b}`}>
-                <button type="button" onClick={() => onSelectNode(`hyp:${g.a}|${g.b}`)}>{fmtText(g.a_label)} × {fmtText(g.b_label)}</button>
-                <span className="whitespace-mono"> P {fmtP(g.p_link)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : <p className="whitespace-help">None of the top ranked gaps touch this branch.</p>}
       </section>
       <button type="button" className="ws-link-button" onClick={onClose}>Clear selection</button>
     </aside>
