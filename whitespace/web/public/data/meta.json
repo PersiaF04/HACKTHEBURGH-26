@@ -35,7 +35,8 @@
   "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
   "items": 923,
   "note": "Extraction quality is unmeasured: sentences were picked by a regex prefilter and have not been hand-labelled, so some are not real author-stated open problems.",
-  "quality": "unmeasured"
+  "quality": "unmeasured",
+  "rates": "display only: not used in gap_score or the backtest"
  },
  "placeholder": false,
  "production_forecast": {
