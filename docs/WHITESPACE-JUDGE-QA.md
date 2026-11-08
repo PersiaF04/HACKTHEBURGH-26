@@ -183,7 +183,7 @@ verified in #122 is marked **unverified**.
   Intelligence 2023) frame AI research directions as link prediction on a
   semantic network, and Science4Cast is a benchmark for it. We do not claim to
   be first. Whitespace adds, as planned, a purged out-of-sample check against
-  named simple baselines, a code-coverage lower bound and a time slider. Source:
+  named simple baselines, a code-coverage lower bound and a concept map. Source:
   #122. Limit: the claim that the combination is new is unverified (search not
   exhaustive); do not make it.
 

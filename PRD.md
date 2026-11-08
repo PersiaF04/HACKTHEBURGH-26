@@ -44,7 +44,7 @@ None of these targets is met until measured and recorded.
 | ID | Feature | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
 | F1 | Research map | MVP | About 3,000–6,000 concepts in 2D, sized by paper count and coloured by growth; smooth pan and zoom |
-| F2 | Time slider | MVP | Moving from 2015 to 2026 updates visible concepts and links in under 200 ms |
+| F2 | Time slider | Removed | Removed from scope at Varshil's request: the approved design has no slider; the map shows the latest snapshot year; year-scoped `map-<year>.json` files are not needed by the UI |
 | F3 | Paper and concept search | MVP | Hybrid semantic and keyword search returns papers and concepts; map moves to the result |
 | F4 | Gap finder | MVP | Rank unlinked pairs with P(link), interval, momentum, novelty, stated-gap rate and gap score; filter by area and minimum P |
 | F5 | Gap detail | MVP | Show score breakdown, three closest papers on each side, shared neighbours and authors' stated open problems |
@@ -68,7 +68,7 @@ None of these targets is met until measured and recorded.
 ## 7. Main user flow
 
 1. Search a research area or paste an abstract.
-2. The map moves to that area. Move the time slider to see how it changed.
+2. The map moves to that area. Open a concept to see its trend.
 3. Open Gap Finder for that area and select a highly ranked pair.
 4. Read its score breakdown, supporting papers and stated open problems.
 5. Optionally draft research questions, then open Evidence to see the backtest and calibration.
@@ -124,7 +124,7 @@ The spike must verify each proposed model and dependency can be installed and ru
 ## 11. Data ingestion
 
 - **Proposed endpoint:** GET [api.openalex.org/works](https://api.openalex.org/works).
-- **Proposed filter:** primary topic subfield 1702 (Artificial Intelligence), publication year 2010 onward, article, preprint and conference-paper types, and abstract availability. Pre-2015 records are required to provide multiple fit origins for the 2020 backtest; the visible product time slider may still begin in 2015. A live check confirmed subfield 1702 is Artificial Intelligence. This selects works currently assigned that primary subfield; do not describe it as all AI/ML literature. Freeze the exact filter, type scope and retrieval date with each dataset snapshot.
+- **Proposed filter:** primary topic subfield 1702 (Artificial Intelligence), publication year 2010 onward, article, preprint and conference-paper types, and abstract availability. Pre-2015 records are required to provide multiple fit origins for the 2020 backtest; the map shows only the latest snapshot year. A live check confirmed subfield 1702 is Artificial Intelligence. This selects works currently assigned that primary subfield; do not describe it as all AI/ML literature. Freeze the exact filter, type scope and retrieval date with each dataset snapshot.
 - **Proposed fields:** id, title, publication year/date, cited-by count, abstract inverted index, keywords, primary topic and topics. Current citation counts may be collected as metadata, but are not valid historical features or sampling criteria.
 - **Proposed query:** cursor pagination and up to 100 records per page. The API maximum is 100; do not assume 200 is allowed.
 - **Live estimate from 7 Nov 2026:** the article/preprint filter returned 717,139 works across 2015–2026 (including partial 2026); 529,502 through 2025. This is not the final corpus size: the selected scope starts in 2010 and conference papers are important in AI/ML, while that type was excluded from this count. Re-count the agreed year and work-type scope before setting corpus size; do not retain the initial ~180,000 estimate without measurement. Counts move with the service and topic assignments. Capture the exact query, retrieval date and result count in the artifact manifest.
@@ -226,7 +226,7 @@ Every route except the two stretch POST routes should return in under 300 ms aft
 
 **Routes:** / (Explore), /gaps, /open-problems, /evidence, /coverage. Gap detail opens as a drawer.
 
-**Components:** MapCanvas, TimeSlider, SearchBar, ConceptPanel, GapTable, GapDrawer, ScoreBreakdown, OpenProblemList, TrendChart, BacktestCharts, QuestionStream.
+**Components:** MapCanvas, SearchBar, ConceptPanel, GapTable, GapDrawer, ScoreBreakdown, OpenProblemList, TrendChart, BacktestCharts, QuestionStream.
 
 **State (Zustand):** year, selectedConcepts, focus, openGap.
 
@@ -258,7 +258,7 @@ The official IC Hack 26 entry is titled ERLA. It describes recursively spawned S
 ## 18. Framing by track
 
 - **HRT:** the supplied brief names “Best Use of Data for Predictions & Decision Making.” The official HackTheBurgh XIII site does not confirm the exact track prompt; verify it with the sponsor/workshop before using it as official wording. Lead with the decision (“which gap should I spend my thesis on?”), time-split backtest and calibration.
-- **G-Research:** the supplied brief names “Make the invisible visible.” The official HackTheBurgh XIII site does not confirm the exact track prompt; verify it with the sponsor/workshop. Lead with the map, time slider and coverage view.
+- **G-Research:** the supplied brief names “Make the invisible visible.” The official HackTheBurgh XIII site does not confirm the exact track prompt; verify it with the sponsor/workshop. Lead with the map and coverage view.
 - Use the same evidence and limitations for both tracks; change the opening framing, not the facts.
 
 ## 19. Evaluation additions
@@ -274,7 +274,7 @@ The supplied Part C plan begins 21:30 Saturday and targets Sunday's 12:00 submis
 
 | Checkpoint | Pipeline / ML | Backend | Frontend / pitch |
 | --- | --- | --- | --- |
-| 21:30–00:30 | Get OpenAlex API key; ingest; embeddings; concepts | Load Papers with Code dump; code join; mock JSON for each route | Map and time slider on mock data |
+| 21:30–00:30 | Get OpenAlex API key; ingest; embeddings; concepts | Load Papers with Code dump; code join; mock JSON for each route | Map on mock data |
 | 00:30 | Freeze the measured corpus size and year/type scope in the manifest. Any reduction must retain enough pre-2015 fit origins for the purged 2020 test; do not cut to 2018–2026 and still claim that backtest. If the split is infeasible, return to the owner with evidence before changing it. | — | — |
 | 00:30–03:00 | Yearly graphs, candidates, features; first LightGBM and baselines | FastAPI routes on real artifacts; open-problem mining | Gap finder, gap detail |
 | 03:00 | Use only the 2017 calibration-origin comparison (outcomes 2018–2020) for the go/no-go: if the model does not beat the strongest declared baseline, lead with calibration and map; do not inspect 2019 or held-out test outcomes to make this decision | — | — |
@@ -289,12 +289,12 @@ The supplied Part C plan begins 21:30 Saturday and targets Sunday's 12:00 submis
 
 Cut first: F9 question generator, F8 trend forecast, F10 start from my paper, F12 build-on readiness.
 
-Never cut: map with time slider, Gap Finder, Evidence page and F11 code-coverage view.
+Never cut: map, Gap Finder, Evidence page and F11 code-coverage view.
 
 ## 22. Proposed three-minute demo
 
 - **0:00–0:20 — hook:** “Papers with Code shut down in 2025. Search shows what exists; it cannot show what is missing.” Use only after shutdown and archive facts are verified.
-- **0:20–1:20 — map:** move the time slider from 2015 to 2026, open Code Coverage and click a dark cell.
+- **0:20–1:20 — map:** click a concept to show its trend and predicted partners, open Code Coverage and click a dark cell.
 - **1:20–2:20 — gap:** open Gap Finder, select the top gap, inspect score components and authors' open problems, then show Evidence: Precision@100 against baselines and calibration.
 - **2:20–2:50 — limitations:** co-occurrence is a proxy; code links are a lower bound; MAGI/ERLA is prior art.
 - **2:50–3:00 — close:** “See where research is going, and what nobody has built yet.” Qualify code claims as “no linked code in this archive.”

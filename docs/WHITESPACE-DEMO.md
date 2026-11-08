@@ -38,7 +38,7 @@ additions). Facts come from [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/
 | Item | Needs |
 | --- | --- |
 | Backtest numbers | The held-out 2020 run, once, after the 10:30 UTC freeze, and a human sign-off of the headline (average precision, all strata, against the best baseline chosen on the calibration origin) |
-| Map and time slider on real data | `map-<year>.json`, `concepts.json`, `meta.json` (from #167) wired through a static route adapter |
+| Map on real data | `map-<year>.json` (latest year only), `concepts.json`, `meta.json` (from #167) wired through a static route adapter |
 | Gap list and detail | `gaps.json`, `gap-details.json` (from #167) wired the same way |
 | Evidence page | `backtest.json`, `manifest.json` (from #166) wired the same way |
 | Coverage heatmap | The coverage response from #165 and #145, wired the same way |
@@ -46,7 +46,7 @@ additions). Facts come from [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/
 
 ## Controls that exist only once the frontend is wired
 
-- Time slider moving through real years (PRD target: under 200 ms).
+- Clicking a concept to show its trend and predicted partners.
 - Gap list filters by area and minimum probability.
 - Clicking a heatmap cell to list papers without an archive link.
 - Evidence tables, by-stratum tabs and hits and misses tables reading
@@ -66,7 +66,7 @@ Result variant (a real run exists). Total 3:00.
 | 0:00 to 0:20 | Evidence page, headline panel | Open **Evidence**; no clicks | HRT opening: "Which research gap should I spend my thesis on? We tested a ranked guess against what actually happened." G-Research opening: "Research has structure no single paper shows; this replays it using only what was knowable at each date." | none yet |
 | 0:20 to 1:10 | Evidence page: headline, baseline table, strata tabs | Click each starting-weight tab (0, 1, 2); expand the baseline table | "Frozen on origins up to 2014 and calibrated at 2017, scored once at 2020 on outcomes from 2021 to 2023, on every eligible pair. Base rate is [base rate]. Our precision at 100 is [P@100 model] against [P@100 best baseline] for the strongest simple baseline, average precision [AP model] against [AP best baseline]. By starting weight: [AP w0], [AP w1], [AP w2]." If the model does not beat the best baseline, say so here, plainly. | `backtest.json` (metrics, baselines, strata); `manifest.json` (split, counts) |
 | 1:10 to 1:30 | Evidence page: checks and caveats | Scroll to leakage checks and vintage note | "These checks passed: [purge test result], [poison test result]. Unprompted caveat: OpenAlex re-assigned topics in October 2026, so our concept labels are not what was known in 2020." | `manifest.json`; `backtest.json` checks block (exact field to confirm) |
-| 1:30 to 2:10 | Research map, then slider | Drag the time slider from 2015 to 2026 | "Each dot is a concept; size is paper count. Positions come from one fixed layout, so the map is stable, not a separate layout per year. Every other field in a year uses only that year's data." | `map-<year>.json`, `concepts.json`, `meta.json` |
+| 1:30 to 2:10 | Research map, then a concept | Click a concept; show its trend and predicted partners | "Each dot is a concept; size is paper count. Positions come from one fixed layout, so the map is stable, not a separate layout per year. Click a concept to see its trend and predicted partners." | `map-<year>.json` (latest year only), `concepts.json`, `meta.json` |
 | 2:10 to 2:35 | Gap finder, then gap detail | Open the top ranked gap; show score parts and the 3 supporting links | "A gap is a pair not yet linked, meaning fewer than three joint papers. The rank is a guess from publication patterns, with every component shown. Here is one hit and one miss from the backtest." | `gaps.json`, `gap-details.json`; hits and misses in `backtest.json` |
 | 2:35 to 2:50 | Coverage heatmap | Click one dark cell | "Dark means no linked code found in the Papers with Code archive, a 28 July 2025 snapshot. That is a lower bound, not proof of no implementation. Years where the archive is thin are greyed; the cutoff is [coverage cutoff year]." | coverage response (#165, #145) |
 | 2:50 to 3:00 | Limits slide or Evidence footer | none | "Not new as an idea: Krenn et al. (arXiv:2210.00881) forecast concept links. Co-occurrence is not importance. Topic vintage is a residual leak. See the repo for the full protocol." | none |
@@ -77,7 +77,7 @@ No-result variant (use if no real backtest exists). Total 3:00.
 | --- | --- | --- | --- | --- |
 | 0:00 to 0:20 | Evidence page | Open **Evidence** | Same track opening as above. Then: "planned backtest, not achieved." | none |
 | 0:20 to 1:10 | Protocol on the Evidence page or README | Scroll through split, population, baselines | "Here is the protocol we would run: fit on origins up to 2014, calibrate at 2017, test once at 2020 on outcomes 2021 to 2023, every eligible pair, strongest baseline named in advance, base rate and lift reported by starting weight. We have not run it, so no number is shown." | `manifest.json` if it exists; otherwise README "Evaluation approach (plan)" |
-| 1:10 to 2:10 | Map and slider | As above | As above, labelled as a structure view, not evidence of forecast quality | map files if wired, otherwise say the screen shows mock data |
+| 1:10 to 2:10 | Map and concept | As above | As above, labelled as a structure view, not evidence of forecast quality | map files if wired, otherwise say the screen shows mock data |
 | 2:10 to 2:40 | Coverage heatmap | As above | As above | coverage response |
 | 2:40 to 3:00 | Limits | none | As above, plus: "everything forecast-related is a design today" | none |
 
@@ -110,7 +110,7 @@ from the README with no live app if needed.
 | Real export missing or wrong shape | "The export is not wired in this build; here is the file it would read." | Show the JSON file; do not improvise values |
 | No backtest result at demo time | "planned backtest, not achieved." | Run the no-result variant |
 | Model does not beat the best baseline | "The strongest simple baseline wins on [metric]; we report that." | Keep the slide; point to the by-stratum tabs |
-| Time slider is slow or stutters | "Pausing the slider; here are the 2015 and 2026 frames." | Click two years directly instead of dragging |
+| Concept panel is slow or blank | "Pausing; here is the concept's trend from the exported file." | Click a different concept, or show `concepts.json` |
 | Heatmap cell click shows nothing | "The paper list for this cell is not wired; the cell shows the numerator and denominator." | Read the numerator and denominator from the tooltip |
 | Network drops | "The demo runs from precomputed files with no live calls." | Continue; nothing should need the network |
 | A judge asks a number we do not have | "We have not measured that; here is how we would." | Point to the protocol and the Q&A |
