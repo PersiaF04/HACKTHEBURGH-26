@@ -64,7 +64,7 @@ from .common import LINK_THRESHOLD, Work, assert_purged, normalise_arxiv_id
 from .export_backtest import build_manifest, to_backtest_response, write_json
 from .export_coverage import code_link_evaluation, to_coverage_response
 from .export_map_gaps import (
-    GAP_NOTE, GENERIC_PHRASES, build_gap_detail, build_gaps, build_map, clean, compute_layout, headline_from_backtest,
+    GAP_NOTE, GENERIC_PHRASES, MAX_GAPS_PER_CONCEPT, build_gap_detail, build_gaps, build_map, clean, compute_layout, headline_from_backtest,
     paper_ref, concept_series, trained_predictor, visible_works,
 )
 from . import open_problems as OP
@@ -331,7 +331,8 @@ def production_label(run: Run, year: int, mode: str = "through-2020") -> str:
 def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, edge_threshold: float,
                      max_edges: int, gap_pool: int, gap_limit: int, detail_limit: int,
                      production_model: str = "through-2020",
-                     stoplist: frozenset[str] | None = GENERIC_PHRASES) -> dict[str, dict]:
+                     stoplist: frozenset[str] | None = GENERIC_PHRASES,
+                     max_per_concept: int | None = MAX_GAPS_PER_CONCEPT) -> dict[str, dict]:
     """map-<Y>, gaps, gap-details, concepts and meta from the caches. Real-shaped; the caller decides
     whether they may be written (never for a synthetic run)."""
     n_min, final = run.config.n_min, years[-1]
@@ -349,7 +350,7 @@ def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, e
         files[f"map-{year}.json"] = m
         if year == final:
             gaps, ctx = build_gaps(visible, final, predict, n_min=n_min, pool=gap_pool, limit=gap_limit,
-                                  stoplist=stoplist)
+                                  stoplist=stoplist, max_per_concept=max_per_concept)
             gaps.update(
                 synthetic=False, kind="production_forecast", held_out_test=False, snapshot_year=final,
                 label=production_label(run, final, production_model), backtest_file="backtest.json",
@@ -371,6 +372,8 @@ def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, e
     files["meta.json"] = build_meta(run, years, final_counts, production_model)
     if "stoplist" in files["gaps.json"]:
         files["meta.json"]["production_forecast"]["stoplist"] = files["gaps.json"]["stoplist"]
+    if "diversity" in files["gaps.json"]:
+        files["meta.json"]["production_forecast"]["diversity"] = files["gaps.json"]["diversity"]
     return files
 
 
@@ -725,7 +728,8 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
                edge_threshold: float = EDGE_THRESHOLD, max_edges: int = MAX_EDGES, gap_pool: int = GAP_POOL,
                gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP,
                production_model: str = "through-2020", last_year: int | None = None,
-               stoplist: frozenset[str] | None = GENERIC_PHRASES, open_problems_dir=None) -> dict:
+               stoplist: frozenset[str] | None = GENERIC_PHRASES, open_problems_dir=None,
+               max_per_concept: int | None = MAX_GAPS_PER_CONCEPT) -> dict:
     """Export every frontend file and validate the result. Returns ``{synthetic, files, problems, ...}``.
     ``last_year`` caps the exported snapshot years (default: the corpus end)."""
     run = load_run(run_dir)
@@ -750,7 +754,7 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
     trained, same_model = train_production(run, production_model)
     built = build_real_files(run, trained, years, production_model=production_model, edge_threshold=edge_threshold, max_edges=max_edges,
                              gap_pool=gap_pool, gap_limit=gap_limit, detail_limit=detail_limit,
-                             stoplist=stoplist)
+                             stoplist=stoplist, max_per_concept=max_per_concept)
     path_check = None
     if synthetic:
         # the whole path ran; keep only that fact, not its numbers
@@ -956,6 +960,11 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
                 for must in ("kind", "label", "held_out_test"):
                     if must not in payload:
                         errs.append(f"{name}: missing {must!r} (the production forecast must be labelled)")
+                div = payload.get("diversity")
+                if div is not None:
+                    _record(div, {"applied": "any", "max_gaps_per_concept": _NUM, "pool_per_concept": _NUM,
+                                  "skipped_by_cap": _NUM, "relaxed_slots": _NUM, "note": _STR},
+                            f"{name}.diversity", errs)
                 if payload.get("kind") != "production_forecast" or payload.get("held_out_test") is not False:
                     errs.append(f"{name}: must be labelled a production forecast, not the held-out test")
     elif name == "gap-details.json":
@@ -1168,6 +1177,8 @@ def main(argv: list[str] | None = None) -> int:
                     "fills open-problems.json and the open_problems of gap details and concepts")
     ap.add_argument("--no-stoplist", action="store_true",
                     help="do not hide generic filler phrases (GENERIC_PHRASES) from the production gap list")
+    ap.add_argument("--no-diversity", action="store_true",
+                    help="do not cap gaps per concept or build the candidate pool per concept (production gap list)")
     args = ap.parse_args(argv)
     try:
         result = export_run(args.run_dir, args.out, corpus=args.corpus, join_dir=args.join_dir,
@@ -1175,6 +1186,7 @@ def main(argv: list[str] | None = None) -> int:
                             gap_pool=args.gap_pool, gap_limit=args.gap_limit, detail_limit=args.detail_limit,
                             coverage_top=args.coverage_top, production_model=args.production_model,
                             stoplist=None if args.no_stoplist else GENERIC_PHRASES,
+                            max_per_concept=None if args.no_diversity else MAX_GAPS_PER_CONCEPT,
                             open_problems_dir=args.open_problems)
     except (ExportError, R.RunError, ValueError, backtest.OneShotError) as exc:
         print(f"export failed: {exc}", file=sys.stderr)
