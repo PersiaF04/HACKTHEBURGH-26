@@ -681,12 +681,12 @@ def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
     return bool(lookup) or not ids
 
 
-def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int) -> dict:
+def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int, types: tuple[str, ...] = OP.TYPES) -> dict:
     """Fill open-problems.json, gap-details and concepts from the extractor cache (reduced version, issue #270)."""
     hits, counts = OP.load_cache(cache_dir)
     pairs = [(g["a"], g["b"]) for g in files["gaps.json"]["items"]]
     built = OP.build_export(hits, counts, pairs, list(files["concepts.json"]["entries"]), default_url, final,
-                           exclude=frozenset(GENERIC_PHRASES))
+                           exclude=frozenset(GENERIC_PHRASES), types=types)
     for key, items in built["gap_details"].items():
         if key in files["gap-details.json"]["entries"]:
             files["gap-details.json"]["entries"][key]["open_problems"] = items
@@ -694,7 +694,28 @@ def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int) ->
         if cid in files["concepts.json"]["entries"]:
             files["concepts.json"]["entries"][cid]["open_problems"] = items
     files["open-problems.json"] = built["file"]
-    return {"cache_hits": len(hits), "items": len(built["file"]["items"]), "quality": "unmeasured",
+    rc = built["gap_rates"]  # DISPLAY ONLY: gap_score, factors.gap_factor and formula_used are left exactly as they were
+
+    def set_rates(rec: dict) -> None:
+        ra, rb = rc.get(rec["a"]), rc.get(rec["b"])
+        rec["gap_rate_a"], rec["gap_rate_b"] = ra, rb
+        rec["gap_rate"] = round(ra + rb, 6) if ra is not None and rb is not None else None
+
+    for it in files["gaps.json"]["items"]:
+        set_rates(it)
+    for e in files["gap-details.json"]["entries"].values():
+        if isinstance(e.get("summary"), dict):
+            set_rates(e["summary"])
+    for cid, e in files["concepts.json"]["entries"].items():
+        e["gap_rate"] = rc.get(cid)
+    gaps = files["gaps.json"]
+    gaps["omitted_components"] = [x for x in gaps.get("omitted_components", []) if not x.startswith("gap_rate")] + [
+        "gap_rate (shown for display only; not part of gap_score)"]
+    gaps["gap_rate_note"] = ("gap_rate_a/b: share of the concept's papers up to the snapshot year with an author-stated open "
+                             "problem (regex extraction, quality as in meta.open_problems); gap_rate = a + b. Display only: "
+                             "gap_score, the factors and the backtest do not use it.")
+    return {"cache_hits": len(hits), "gap_rates": sum(1 for v in rc.values() if v is not None),
+            "gaps_with_rates": sum(1 for g in gaps["items"] if g["gap_rate"] is not None), "items": len(built["file"]["items"]), "quality": "unmeasured",
             "gaps_with_sentences": sum(1 for v in built["gap_details"].values() if v),
             "concepts_with_sentences": len(built["concepts"]), "attribution": OP.ATTRIBUTION,
             "display_only": "rates are not used in any gap score or backtest"}
@@ -1012,7 +1033,7 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
         if _keys(payload, contract("open-problems.json"), name, errs):
             _check_open_problem_items(payload["items"], name, errs)
             if payload["items"] and (payload.get("placeholder") is not False or not payload.get("attribution")
-                                     or payload.get("quality") != "unmeasured"):
+                                     or payload.get("quality") not in ("unmeasured", "ai_labelled", "human_labelled")):
                 errs.append(f"{name}: quoted sentences need placeholder false, an attribution and a quality label")
     else:
         errs.append(f"{name}: not a file of the frontend contract")
