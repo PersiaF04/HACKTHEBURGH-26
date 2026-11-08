@@ -93,6 +93,11 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
   const misses = response?.misses ?? [];
   const codeLink = response?.code_link_evaluation;
   const hasData = !!aggregate && [aggregate.average_precision, aggregate.precision_at_100, aggregate.pr_auc, aggregate.roc_auc].some(hasMetric);
+  // The headline is the frozen #122 result. Show it only when this export's aggregate AP values are that run's,
+  // so the verdict and interval are never paired with numbers they were not measured with.
+  const isFrozenRun = !placeholder && hasData
+    && near(aggregate?.average_precision, FROZEN_VERDICT.modelAP)
+    && near(aggregate?.baselines.current_weight?.average_precision, FROZEN_VERDICT.baselineAP);
 
   return (
     <section className="evidence-page" aria-label="Evidence">
@@ -102,9 +107,9 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
       </header>
 
       {/* The frozen one-shot result (issue #122). Shown only with the real export, never over placeholder fixtures. */}
-      {!placeholder && hasData && <section className="evidence-headline" aria-labelledby="evidence-verdict">
+      {isFrozenRun && <section className="evidence-headline" aria-labelledby="evidence-verdict">
         <h2 id="evidence-verdict">{FROZEN_VERDICT.verdict}</h2>
-        <p>Average precision: <strong>{formatMetric(aggregate?.average_precision ?? FROZEN_VERDICT.modelAP)}</strong> model vs <strong>{formatMetric(aggregate?.baselines.current_weight?.average_precision ?? FROZEN_VERDICT.baselineAP)}</strong> current weight; paired difference <strong>+{formatMetric(FROZEN_VERDICT.difference)}</strong> (95% concept-block bootstrap interval {formatMetric(FROZEN_VERDICT.low)} to {formatMetric(FROZEN_VERDICT.high)}).</p>
+        <p>Average precision: <strong>{FROZEN_VERDICT.modelAP.toFixed(4)}</strong> model vs <strong>{FROZEN_VERDICT.baselineAP.toFixed(4)}</strong> current weight; paired difference <strong>+{formatMetric(FROZEN_VERDICT.difference)}</strong> (95% concept-block bootstrap interval {formatMetric(FROZEN_VERDICT.low)} to {formatMetric(FROZEN_VERDICT.high)}).</p>
         <p>Scored once at frozen commit {FROZEN_VERDICT.commit}. Test origin {FROZEN_VERDICT.testOrigin}, outcomes {FROZEN_VERDICT.outcomes}; baseline chosen on {FROZEN_VERDICT.baselineOrigin}.</p>
         <ul className="evidence-caveats">
           <li>Aggregate only: within each starting-weight stratum the model is below the structural baselines on AP and AUC.</li>
@@ -246,6 +251,10 @@ function EvidenceTable({ title, rows, empty, error }: { title: string; rows: Bac
 function formatMetric(value: unknown): string {
   if (typeof value === "number") return fmtDec(value, 3);
   return fmtText(typeof value === "string" ? value : null);
+}
+
+function near(value: number | null | undefined, target: number): boolean {
+  return typeof value === "number" && Math.abs(value - target) < 5e-5;
 }
 
 function eceFromNote(note?: string | null): number | null {
