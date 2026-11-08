@@ -33,13 +33,21 @@
  },
  "open_problems": {
   "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
-  "items": 923,
-  "note": "Extraction quality is unmeasured: sentences were picked by a regex prefilter and have not been hand-labelled, so some are not real author-stated open problems.",
-  "quality": "unmeasured",
+  "items": 911,
+  "note": "AI-labelled precision 24/34 (71%) on open-problem statements, not human-validated; labelled by the same AI system that built the extractor, so not independent. 95% Wilson interval 0.54 to 0.83; unsure counts as not correct.",
+  "quality": "ai_labelled",
   "rates": "display only: not used in gap_score or the backtest"
  },
  "placeholder": false,
  "production_forecast": {
+  "diversity": {
+   "applied": true,
+   "max_gaps_per_concept": 3,
+   "note": "max 3 gaps per concept; candidate pool built per concept; vocabulary, model and backtest unchanged",
+   "pool_per_concept": 10,
+   "relaxed_slots": 0,
+   "skipped_by_cap": 729
+  },
   "file": "gaps.json",
   "label": "Production forecast, not the held-out test. A model trained after the held-out test was scored: fit on origins [2010, 2011, 2012, 2013, 2014, 2017] and Platt-calibrated at [2020], which is the test origin, so its outcomes were used for training. This model was never itself held-out tested, and its probabilities are not shown to be better calibrated than the backtest model's. It ranks pairs that have not yet co-occurred 3+ times at the 2023 snapshot, the last year in this export. Their outcomes (2024 to 2026) are not observed, so nothing in this file was evaluated. The held-out result is in backtest.json and describes the backtest model, not this one.",
   "model": {

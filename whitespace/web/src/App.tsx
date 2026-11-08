@@ -154,7 +154,7 @@ export default function App() {
     : `${REAL_TIP}${snapshotRange ? `. Map and gap snapshots: ${snapshotRange}. Code coverage uses each paper's publication year, so its range can differ.` : ""}`;
   const tabActive = (route: string) => route === path;
 
-  const fullBleed = path === "/" || path === "/gaps";
+  const fullBleed = path === "/" || path === "/gaps" || path === "/open-problems";
 
   return (
     <div className="app-shell">
