@@ -1,5 +1,6 @@
 import type { ConceptPoint, ConceptResponse, GapSummary } from "../api";
 import { fmtGrowth, fmtInt, fmtInterval, fmtP, fmtPct, fmtText, fmtYear } from "../lib/format";
+import { ConceptProblems } from "./ConceptProblems";
 import "./explore.css";
 
 type ConceptPanelProps = {
@@ -49,8 +50,6 @@ function goToGaps(event: React.MouseEvent<HTMLAnchorElement>) {
   window.history.pushState({}, "", "/gaps");
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
-
-const TYPE_LABEL: Record<string, string> = { future_work: "Future work", limitation: "Limitation", open_problem: "Open problem" };
 
 function PapersPerYear({ counts, forecast }: { counts: { year: number; count: number }[]; forecast: ForecastRow[] }) {
   const lastObs = counts[counts.length - 1].year;
@@ -182,20 +181,7 @@ export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, are
         </section>
       )}
 
-      {problems.length > 0 && (
-        <section aria-labelledby="wc-probs">
-          <div className="whitespace-concept__head">
-            <h3 id="wc-probs">Stated open problems</h3>
-            <a href="/gaps" onClick={(event) => { event.preventDefault(); window.history.pushState({}, "", "/gaps"); window.dispatchEvent(new PopStateEvent("popstate")); }}>All {"→"}</a>
-          </div>
-          {problems.slice(0, 3).map((op, i) => (
-            <blockquote key={`${op.paper?.id ?? "p"}-${i}`} className="whitespace-concept__problem" title={fmtText(op.paper?.title)}>
-              <span className="whitespace-concept__tag">{fmtText(TYPE_LABEL[op.type] ?? op.type)}</span>
-              <span>{fmtText(op.sentence)}</span>
-            </blockquote>
-          ))}
-        </section>
-      )}
+      <ConceptProblems conceptId={concept.id} label={concept.label} attached={problems} />
 
       {neighbours.length > 0 && (
         <section aria-labelledby="wc-links">
