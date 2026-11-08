@@ -21,6 +21,8 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
 > **Status:** the real-data run is in progress. Until it finishes, the site shows placeholder data, labelled as such on every page. The forecast is evaluated once, on a held-out test year. No result is claimed until it's recorded, and it's published whichever way it falls.
 
+![Whitespace research map](docs/images/research-map.png)
+
 ## Who it's for
 
 | User | Need |
@@ -35,6 +37,14 @@ Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 - **Gaps:** unlinked concept pairs ranked by the calibrated probability that they link within three years, with score components and supporting papers.
 - **Evidence** (at `/evidence`): the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
 - **Code coverage** (at `/coverage`): a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
+
+### Screens
+
+These screenshots of the live site show placeholder data; they will be replaced once the real export is live.
+
+| Gaps and open problems | Evidence | Code coverage |
+| --- | --- | --- |
+| ![Gaps and open problems](docs/images/gaps.png) | ![Evidence](docs/images/evidence.png) | ![Code coverage](docs/images/coverage.png) |
 
 ## The two tracks
 
