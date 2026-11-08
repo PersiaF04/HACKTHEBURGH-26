@@ -2,6 +2,7 @@
 from ``run_real`` (made-up words; nothing here says anything about real literature)."""
 import json
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -231,3 +232,115 @@ def test_committed_sample_export_is_valid_synthetic_and_placeholder():
         if path.name not in ("routes.json", "manifest.json"):
             data = read(path)
             assert data["placeholder"] is True and data["synthetic"] is True, path.name
+
+
+# ------------------------------------------------------------------ year range, titles, phrase coverage
+
+
+def test_meta_year_range_is_written_also_in_synthetic_exports(exported):
+    out, _ = exported
+    meta = read(out / "meta.json")
+    assert meta["placeholder"] is True and meta["year_range"] == {"min": 2015, "max": 2020}
+    assert meta["titles_available"] is False and "id is shown" in meta["titles_note"]
+
+
+def test_validator_rejects_null_or_wrong_year_range(copy_of_export):
+    edit(copy_of_export / "meta.json", lambda d: d.update(year_range=None))
+    assert any("year_range" in p for p in E.validate_export(copy_of_export))
+    edit(copy_of_export / "meta.json", lambda d: d.update(year_range={"min": 2015, "max": 2019}))
+    assert any("year_range differs" in p for p in E.validate_export(copy_of_export))
+
+
+def test_titles_come_from_the_corpus_for_the_ids_in_the_outputs_and_no_abstract_is_written(tmp_path):
+    corpus = tmp_path / "c.jsonl"
+    secret = "qzxsentinelabstract"
+    rows = [
+        {"id": "https://openalex.org/W1", "title": "Title one", "abstract": secret, "year": 2019,
+         "arxiv_id": "1901.00001v2", "date": "2019-01-01"},
+        {"id": "https://openalex.org/W2", "title": "Title two", "abstract": secret, "year": 2018,
+         "arxiv_id": None, "date": "2018-01-01"},
+        {"id": "https://openalex.org/W3", "title": "Unused", "abstract": secret, "year": 2018, "arxiv_id": None},
+    ]
+    corpus.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+    files = {"gap-details.json": {"entries": {"a|b": {"closest_a": [
+        {"id": "https://openalex.org/W1", "title": "https://openalex.org/W1", "year": 2019, "url": ""},
+        {"id": "https://openalex.org/W2", "title": "https://openalex.org/W2", "year": 2018, "url": ""},
+        {"id": "https://openalex.org/W9", "title": "https://openalex.org/W9", "year": 2018, "url": ""}]}}}}
+    ids = {p["id"] for payload in files.values() for p in E.paper_dicts(payload)}
+    lookup = E.load_titles(corpus, ids)
+    assert set(lookup) == {"https://openalex.org/W1", "https://openalex.org/W2"}  # only ids in the outputs
+    assert E.apply_titles(files, lookup) == 2
+    one, two, nine = files["gap-details.json"]["entries"]["a|b"]["closest_a"]
+    assert one["title"] == "Title one" and one["url"] == "https://arxiv.org/abs/1901.00001"
+    assert two["title"] == "Title two" and two["url"] == "https://openalex.org/W2"
+    assert nine["title"] == "https://openalex.org/W9"  # not in the corpus: id stays the title
+    assert secret not in json.dumps(files) and secret not in json.dumps(lookup)
+
+
+def test_real_shaped_gap_details_get_titles_from_the_dry_corpus(dry):
+    run = E.load_run(dry)
+    trained, _ = E.train_frozen(run)
+    built = E.build_real_files(run, trained, [2019, 2020], **KW)
+    files = {"gap-details.json": built["gap-details.json"]}
+    papers = list(E.paper_dicts(files))
+    assert papers and all(p["title"] == p["id"] for p in papers)
+    assert E.add_titles(files, run, Path(run.manifest["corpus"]["path"])) is True
+    assert any(p["title"] != p["id"] for p in E.paper_dicts(files))
+
+
+def make_join(tmp_path, dry, year_counts):
+    run = E.load_run(dry)
+    ids = [w[0] for w in E.iter_cached_works(dry, 2020)]
+    join = tmp_path / "join"
+    join.mkdir()
+    lines = ["id,arxiv_id,match_key,join_method,has_linked_code,has_official_code,year,date,date_source,topic_id,type"]
+    for k, wid in enumerate(ids):
+        method = E.UNMATCHABLE if k % 3 == 0 else "corpus-arxiv-id-preprint-record"
+        lines.append(f"{wid},,,{method},{'True' if k % 7 == 0 else 'False'},False,2020,2020-01-01,publication_date,,preprint")
+    (join / "papers.csv").write_text("\n".join(lines), encoding="utf-8")
+    table = {"year_counts": year_counts, "min_linked": 100, "archive_date": "2025-07-28", "rows": []}
+    (join / "coverage.json").write_text(json.dumps(table), encoding="utf-8")
+    return run, join, table
+
+
+def test_coverage_is_per_phrase_concept_with_unlinked_paper_examples(dry, tmp_path):
+    years = list(range(2015, 2021))
+    run, join, table = make_join(tmp_path, dry, {str(y): (50 if y < 2017 else 500) for y in years})
+    files = E.build_coverage(table, {}, years, False, run=run, join_dir=join, top=5)
+    cov = files["coverage-2020.json"]
+    assert cov["placeholder"] is False and cov["concept_kind"] == "phrase" and len(cov["concepts"]) == 5
+    errs = []
+    E.check_contract("coverage-2020.json", E.clean(cov), errs)
+    assert errs == []
+    cells = [c for con in cov["concepts"] for c in con["cells"]]
+    states = {c["year"]: c["state"] for c in cells}
+    assert states[2015] == "thin" and states[2016] == "thin" and states[2018] == "available"
+    for c in cells:
+        if c["state"] == "available":
+            lst = c["papers_without_linked_code"]
+            assert 0 < len(lst) <= 10 and [p["id"] for p in lst] == sorted(p["id"] for p in lst)
+            assert all(set(p) == {"id", "title", "year", "url"} and p["year"] == c["year"] for p in lst)
+            assert 0 <= c["code_rate"] <= 1
+        else:
+            assert "papers_without_linked_code" not in c and c["code_rate"] is None
+        assert c["paper_count"] >= c["linked_paper_count"] and "unmatchable_by_construction" in c
+    assert any(c["unmatchable_by_construction"] for c in cells)
+    # no later years in an earlier file, and the concepts are the map's phrases
+    assert max(c["year"] for con in files["coverage-2017.json"]["concepts"] for c in con["cells"]) <= 2017
+    vocab = set(json.loads((R.origin_dir(dry, 2020) / "vocabulary.json").read_text()))
+    assert {c["id"] for c in cov["concepts"]} <= vocab
+    # deterministic
+    again = E.build_coverage(table, {}, years, False, run=run, join_dir=join, top=5)
+    assert again == files
+
+
+def test_coverage_stays_a_placeholder_without_join_output():
+    files = E.build_coverage(None, {}, [2015, 2016], False)
+    assert all(f["placeholder"] is True and f["synthetic"] is False for f in files.values())
+
+
+def test_open_problems_placeholder_documents_concept_ids(exported):
+    out, _ = exported
+    op = read(out / "open-problems.json")
+    assert op["placeholder"] is True and op["items"] == []
+    assert "concept_ids" in op["item_shape"] and "concept_ids" in op["item_shape"]["fields"]

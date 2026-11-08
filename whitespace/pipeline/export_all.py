@@ -45,10 +45,11 @@ from __future__ import annotations
 import argparse
 import copy
 import csv
+import datetime as dt
 import json
 import math
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from heapq import nsmallest
 from pathlib import Path
@@ -56,7 +57,8 @@ from pathlib import Path
 from . import backtest
 from . import run_real as R
 from .backtest import is_real_run
-from .common import LINK_THRESHOLD, Work
+from .code_layer import arxiv_id_kind, archive_coverage_states
+from .common import LINK_THRESHOLD, Work, normalise_arxiv_id
 from .export_backtest import build_manifest, to_backtest_response, write_json
 from .export_coverage import code_link_evaluation, to_coverage_response
 from .export_map_gaps import (
@@ -72,6 +74,14 @@ GAP_POOL, GAP_LIMIT, DETAIL_LIMIT, MAX_NEIGHBOURS = 2000, 50, 20, 25
 FORBIDDEN_KEYS = {"abstract", "abstract_excerpt", "abstract_inverted_index"}
 MAX_STRING = 800  # longer strings are treated as possible pasted text
 SYNTHETIC_NUMBER_KEYS = {"year", "years", "min", "max", "layout_year", "snapshot_year"}
+COVERAGE_TOP = 200  # phrase concepts per coverage file (most papers up to the last corpus year)
+PAPERS_PER_CELL = 10
+UNMATCHABLE = "unmatchable_by_construction"
+OPEN_PROBLEM_ITEM_SHAPE = {
+    "concept_ids": "list of phrase concept ids the item concerns ([] on every item; mining does not exist, "
+                   "so the file has no items and stays a placeholder)",
+    "fields": ["sentence", "type", "confidence", "paper", "concept_ids"],
+}
 STATIC_PLACEHOLDERS = {
     "search.json": "Search is not built.",
     "open-problems.json": "Open-problem mining is not built.",
@@ -210,7 +220,8 @@ def placeholder(name: str, note: str, synthetic: bool, year: int | None = None) 
     else:
         base = contract({"gaps": "gaps.json", "meta": "meta.json", "backtest": "backtest.json",
                          "search": "search.json", "open-problems": "open-problems.json"}[stem])
-    return {**base, "placeholder": True, "synthetic": synthetic, "note": note}
+    extra = {"item_shape": OPEN_PROBLEM_ITEM_SHAPE} if stem == "open-problems" else {}
+    return {**base, **extra, "placeholder": True, "synthetic": synthetic, "note": note}
 
 
 def _layout_files(years: list[int]) -> list[str]:
@@ -345,13 +356,15 @@ def build_backtest(run: Run, synthetic: bool, hand_check_rows: list[dict] | None
 
 
 def read_join(join_dir: Path | None) -> tuple[dict | None, dict, list[dict] | None]:
-    """``coverage.json`` (a ``code_layer.coverage_table`` dump), archive info from ``report.json``, and the
-    filled-in ``handcheck_frame.csv`` if present. Output of ``code_join_local`` (issue #173)."""
+    """``coverage.json`` (a ``code_layer.coverage_table`` dump: archive year counts, cutoff, state inputs),
+    archive info from ``report.json`` and the filled-in ``handcheck_frame.csv`` if present. Output of
+    ``code_join_local`` (issue #173); its per-work ``papers.csv`` is read by ``build_coverage``."""
     if join_dir is None:
         return None, {}, None
     table = _read(join_dir / "coverage.json")
-    if "rows" not in table:
-        raise ExportError(f"{join_dir / 'coverage.json'} is not a coverage table (no 'rows')")
+    missing = [k for k in ("year_counts", "min_linked", "archive_date") if k not in table]
+    if missing:
+        raise ExportError(f"{join_dir / 'coverage.json'} lacks {missing}: not a coverage table")
     report = _read(join_dir / "report.json") if (join_dir / "report.json").exists() else {}
     pm = report.get("pwc_manifest") or {}
     info = {"dataset_revision": pm.get("dataset_revision"), "snapshot_date": pm.get("archive_date"),
@@ -365,21 +378,165 @@ def read_join(join_dir: Path | None) -> tuple[dict | None, dict, list[dict] | No
     return table, info, rows
 
 
-def build_coverage(table: dict | None, info: dict, years: list[int], synthetic: bool) -> dict[str, dict]:
+def iter_cached_works(run_dir: Path, origin: int):
+    """Stream ``(id, date, concepts)`` from an origin cache without keeping the works."""
+    with open(R.origin_dir(run_dir, origin) / "works.jsonl", encoding="utf-8") as f:
+        for line in f:
+            wid, date, concepts = json.loads(line)
+            yield wid, dt.date.fromisoformat(date), concepts
+
+
+def read_join_flags(path: Path) -> tuple[set[str], set[str]]:
+    """Ids with a linked archive entry, and ids with no usable arXiv id, from ``papers.csv`` (streamed)."""
+    if not path.exists():
+        raise ExportError(f"{path} not found: the join directory must hold papers.csv from code_join_local")
+    linked, unmatchable = set(), set()
+    with open(path, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if str(row.get("has_linked_code")).strip().lower() in ("true", "1", "1.0", "yes"):
+                linked.add(row["id"])
+            if row.get("join_method") == UNMATCHABLE:
+                unmatchable.add(row["id"])
+    return linked, unmatchable
+
+
+def default_url(work_id: str) -> str:
+    if work_id.startswith("http"):
+        return work_id
+    return f"https://openalex.org/{work_id}" if work_id.startswith("W") and work_id[1:].isdigit() else ""
+
+
+def phrase_coverage_rows(run: Run, final: int, join_dir: Path, table: dict, top: int):
+    """Coverage rows per (phrase concept, year) from the final-year cache joined with ``papers.csv``.
+
+    Concepts are the final snapshot's vocabulary (the same phrases as the map). Returns the table in
+    ``coverage_table`` shape (top ``top`` concepts by papers) and the unlinked-paper examples per cell.
+    Streams the cache and keeps only counters and at most a few ids per cell.
+    """
+    linked, unmatchable = read_join_flags(join_dir / "papers.csv")
+    papers, hit, noid = Counter(), Counter(), Counter()
+    unlinked: dict[tuple[str, int], list[str]] = defaultdict(list)
+    for wid, date, concepts in iter_cached_works(run.dir, final):
+        if date.year > final:
+            continue
+        is_linked, no_id = wid in linked, wid in unmatchable
+        for c in set(concepts):
+            key = (c, date.year)
+            papers[key] += 1
+            hit[key] += is_linked
+            noid[key] += no_id
+            if not is_linked:
+                bucket = unlinked[key]
+                bucket.append(wid)
+                if len(bucket) >= 4 * PAPERS_PER_CELL:
+                    bucket[:] = sorted(set(bucket))[:PAPERS_PER_CELL]
+    totals = Counter()
+    for (c, _y), n in papers.items():
+        totals[c] += n
+    keep = {c for c, _ in sorted(totals.items(), key=lambda t: (-t[1], t[0]))[:top]}
+    year_counts = {int(k): v for k, v in table["year_counts"].items()}
+    archive_date = dt.date.fromisoformat(table["archive_date"])
+    cells = sorted(k for k in papers if k[0] in keep)
+    cov = archive_coverage_states(year_counts, table["min_linked"], archive_date, years={y for _, y in cells})
+    rows, examples = [], {}
+    for key in cells:
+        c, y = key
+        state = cov["states"][y]
+        rows.append({
+            "concept": c, "year": y, "linked": hit[key], "papers": papers[key],
+            "code_rate": hit[key] / papers[key] if state == "ok" else None, "coverage_state": state,
+            "papers_without_arxiv_id": noid[key], "unmatchable_by_construction": noid[key] > 0,
+        })
+        if state == "ok":
+            examples[key] = [{"id": w, "title": w, "year": y, "url": default_url(w)}
+                             for w in sorted(set(unlinked.get(key, [])))[:PAPERS_PER_CELL]]
+    out = {"rows": rows, "cutoff_year": cov["cutoff_year"], "min_linked": table["min_linked"],
+           "archive_date": table["archive_date"]}
+    return out, examples
+
+
+def build_coverage(table: dict | None, info: dict, years: list[int], synthetic: bool, *, run: Run | None = None,
+                   join_dir: Path | None = None, top: int = COVERAGE_TOP) -> dict[str, dict]:
+    """``coverage-<Y>.json`` per year: phrase concepts (the map's concepts) joined with the local code join,
+    or placeholders when the run is synthetic or no join output was given."""
     files = {}
+    real = not (synthetic or table is None or run is None or join_dir is None)
+    if real:
+        built, examples = phrase_coverage_rows(run, years[-1], join_dir, table, top)
     for year in years:
         name = f"coverage-{year}.json"
-        if synthetic or table is None:
+        if not real:
             why = ("synthetic run: coverage withheld" if synthetic else
                    "no joined papers table supplied (--join-dir); coverage is a placeholder")
             files[name] = placeholder(name, why, synthetic, year)
             continue
-        part = {**table, "rows": [r for r in table["rows"] if r["year"] <= year]}  # no later years
+        part = {**built, "rows": [r for r in built["rows"] if r["year"] <= year]}  # no later years
         resp = to_coverage_response(year, part, info)
-        resp.update(synthetic=False, concept_kind="OpenAlex topic id from the code join, not the forecast concepts",
-                    note=None if not resp["placeholder"] else "the joined table has no rows up to this year")
+        for concept in resp["concepts"]:
+            for cell in concept["cells"]:
+                if cell["state"] == "available":
+                    cell["papers_without_linked_code"] = examples.get((concept["id"], cell["year"]), [])
+        resp.update(
+            synthetic=False, concept_kind="phrase",
+            concept_note=f"the {top} phrase concepts with most papers up to {years[-1]} (the map's concepts), "
+                         f"joined to the code join per paper; up to {PAPERS_PER_CELL} unlinked papers per "
+                         f"available cell, listed by id order",
+            note=None if not resp["placeholder"] else "the joined table has no rows up to this year")
         files[name] = resp
     return files
+
+
+# ------------------------------------------------------------------ paper titles
+
+
+def paper_dicts(node):
+    """Every ``{id, title, year, url}`` paper object inside ``node``."""
+    if isinstance(node, dict):
+        if {"id", "title", "year", "url"} <= set(node):
+            yield node
+        for v in node.values():
+            yield from paper_dicts(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from paper_dicts(v)
+
+
+def load_titles(corpus: Path, ids: set[str]) -> dict[str, dict]:
+    """``{id: {title, year, url}}`` for the wanted ids only, streaming ``corpus.jsonl`` once.
+
+    The title is the record's title; the abstract is parsed with the line but never kept or written.
+    The url is the arXiv abstract link when the record has an arXiv id, else the OpenAlex id link.
+    """
+    out: dict[str, dict] = {}
+    if not ids:
+        return out
+    with open(corpus, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            wid = rec.get("id")
+            if wid not in ids:
+                continue
+            arxiv = normalise_arxiv_id(rec.get("arxiv_id"))
+            url = (f"https://arxiv.org/abs/{arxiv}" if arxiv and arxiv_id_kind(arxiv) != "none"
+                   else default_url(wid))
+            out[wid] = {"title": rec.get("title") or wid, "year": rec.get("year"), "url": url}
+            if len(out) == len(ids):
+                break
+    return out
+
+
+def apply_titles(files: dict[str, dict], lookup: dict[str, dict]) -> int:
+    """Put real titles and links on every paper object whose id is in ``lookup``. Returns how many."""
+    n = 0
+    for payload in files.values():
+        for paper in paper_dicts(payload):
+            hit = lookup.get(paper["id"])
+            if hit:
+                paper["title"], paper["url"] = hit["title"], hit["url"] or paper["url"]
+                n += 1
+    return n
 
 
 # ------------------------------------------------------------------ routes
@@ -430,9 +587,19 @@ def write_payload(out: Path, name: str, payload: dict, synthetic: bool) -> Path:
     return path
 
 
+def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
+    """Title and link lookup for the papers that appear in the outputs only (one pass over the corpus)."""
+    if corpus.stat().st_size != run.manifest["corpus"].get("bytes", corpus.stat().st_size):
+        raise ExportError("corpus file size differs from the one the run used; refusing to take titles from it")
+    ids = {p["id"] for payload in files.values() for p in paper_dicts(payload)}
+    lookup = load_titles(corpus, ids)
+    apply_titles(files, lookup)
+    return bool(lookup) or not ids
+
+
 def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int = FIRST_YEAR,
                edge_threshold: float = EDGE_THRESHOLD, max_edges: int = MAX_EDGES, gap_pool: int = GAP_POOL,
-               gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT) -> dict:
+               gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP) -> dict:
     """Export every frontend file and validate the result. Returns ``{synthetic, files, problems, ...}``."""
     run = load_run(run_dir)
     reasons = synthetic_reasons(run)
@@ -462,9 +629,17 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
         built = {n: placeholder(n, why, True, int(n[4:-5]) if n.startswith("map-") else None) for n in built}
     files = dict(built)
     files["backtest.json"] = build_backtest(run, synthetic, hand_rows)
-    files.update(build_coverage(table, info, years, synthetic))
+    files.update(build_coverage(table, info, years, synthetic, run=run,
+                                join_dir=Path(join_dir) if join_dir else None, top=coverage_top))
     for name, why in STATIC_PLACEHOLDERS.items():
         files[name] = placeholder(name, why, synthetic)
+    titles_available = False
+    if corpus and not synthetic:
+        titles_available = add_titles(files, run, Path(corpus))
+    files["meta.json"]["titles_available"] = titles_available
+    if not titles_available:
+        files["meta.json"]["titles_note"] = "paper titles are not available: the id is shown as the title"
+    files["meta.json"]["year_range"] = {"min": years[0], "max": final}
     for payload in files.values():
         payload["data_label"] = data_label(run)
     routes = build_routes(files, years, synthetic, final)
@@ -483,7 +658,8 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
         "production_trained_on": {"fit_origins": list(run.config.fit_origins),
                                   "calibration_origins": list(run.config.calibration_origins),
                                   "test_origins_used": []},
-        "coverage_source": "code join output" if table is not None else None,
+        "coverage_source": "code join output (papers.csv, coverage.json)" if table is not None else None,
+        "titles_available": titles_available,
         "path_check": path_check,
     }
     write_json(out / "manifest.json", manifest)
@@ -569,7 +745,9 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
     if name == "meta.json":
         if _keys(payload, contract("meta.json"), name, errs):
             yr = payload["year_range"]
-            if yr is not None:
+            if yr is None:
+                errs.append(f"{name}.year_range: must be {{min, max}} (the slider needs it), not null")
+            else:
                 _record(yr, {"min": _NUM, "max": _NUM}, f"{name}.year_range", errs)
             if not isinstance(payload["counts"], dict) or not all(v is None or _isnum(v) for v in payload["counts"].values()):
                 errs.append(f"{name}.counts: values must be numbers or null")
@@ -624,6 +802,15 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
             for k, c in enumerate(payload["concepts"][:20]):
                 if isinstance(c, dict):
                     _items(c, "cells", COVERAGE_CELL, f"{name}.concepts[{k}]", errs)
+            for k, c in enumerate(payload["concepts"][:20]):
+                for cell in (c.get("cells") or [])[:20] if isinstance(c, dict) else []:
+                    if "papers_without_linked_code" in cell:
+                        lst = cell["papers_without_linked_code"]
+                        if not isinstance(lst, list) or len(lst) > PAPERS_PER_CELL or cell.get("state") != "available":
+                            errs.append(f"{name}.concepts[{k}]: papers_without_linked_code must be a list of at most "
+                                        f"{PAPERS_PER_CELL} and only on available cells")
+                        else:
+                            _items(cell, "papers_without_linked_code", PAPER, f"{name}.concepts[{k}]", errs)
             if payload["year"] != int(name[9:-5]):
                 errs.append(f"{name}: year {payload['year']!r} does not match the file name")
     elif name == "search.json":
@@ -746,6 +933,11 @@ def validate_export(directory: str | Path) -> list[str]:
             errs.append(f"{name}: synthetic content in a real export")
         check_contract(name, payload, errs)
         _walk(payload, name, errs, synthetic=synthetic)
+    meta = seen.get("meta.json")
+    mys = routes_doc.get("map_years")
+    if isinstance(meta, dict) and isinstance(meta.get("year_range"), dict) and isinstance(mys, list) and mys:
+        if meta["year_range"] != {"min": min(mys), "max": max(mys)}:
+            errs.append("meta.json: year_range differs from routes.json map_years")
     manifest_path = d / "manifest.json"
     if manifest_path.exists():
         try:
@@ -769,7 +961,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, required=True, help="export directory (routes.json lists the files)")
     ap.add_argument("--join-dir", type=Path, help="code_join_local output directory (coverage.json, report.json, "
                                                   "handcheck_frame.csv); without it coverage files are placeholders")
-    ap.add_argument("--corpus", type=Path, help="corpus.jsonl, only to build origin caches the run did not (default: the run's path)")
+    ap.add_argument("--corpus", type=Path, help="corpus.jsonl: paper titles and links for the papers in the outputs, and the source for "
+                                                  "origin caches the run did not build (caches fall back to the run's path)")
+    ap.add_argument("--coverage-top", type=int, default=COVERAGE_TOP, help="phrase concepts per coverage file")
     ap.add_argument("--first-year", type=int, default=FIRST_YEAR)
     ap.add_argument("--edge-threshold", type=float, default=EDGE_THRESHOLD)
     ap.add_argument("--max-edges", type=int, default=MAX_EDGES)
@@ -780,7 +974,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = export_run(args.run_dir, args.out, corpus=args.corpus, join_dir=args.join_dir,
                             first_year=args.first_year, edge_threshold=args.edge_threshold, max_edges=args.max_edges,
-                            gap_pool=args.gap_pool, gap_limit=args.gap_limit, detail_limit=args.detail_limit)
+                            gap_pool=args.gap_pool, gap_limit=args.gap_limit, detail_limit=args.detail_limit,
+                            coverage_top=args.coverage_top)
     except (ExportError, R.RunError, ValueError, backtest.OneShotError) as exc:
         print(f"export failed: {exc}", file=sys.stderr)
         return 2

@@ -63,7 +63,7 @@
   },
   "config_hash": "625eddbcae89b8552aef5e252fe7dd04915cd1a314c25252bc29e923340ffe81",
   "link_threshold": 3,
-  "code_commit": "ffc575d4f7f3f56a88ec1bb099faca08a9912743",
+  "code_commit": "caddcce4205ec2b8036ca9ca25da0b139a76a82b+dirty",
   "library_versions": {
     "python": "3.14.5",
     "numpy": "2.5.4",
@@ -86,8 +86,8 @@
     "map-2018.json": "57a7de6d28ee1ea810a56a79f5af5cd32962254cae21b25b0d52d1af060b07d2",
     "map-2019.json": "85ef2fdc78dd45763f53810c0186759ac83340c83f7a9120f62882240c3b5866",
     "map-2020.json": "039c612f8b2d4cc629ace1982bc5956392ced4b06ac59eead34393907a6e5716",
-    "meta.json": "d20cf915546cdf64d0b31bffd83bea6e689e34969014b9554edb77bfd5dab32b",
-    "open-problems.json": "01e668848edaeedc594a236c52961eac8fca98b79daa708862ee0fcf04b244ed",
+    "meta.json": "c2fbb0a5e8f770427a7112c824584a7f98e330b60e15ad34b79f86aadf59188e",
+    "open-problems.json": "3c14102af8a7d1d08a1e2ed71a54f375af70d12e8835e78cb19f3686a7545efb",
     "search.json": "9d86b96f46a40dcb87481e72f47d112dd42961eb56a25b895664f61b6c842d17",
     "routes.json": "538feb28f8f1f4123c9b83414fa0b66cf39115f60f7a115fe2552e2d29a66670"
   },
@@ -121,6 +121,7 @@
       "test_origins_used": []
     },
     "coverage_source": null,
+    "titles_available": false,
     "path_check": {
       "ran": true,
       "files_built": [
