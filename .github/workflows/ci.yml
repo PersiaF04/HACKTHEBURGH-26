@@ -32,8 +32,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: whitespace/web/package-lock.json
       - name: Install
-        run: npm --prefix web ci
+        run: npm --prefix whitespace/web ci
       - name: Type-check and build (from fixtures and any committed data)
-        run: npm --prefix web run build
+        run: npm --prefix whitespace/web run build
