@@ -253,7 +253,7 @@ def test_attach_with_labels_writes_the_measured_wording_and_still_validates(tmp_
     res = op.attach(DATA, cache, tmp_path / "out", frame=tmp_path / "frame.json", labels=tmp_path / "labels.json")
     assert res["problems"] == []
     f = json.loads((tmp_path / "out" / "open-problems.json").read_text(encoding="utf-8"))
-    assert f["quality"] == "ai_labelled" and f["note"].startswith("AI-labelled precision 6/10 (not human-validated)")
+    assert f["quality"] == "ai_labelled" and f["note"].startswith("AI-labelled precision 6/10 (60%) on the sampled statements, not human-validated; labelled by the same AI system that built the extractor, so not independent.")
     meta = json.loads((tmp_path / "out" / "meta.json").read_text(encoding="utf-8"))
     assert meta["open_problems"]["quality"] == "ai_labelled"
     with pytest.raises(op.AttachError):
@@ -310,3 +310,20 @@ def test_types_filter_keeps_only_the_chosen_statement_types():
     with pytest.raises(ValueError):
         op.build_export(hits, counts, [("a", "a")], ["a"], lambda i: i, 2022, types=("open_problem", "limitation"))
     assert {i["type"] for v in out["concepts"].values() for i in v} == {"open_problem"}
+
+
+@pytest.mark.skipif(not (DATA / "manifest.json").is_file(), reason="no committed export to attach to")
+def test_open_problem_only_note_uses_the_owner_chosen_wording(tmp_path):
+    gaps = json.loads((DATA / "gaps.json").read_text(encoding="utf-8"))
+    if gaps.get("placeholder"):
+        pytest.skip("committed export is a placeholder")
+    cache = _cache(tmp_path, [(gaps["items"][0]["a"], gaps["items"][0]["b"])])
+    frame = [{"i": i, "type": "open_problem" if i <= 34 else "limitation"} for i in range(1, 101)]
+    (tmp_path / "frame.json").write_text(json.dumps(frame), encoding="utf-8")
+    (tmp_path / "labels.json").write_text(json.dumps({"correct": list(range(1, 25)), "incorrect": list(range(25, 101))}),
+                                          encoding="utf-8")
+    op.attach(DATA, cache, tmp_path / "out", frame=tmp_path / "frame.json", labels=tmp_path / "labels.json",
+              types=("open_problem",))
+    f = json.loads((tmp_path / "out" / "open-problems.json").read_text(encoding="utf-8"))
+    assert f["note"].startswith("AI-labelled precision 24/34 (71%) on open-problem statements, not human-validated; "
+                                "labelled by the same AI system that built the extractor, so not independent.")

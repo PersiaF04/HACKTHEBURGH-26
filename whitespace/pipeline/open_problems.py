@@ -445,10 +445,13 @@ def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None, *, fr
                                json.loads(Path(labels).read_text(encoding="utf-8")), labeller)
         o = measured["overall"]
         quality = "ai_labelled" if labeller == "AI" else "human_labelled"
-        note = (f"{measured['wording']}: {o['correct']} of {o['n']} sampled sentences judged to be a real author-stated open "
-                f"problem, future work or limitation (95% interval {o['ci95'][0]:.2f} to {o['ci95'][1]:.2f}). "
-                "The sample is stratified by type; the rest of the corpus was not labelled."
-                + (f" {measured['labeller_note']}" if measured.get("labeller_note") else ""))
+        kinds = " and ".join(t.replace("_", "-") for t in types)
+        scope = f"on {kinds} statements" if len(types) < len(TYPES) else "on the sampled statements"
+        who = ("AI-labelled precision" if labeller == "AI" else "Human-labelled precision")
+        note = (f"{who} {o['correct']}/{o['n']} ({round(100 * o['correct'] / o['n'])}%) {scope}, "
+                + ("not human-validated; labelled by the same AI system that built the extractor, so not independent."
+                   if labeller == "AI" else "labelled by a person.")
+                + f" 95% Wilson interval {o['ci95'][0]:.2f} to {o['ci95'][1]:.2f}; unsure counts as not correct.")
         files["open-problems.json"]["quality_measurement"] = measured
         info["quality_measurement"] = measured["wording"]
     files["open-problems.json"]["quality"] = quality
