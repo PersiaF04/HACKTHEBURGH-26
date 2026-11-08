@@ -127,6 +127,7 @@ python -m whitespace.pipeline.run_real --corpus ... --caches-only --origins 2010
 - **Gap score** is `p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) * (1 + gap_rate_a + gap_rate_b)`. Cosine (no embeddings) and gap rate (no open-problem mining) are omitted while missing, `meta` and `gaps.json` state the formula used, and the score is not a probability. Gaps rank the top pairs by `p_link` (default pool 2000).
 - **Papers** are exported as id, year and link only. No abstract text. `meta` headline numbers are copied from a real backtest dict, otherwise null; NaN becomes null.
 
+
 ## Code layer (`pipeline/code_layer.py`, issue #142)
 
 Wording rule: a paper without a link has *no linked code in this archive* (Papers with Code, snapshot 28 Jul 2025, CC-BY-SA-4.0), never "no code". Coverage is a lower bound.
@@ -191,3 +192,4 @@ One flat directory: `routes.json` (every frontend route to its file, key, and `r
 | `/api/open-problems` | `open-problems.json` | none; query ignored | always placeholder |
 
 **Sample export.** `whitespace/tests/fixtures/export_sample/` is a small export of the SYNTHETIC dry run (made-up words) for the frontend to copy into `whitespace/web/public/data/` and test against. Every file is `placeholder: true` and `synthetic: true`. It contains NO real results.
+
