@@ -132,7 +132,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
         {rates ? (
           <>
             <p className="gx-desc gx-mono gx-ink">{labelA}: {isNum(g.gap_rate_a) ? `${(g.gap_rate_a * 100).toFixed(1)}%` : NA} · {labelB}: {isNum(g.gap_rate_b) ? `${(g.gap_rate_b * 100).toFixed(1)}%` : NA}</p>
-            <p className="gx-desc">Share of each concept's papers whose abstract states an open problem, future work or limitation. Shown for context; it does not change the gap score or the ranking.</p>
+            <p className="gx-desc">Share of each concept's papers whose abstract states an open problem (this export counts open-problem statements only). Shown for context; it does not change the gap score or the ranking.</p>
           </>
         ) : (
           <p className="gx-desc">Not yet: author-stated open problems are not available for this pair in the export. When they are, they appear here as context only, never in the score.</p>
