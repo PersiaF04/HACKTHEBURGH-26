@@ -36,7 +36,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import NamedTuple
 
 from whitespace.pipeline.common import MIN_PAPERS, snapshot_end
@@ -97,20 +97,27 @@ def _norm(token: str) -> str | None:
     return res
 
 
-def extract_phrases(text: str) -> set[str]:
-    """The set of candidate phrases (1 to 3 normalised words) in ``text``."""
-    out: set[str] = set()
-    stop = _STOP
+def _runs(text: str) -> Iterator[list[str]]:
+    """Runs of normalised tokens between punctuation and digit-only tokens."""
     for segment in _PUNCT.split(text.lower().translate(_DASHES)):
         run: list[str] = []
         for token in segment.split():
             norm = _norm(token)
             if norm is None:  # digit-only token: ends the phrase
-                _add_grams(run, out, stop)
+                if run:
+                    yield run
                 run = []
             else:
                 run.append(norm)
-        _add_grams(run, out, stop)
+        if run:
+            yield run
+
+
+def extract_phrases(text: str) -> set[str]:
+    """The set of candidate phrases (1 to 3 normalised words) in ``text``."""
+    out: set[str] = set()
+    for run in _runs(text):
+        _add_grams(run, out, _STOP)
     return out
 
 
@@ -175,3 +182,197 @@ def assign_concepts_flagged(
 def assign_concepts(text: str, vocabulary: frozenset[str] | set[str]) -> tuple[str, ...]:
     """Sorted tuple of the vocabulary phrases present in ``text``; never a phrase outside it."""
     return assign_concepts_flagged(text, vocabulary).concepts
+
+
+# --- concept selection (issue #154) --------------------------------------------------------------
+#
+# ``build_vocabulary`` keeps every phrase with ``min_papers`` papers, which on real text is far too
+# many (the eligible pair universe grows with the square of the concept count). ``select_concepts``
+# shrinks it with deterministic rules that read only document frequencies counted at the origin.
+
+MAX_CONCEPTS = 5000
+SUBSUME_RATIO = 0.9  # drop a phrase when a longer phrase containing it has >= 90% of its count
+CEILING_FRACTION = 0.02  # drop phrases found in more than 2% of all papers at T
+SINGLE_WORD_FACTOR = 3.0  # a single word needs this many times ``min_papers`` papers
+MULTI_WORD_BONUS = 1.2  # score multiplier for 2 and 3 word phrases
+
+
+def document_frequencies(
+    docs: Iterable[tuple[dt.date, str]], origin: int
+) -> tuple[Counter[str], int]:
+    """``(phrase -> document frequency, number of papers)`` over papers dated <= 31 Dec ``origin``.
+
+    Later papers are skipped unread, so they cannot influence either value.
+    """
+    last = snapshot_end(origin)
+    counts: Counter[str] = Counter()
+    n_docs = 0
+    for date, text in docs:
+        if date <= last:
+            n_docs += 1
+            counts.update(extract_phrases(text))
+    return counts, n_docs
+
+
+def concept_score(phrase: str, df: int, multi_word_bonus: float = MULTI_WORD_BONUS) -> float:
+    """Ranking score: document frequency, times ``multi_word_bonus`` for 2 to 3 word phrases."""
+    return df * (multi_word_bonus if " " in phrase else 1.0)
+
+
+def _phrase_ok(phrase: str) -> bool:
+    """Quality rules: no edge stop word, no digit-only token, no repeated word."""
+    words = phrase.split()
+    if words[0] in _STOP or words[-1] in _STOP:
+        return False
+    if any(w.isdigit() for w in words):
+        return False
+    return len(set(words)) == len(words)
+
+
+def _subphrases(words: list[str]) -> Iterable[str]:
+    n = len(words)
+    for size in range(1, n):
+        for i in range(n - size + 1):
+            yield " ".join(words[i : i + size])
+
+
+def select_concepts(
+    doc_freq: Mapping[str, int],
+    n_docs: int,
+    max_concepts: int = MAX_CONCEPTS,
+    *,
+    min_papers: int = MIN_PAPERS,
+    ceiling_fraction: float = CEILING_FRACTION,
+    subsume_ratio: float = SUBSUME_RATIO,
+    single_word_factor: float = SINGLE_WORD_FACTOR,
+    multi_word_bonus: float = MULTI_WORD_BONUS,
+) -> frozenset[str]:
+    """Pick at most ``max_concepts`` phrases from document frequencies counted at one origin.
+
+    Pure function of ``doc_freq`` (phrase -> number of papers at T) and ``n_docs`` (papers at T);
+    the caller must count both from papers dated <= 31 Dec T (see ``document_frequencies``).
+    Steps, in order:
+
+    1. Keep phrases with df >= ``min_papers``, passing ``_phrase_ok``, and df <= ``ceiling_fraction
+       * n_docs`` (generic words). Single words need df >= ``single_word_factor * min_papers``.
+    2. Subsumption: drop a phrase when a surviving longer phrase that contains it as a contiguous
+       sub-phrase has df >= ``subsume_ratio * df(shorter)`` ("graph neural" goes, "graph neural
+       network" stays).
+    3. Rank by ``concept_score`` (df, times ``multi_word_bonus`` for 2 to 3 words), ties broken
+       alphabetically, and keep the top ``max_concepts``.
+    """
+    ceiling = ceiling_fraction * n_docs
+    single_min = single_word_factor * min_papers
+    kept: dict[str, int] = {}
+    for phrase, df in doc_freq.items():
+        if df < min_papers or df > ceiling or not phrase or not _phrase_ok(phrase):
+            continue
+        if " " not in phrase and df < single_min:
+            continue
+        kept[phrase] = df
+    dropped: set[str] = set()
+    for phrase, df in kept.items():
+        words = phrase.split()
+        if len(words) < 2:
+            continue
+        for sub in _subphrases(words):
+            sub_df = kept.get(sub)
+            if sub_df is not None and df >= subsume_ratio * sub_df:
+                dropped.add(sub)
+    ranked = sorted(
+        (p for p in kept if p not in dropped),
+        key=lambda p: (-concept_score(p, kept[p], multi_word_bonus), p),
+    )
+    return frozenset(ranked[: max(0, max_concepts)])
+
+
+DocSource = Callable[[], Iterator[tuple[dt.date, str]]]  # a re-iterable source of (date, text)
+
+
+def streaming_document_frequencies(
+    source: DocSource, origin: int, min_papers: int = MIN_PAPERS
+) -> tuple[Counter[str], int]:
+    """Exact df of every phrase with df >= ``min_papers``, in up to three passes (issue #157).
+
+    ``source`` is a callable returning a fresh iterator of ``(date, text)`` pairs each time it is
+    called. Only papers dated <= 31 Dec ``origin`` are counted. Apriori property: a phrase is in
+    ``min_papers`` papers only if each of its candidate sub-phrases is, so each pass counts only
+    phrases whose shorter parts survived the previous pass.
+
+    1. single words (and the paper count); keep words with df >= ``min_papers``.
+    2. two-word phrases whose both words are kept.
+    3. three-word phrases ``a b c`` whose ``a`` and ``c`` are kept and, when ``b`` is not a stop
+       word, whose ``a b`` and ``b c`` are kept two-word phrases (when ``b`` is a stop word those
+       two are not candidate phrases, so only the edge words constrain).
+
+    Returns ``(counts, n_docs)`` where ``counts`` holds exactly the phrases with df >= min_papers
+    (same values as ``document_frequencies``); phrases below the threshold are absent.
+    """
+    last = snapshot_end(origin)
+
+    def texts() -> Iterator[str]:
+        for date, text in source():
+            if date <= last:
+                yield text
+
+    stop = _STOP
+    n_docs = 0
+    words: Counter[str] = Counter()
+    for text in texts():
+        n_docs += 1
+        seen: set[str] = set()
+        for run in _runs(text):
+            seen.update(w for w in run if w not in stop)
+        words.update(seen)
+    words = Counter({w: n for w, n in words.items() if n >= min_papers})
+    out: Counter[str] = Counter(words)
+
+    pairs: Counter[str] = Counter()
+    for text in texts():
+        seen = set()
+        for run in _runs(text):
+            for i in range(len(run) - 1):
+                a, b = run[i], run[i + 1]
+                if a in words and b in words:  # kept words are never stop words
+                    seen.add(f"{a} {b}")
+        pairs.update(seen)
+    pairs = Counter({p: n for p, n in pairs.items() if n >= min_papers})
+    out.update(pairs)
+
+    triples: Counter[str] = Counter()
+    for text in texts():
+        seen = set()
+        for run in _runs(text):
+            for i in range(len(run) - 2):
+                a, b, c = run[i], run[i + 1], run[i + 2]
+                if a not in words or c not in words:
+                    continue
+                if b not in stop and (f"{a} {b}" not in pairs or f"{b} {c}" not in pairs):
+                    continue
+                seen.add(f"{a} {b} {c}")
+        triples.update(seen)
+    out.update({p: n for p, n in triples.items() if n >= min_papers})
+    return out, n_docs
+
+
+def select_vocabulary(
+    docs: Iterable[tuple[dt.date, str]] | DocSource,
+    origin: int,
+    max_concepts: int = MAX_CONCEPTS,
+    **kwargs,
+) -> frozenset[str]:
+    """Concept vocabulary for ``origin``: count df from papers dated <= 31 Dec ``origin``, select.
+
+    ``docs`` is a callable returning a fresh iterator of ``(date, text)`` (streamed, memory
+    bounded) or a plain iterable (materialised first, because counting needs several passes).
+    ``kwargs`` go to ``select_concepts`` (``min_papers``, ``ceiling_fraction`` ...). Use the result
+    as the ``vocabulary`` argument of ``assign_concepts``.
+    """
+    if callable(docs):
+        source = docs
+    else:
+        items = list(docs)
+        source = lambda: iter(items)  # noqa: E731
+    min_papers = kwargs.get("min_papers", MIN_PAPERS)
+    doc_freq, n_docs = streaming_document_frequencies(source, origin, min_papers)
+    return select_concepts(doc_freq, n_docs, max_concepts, **kwargs)
