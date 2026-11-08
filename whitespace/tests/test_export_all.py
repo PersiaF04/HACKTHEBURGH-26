@@ -395,3 +395,111 @@ def test_real_shaped_files_state_the_production_model(dry):
     assert built["gaps.json"]["trained_on"]["model"] == "through-2020"
     assert "trained after the held-out test" in built["gaps.json"]["label"]
     assert built["meta.json"]["production_forecast"]["model"]["calibration_origins"] == [min(run.config.test_origins)]
+
+
+# ------------------------------------------------------------------ review fixes (#175)
+
+
+def with_config(run, **changes):
+    import dataclasses
+    return E.Run(run.dir, run.manifest, run.metrics, run.examples, dataclasses.replace(run.config, **changes))
+
+
+def test_production_config_purge_failure_is_an_export_error(dry):
+    run = E.load_run(dry)
+    bad = with_config(run, fit_origins=(2014,), calibration_origins=(2016,), test_origins=(2017,))
+    with pytest.raises(E.ExportError, match="purge"):
+        E.production_config(bad, "through-2020")  # fit gains 2016; 2016 + 3 > 2017
+
+
+def test_production_config_refuses_a_corpus_too_short_for_the_calibration_outcomes(dry):
+    run = E.load_run(dry)
+    short = E.Run(run.dir, {**run.manifest, "corpus": {**run.manifest["corpus"], "per_year": {"2018": 1, "2019": 1}}},
+                  run.metrics, run.examples, run.config)
+    with pytest.raises(E.ExportError, match="corpus ends in 2019"):
+        E.production_config(short, "through-2020")
+    assert E.production_config(short, "frozen")  # the frozen model needs no extra outcomes
+
+
+def test_out_dir_must_be_new_empty_or_a_previous_export(dry, tmp_path):
+    stray = tmp_path / "stray"
+    stray.mkdir()
+    (stray / "notes.txt").write_text("keep me", encoding="utf-8")
+    with pytest.raises(E.ExportError, match="not empty"):
+        E.export_run(dry, stray, **KW)
+    assert (stray / "notes.txt").read_text(encoding="utf-8") == "keep me" and not (stray / "routes.json").exists()
+    assert E.main([str(dry), "--out", str(stray)]) == 2
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert E.export_run(dry, empty, **KW)["problems"] == []
+
+
+def test_reexport_removes_stale_orphans_but_not_foreign_files(dry, tmp_path):
+    out = tmp_path / "o"
+    E.export_run(dry, out, **KW)
+    (out / "map-2010.json").write_text("{}", encoding="utf-8")
+    (out / "coverage-2031.json").write_text("{}", encoding="utf-8")
+    (out / "mine.txt").write_text("x", encoding="utf-8")
+    result = E.export_run(dry, out, **KW)
+    assert result["problems"] == []
+    assert not (out / "map-2010.json").exists() and not (out / "coverage-2031.json").exists()
+    assert (out / "mine.txt").exists() and (out / "map-2015.json").exists()
+
+
+def test_validator_requires_null_intervals_on_real_gaps_and_details(dry):
+    run = E.load_run(dry)
+    trained, _ = E.train_production(run, "through-2020")
+    built = E.build_real_files(run, trained, [2019, 2020], **KW)
+    gaps = E.clean(built["gaps.json"])
+    errs = []
+    E.check_contract("gaps.json", gaps, errs)
+    assert errs == []
+    gaps["items"][0]["p_lo"], gaps["items"][0]["p_hi"] = 0.1, 0.9
+    E.check_contract("gaps.json", gaps, errs)
+    assert any("p_lo" in e and "must be null" in e for e in errs) and any("p_hi" in e for e in errs)
+    details = E.clean(built["gap-details.json"])
+    errs = []
+    E.check_contract("gap-details.json", details, errs)
+    assert errs == []
+    next(iter(details["entries"].values()))["summary"]["p_hi"] = 0.5
+    E.check_contract("gap-details.json", details, errs)
+    assert any("p_hi" in e and "must be null" in e for e in errs)
+
+
+def test_dry_run_with_a_real_metrics_label_is_a_labelled_synthetic_export(dry, tmp_path):
+    run_dir = tmp_path / "run"
+    shutil.copytree(dry, run_dir)
+    path = run_dir / "metrics.json"
+    metrics = read(path)
+    metrics["manifest"]["data_label"] = "real"
+    path.write_text(json.dumps(metrics), encoding="utf-8")
+    assert E.main([str(run_dir), "--out", str(tmp_path / "o")]) == 0
+    out = tmp_path / "o"
+    assert read(out / "routes.json")["data_label"] == "synthetic" and read(out / "routes.json")["synthetic"] is True
+    assert {read(p)["data_label"] for p in out.glob("*.json") if p.name != "manifest.json"} == {"synthetic"}
+    assert E.validate_export(out) == []
+
+
+def digest(path):
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_through_2020_export_leaves_backtest_and_run_metrics_untouched(dry, tmp_path):
+    guarded = [p for p in (dry / "metrics.json", dry / "run_manifest.json", dry / "backtest_examples.json",
+                           dry / "backtest.json") if p.exists()]
+    assert dry / "metrics.json" in guarded
+    before = {p: digest(p) for p in guarded}
+    E.export_run(dry, tmp_path / "frozen", production_model="frozen", **KW)
+    E.export_run(dry, tmp_path / "t20", production_model="through-2020", **KW)
+    assert {p: digest(p) for p in guarded} == before
+    assert (tmp_path / "frozen" / "backtest.json").read_bytes() == (tmp_path / "t20" / "backtest.json").read_bytes()
+
+
+def test_headline_source_says_the_numbers_are_the_backtest_models(dry):
+    run = E.load_run(dry)
+    trained, _ = E.train_production(run, "through-2020")
+    meta = E.build_real_files(run, trained, [2019, 2020], **KW)["meta.json"]
+    src = meta["headline_source"]
+    assert src.startswith("held-out backtest (backtest.json)") and "scores the backtest model" in src
+    assert "production forecast (gaps.json) has no result" in src and "its model may differ" in src

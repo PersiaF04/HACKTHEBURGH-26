@@ -60,7 +60,7 @@ from . import backtest
 from . import run_real as R
 from .backtest import is_real_run
 from .code_layer import arxiv_id_kind, archive_coverage_states
-from .common import LINK_THRESHOLD, Work, normalise_arxiv_id
+from .common import LINK_THRESHOLD, Work, assert_purged, normalise_arxiv_id
 from .export_backtest import build_manifest, to_backtest_response, write_json
 from .export_coverage import code_link_evaluation, to_coverage_response
 from .export_map_gaps import (
@@ -144,7 +144,11 @@ def load_run(run_dir: str | Path) -> Run:
     return Run(d, manifest, metrics, examples, R.RunConfig(**cfg))
 
 
-def data_label(run: Run) -> str:
+def data_label(run: Run, synthetic: bool = False) -> str:
+    """The metrics data label; a synthetic export is always labelled ``synthetic`` (a dry run whose metrics
+    claim ``real`` must not carry that label into the files)."""
+    if synthetic:
+        return "synthetic"
     return (run.metrics.get("manifest") or {}).get("data_label") or "unlabelled"
 
 
@@ -206,8 +210,13 @@ def production_config(run: Run, mode: str) -> backtest.BacktestConfig:
         raise ExportError(f"unknown production model {mode!r}; use one of {PRODUCTION_MODELS}")
     fit = tuple(sorted({*cfg.fit_origins, *cfg.calibration_origins}))
     cal = (min(cfg.test_origins),)
-    if fit[-1] + cfg.horizon > cal[0]:
-        raise ExportError(f"fit origin {fit[-1]} + {cfg.horizon} reaches calibration origin {cal[0]}")
+    if run.last_year < cal[0] + cfg.horizon:
+        raise ExportError(f"corpus ends in {run.last_year}, before the calibration origin {cal[0]} + "
+                          f"{cfg.horizon} years: its outcomes are not in the corpus")
+    try:  # the calibration outcome window (cal + horizon) plays the role of the next stage
+        assert_purged(fit, cal, (cal[0] + cfg.horizon,), cfg.horizon)
+    except ValueError as exc:
+        raise ExportError(f"through-2020 model breaks the purge rule: {exc}") from None
     return backtest.BacktestConfig(fit, cal, cfg.test_origins, seed=cfg.seed, n_min=cfg.n_min,
                                    horizon=cfg.horizon, n_boot=cfg.n_boot)
 
@@ -399,7 +408,7 @@ def build_backtest(run: Run, synthetic: bool, hand_check_rows: list[dict] | None
     note = "Held-out test (scored once on the frozen model). The production forecast is gaps.json, a separate file."
     if not ex and not out["placeholder"]:
         note += " No backtest_examples.json in the run directory, so hits and misses are empty."
-    out.update(kind="held_out_backtest", note=note, synthetic=synthetic, data_label=data_label(run))
+    out.update(kind="held_out_backtest", note=note, synthetic=synthetic, data_label=data_label(run, synthetic))
     return out
 
 
@@ -526,8 +535,9 @@ def build_coverage(table: dict | None, info: dict, years: list[int], synthetic: 
                     cell["papers_without_linked_code"] = examples.get((concept["id"], cell["year"]), [])
         resp.update(
             synthetic=False, concept_kind="phrase",
-            concept_note=f"the {top} phrase concepts with most papers up to {years[-1]} (the map's concepts), "
-                         f"joined to the code join per paper; up to {PAPERS_PER_CELL} unlinked papers per "
+            concept_note=f"the {top} phrase concepts with most papers up to {years[-1]} (the map's concepts; the same "
+                         f"concepts in every year's file, chosen by final-year totals, so an early year can show "
+                         f"concepts that were still small then), joined to the code join per paper; up to {PAPERS_PER_CELL} unlinked papers per "
                          f"available cell, listed by id order",
             note=None if not resp["placeholder"] else "the joined table has no rows up to this year")
         files[name] = resp
@@ -645,6 +655,30 @@ def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
     return bool(lookup) or not ids
 
 
+def _is_export_name(name: str) -> bool:
+    return (name in ("routes.json", "manifest.json", "meta.json", "backtest.json", "gaps.json", "gap-details.json",
+                     "concepts.json", *STATIC_PLACEHOLDERS)
+            or (name.endswith(".json") and name.split("-")[0] in ("map", "coverage") and name[:-5].split("-")[-1].isdigit()))
+
+
+def check_out_dir(out: Path) -> None:
+    """The output directory must be new, empty, or hold a previous export (a ``routes.json``)."""
+    if out.exists() and not out.is_dir():
+        raise ExportError(f"{out} is not a directory")
+    if out.is_dir() and any(out.iterdir()) and not (out / "routes.json").is_file():
+        raise ExportError(f"{out} is not empty and holds no routes.json (not a previous export); "
+                          f"refusing to write into it")
+
+
+def clear_previous_export(out: Path) -> None:
+    """Make ``out`` and remove the files of a previous export (known export names only; nothing else is touched),
+    so no orphan ``map-<Y>.json`` or ``coverage-<Y>.json`` from an earlier run is left behind."""
+    out.mkdir(parents=True, exist_ok=True)
+    for path in out.iterdir():
+        if path.is_file() and _is_export_name(path.name):
+            path.unlink()
+
+
 def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int = FIRST_YEAR,
                edge_threshold: float = EDGE_THRESHOLD, max_edges: int = MAX_EDGES, gap_pool: int = GAP_POOL,
                gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP,
@@ -660,7 +694,7 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
         raise ExportError(f"corpus ends in {final}, before the last test origin")
     years = list(range(first_year, final + 1))
     out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    check_out_dir(out)
     table, info, hand_rows = read_join(Path(join_dir) if join_dir else None)
 
     ensure_caches(run, years, Path(corpus) if corpus else None)
@@ -690,10 +724,11 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
         files["meta.json"]["titles_note"] = "paper titles are not available: the id is shown as the title"
     files["meta.json"]["year_range"] = {"min": years[0], "max": final}
     for payload in files.values():
-        payload["data_label"] = data_label(run)
+        payload["data_label"] = data_label(run, synthetic)
     routes = build_routes(files, years, synthetic, final)
-    routes["data_label"] = data_label(run)
+    routes["data_label"] = data_label(run, synthetic)
 
+    clear_previous_export(out)
     paths = [write_payload(out, name, payload, synthetic) for name, payload in sorted(files.items())]
     routes_path = out / "routes.json"
     routes_path.write_text(json.dumps(clean(routes), indent=1, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
@@ -772,10 +807,20 @@ def _items(payload: dict, key: str, spec: dict, where: str, errs: list[str], lim
         _record(item, spec, f"{where}.{key}[{k}]", errs)
 
 
-def _check_gap_detail(d: dict, where: str, errs: list[str]) -> None:
+def _no_interval(item, where: str, errs: list[str]) -> None:
+    """Real production gaps have no uncertainty interval: p_lo and p_hi must be null."""
+    if isinstance(item, dict):
+        for k in ("p_lo", "p_hi"):
+            if item.get(k) is not None:
+                errs.append(f"{where}.{k}: must be null (the production forecast has no interval)")
+
+
+def _check_gap_detail(d: dict, where: str, errs: list[str], real: bool = False) -> None:
     if _keys(d, contract("gap-detail.json"), where, errs):
         if d["summary"] is not None:
             _record(d["summary"], GAP_SUMMARY, f"{where}.summary", errs)
+            if real:
+                _no_interval(d["summary"], f"{where}.summary", errs)
         for k in ("closest_a", "closest_b"):
             _items(d, k, PAPER, where, errs)
         _items(d, "shared_neighbours", CONCEPT_SUMMARY, where, errs)
@@ -825,6 +870,8 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
         if _keys(payload, contract("gaps.json"), name, errs):
             _items(payload, "items", GAP_SUMMARY, name, errs)
             if not payload["placeholder"]:
+                for k, item in enumerate(payload["items"] if isinstance(payload["items"], list) else []):
+                    _no_interval(item, f"{name}.items[{k}]", errs)
                 for must in ("kind", "label", "held_out_test"):
                     if must not in payload:
                         errs.append(f"{name}: missing {must!r} (the production forecast must be labelled)")
@@ -833,7 +880,7 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
     elif name == "gap-details.json":
         if _keys(payload, ("entries",), name, errs):
             for key, entry in list(payload["entries"].items())[:200]:
-                _check_gap_detail(entry, f"{name}[{key!r}]", errs)
+                _check_gap_detail(entry, f"{name}[{key!r}]", errs, real=not payload.get("placeholder"))
                 if isinstance(entry, dict) and isinstance(entry.get("summary"), dict):
                     s = entry["summary"]
                     if key != f"{s.get('a')}|{s.get('b')}":

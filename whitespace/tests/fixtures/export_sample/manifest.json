@@ -110,14 +110,18 @@
     "run_dir_config_hash": "7d2eaac73f363d44f2a8e6799d490b68d2a0d2882dfd3493843b905e0d9ab0f4",
     "corpus_sha256": "fec9e5e2620afbc6e5d49db42ef7a00c43a235ef444c3b272abfee9a5f232fe0",
     "production_model_equals_backtest_model": true,
+    "production_model": "frozen",
     "production_trained_on": {
+      "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of the calibration origin",
+      "calibration_origins": [
+        2014
+      ],
       "fit_origins": [
         2010,
         2011
       ],
-      "calibration_origins": [
-        2014
-      ],
+      "held_out_tested": true,
+      "model": "frozen",
       "test_origins_used": []
     },
     "coverage_source": null,
