@@ -1,0 +1,6 @@
+{
+  "correct": [1, 2, 3, 7, 8, 9, 10, 12, 13, 18, 21, 26, 29, 31, 38, 39, 42, 44, 45, 48, 50, 54, 58, 59, 61, 62, 64, 68, 73, 75, 78, 80, 82, 85, 88, 90, 92],
+  "unsure": [25, 46, 77, 89, 96, 99],
+  "incorrect": [4, 5, 6, 11, 14, 15, 16, 17, 19, 20, 22, 23, 24, 27, 28, 30, 32, 33, 34, 35, 36, 37, 40, 41, 43, 47, 49, 51, 52, 53, 55, 56, 57, 60, 63, 65, 66, 67, 69, 70, 71, 72, 74, 76, 79, 81, 83, 84, 86, 87, 91, 93, 94, 95, 97, 98, 100],
+  "note": "Labelled by the same model (Claude) that wrote the extractor, so it is not independent of it. Rubric: correct = an author-stated open problem, future work or limitation about the paper's own topic; incorrect = structural or boilerplate sentences ('future directions are discussed'), problems the paper says it solved, limitations of other people's work only, or not a gap; unsure counts as not correct."
+}
