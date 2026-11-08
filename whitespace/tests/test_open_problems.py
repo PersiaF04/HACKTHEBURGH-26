@@ -97,7 +97,7 @@ def test_build_export_shapes_caps_and_display_only_rates():
     f = out["file"]
     assert f["placeholder"] is False and f["quality"] == "unmeasured" and f["attribution"]
     assert f["rates_by_year"] == [{"year": 2022, "concept_rate": None, "ai_ml_rate": 0.1}]
-    assert out["gap_rates"]["a"][0]["rate"] == 0.2
+    assert out["gap_rates"]["a"] == 0.2 and out["file"]["rates_by_concept"]["a"][0]["concept_rate"] == 0.2
     assert all(i["paper"]["url"].startswith("https://example.org/") for i in f["items"])
 
 
@@ -167,7 +167,7 @@ def _cache(tmp_path, pairs):
     cache = tmp_path / "cache"
     cache.mkdir()
     (cache / "hits.jsonl").write_text("\n".join(json.dumps(h) for h in reversed(hits)) + "\n", encoding="utf-8")
-    (cache / "counts.json").write_text(json.dumps({"columns": [], "rows": [["", 2022, 100, 10]]}), encoding="utf-8")
+    (cache / "counts.json").write_text(json.dumps({"columns": [], "rows": [["", 2022, 100, 10, 5]]}), encoding="utf-8")
     return cache
 
 
@@ -227,3 +227,86 @@ def test_cli_extract_still_accepts_the_old_positional_form(tmp_path):
     out = tmp_path / "o"
     assert op.main([str(corpus), "--vocabulary", str(vocab), "--out", str(out), "--workers", "1"]) == 0
     assert (out / "hits.jsonl").is_file() and (out / "label_frame.json").is_file()
+
+
+def test_wilson_interval_and_label_stats_count_unsure_as_not_correct():
+    lo, hi = op.wilson(50, 100)
+    assert 0.40 < lo < 0.41 and 0.59 < hi < 0.60
+    assert op.wilson(0, 0) == (0.0, 1.0)
+    frame = [{"i": i, "type": t} for i, t in enumerate(["open_problem"] * 4 + ["future_work"] * 4 + ["limitation"] * 2, 1)]
+    st = op.label_stats(frame, {"correct": [1, 2, 5], "incorrect": [3], "unsure": [4, 6]})
+    assert st["overall"]["correct"] == 3 and st["overall"]["n"] == 10 and st["unsure"] == 2
+    assert st["by_type"]["open_problem"]["correct"] == 2 and st["by_type"]["limitation"]["correct"] == 0
+    assert st["wording"] == "AI-labelled precision 3/10 (not human-validated)"
+
+
+@pytest.mark.skipif(not (DATA / "manifest.json").is_file(), reason="no committed export to attach to")
+def test_attach_with_labels_writes_the_measured_wording_and_still_validates(tmp_path):
+    gaps = json.loads((DATA / "gaps.json").read_text(encoding="utf-8"))
+    if gaps.get("placeholder"):
+        pytest.skip("committed export is a placeholder")
+    cache = _cache(tmp_path, [(gaps["items"][0]["a"], gaps["items"][0]["b"])])
+    frame = [{"i": i, "type": ["open_problem", "future_work", "limitation"][i % 3]} for i in range(1, 11)]
+    (tmp_path / "frame.json").write_text(json.dumps(frame), encoding="utf-8")
+    (tmp_path / "labels.json").write_text(json.dumps({"correct": [1, 2, 3, 4, 5, 6], "incorrect": [7, 8], "unsure": [9, 10]}),
+                                          encoding="utf-8")
+    res = op.attach(DATA, cache, tmp_path / "out", frame=tmp_path / "frame.json", labels=tmp_path / "labels.json")
+    assert res["problems"] == []
+    f = json.loads((tmp_path / "out" / "open-problems.json").read_text(encoding="utf-8"))
+    assert f["quality"] == "ai_labelled" and f["note"].startswith("AI-labelled precision 6/10 (not human-validated)")
+    meta = json.loads((tmp_path / "out" / "meta.json").read_text(encoding="utf-8"))
+    assert meta["open_problems"]["quality"] == "ai_labelled"
+    with pytest.raises(op.AttachError):
+        op.attach(DATA, cache, tmp_path / "out2", labels=tmp_path / "labels.json")  # labels without their frame
+
+
+def test_trigger_phrases_get_no_rate_and_other_concepts_do():
+    for c in ("future work", "open problem", "open question", "future research direction", "unclear", "research direction"):
+        assert op.is_trigger_phrase(c), c
+    for c in ("covid", "pretrained language model", "open source", "reinforcement learning"):
+        assert not op.is_trigger_phrase(c), c
+    hits = [_hit(1, ["a"])]
+    counts = {("", 2022): (100, 10), ("a", 2022): (40, 8), ("future work", 2022): (40, 30), ("few", 2022): (5, 1)}
+    out = op.build_export(hits, counts, [("a", "few")], ["a", "future work", "few"], lambda i: f"https://example.org/{i}", 2022)
+    assert out["gap_rates"] == {"a": 0.2}  # trigger phrase and the concept with under 30 papers have no rate
+
+
+@pytest.mark.skipif(not (DATA / "manifest.json").is_file(), reason="no committed export to attach to")
+def test_attach_fills_display_only_rates_and_leaves_the_gap_score_untouched(tmp_path):
+    gaps = json.loads((DATA / "gaps.json").read_text(encoding="utf-8"))
+    if gaps.get("placeholder"):
+        pytest.skip("committed export is a placeholder")
+    a, b = gaps["items"][0]["a"], gaps["items"][0]["b"]
+    cache = _cache(tmp_path, [(a, b)])
+    # synthetic per-year counts: concept a has 40 papers in 2023 (8 with a stated problem), b has 20 (1)
+    final = json.loads((DATA / "meta.json").read_text(encoding="utf-8"))["year_range"]["max"]
+    rows = [["", final, 1000, 100], [a, final, 40, 8], [b, final, 20, 1], [a, final + 1, 10, 10]]
+    (cache / "counts.json").write_text(json.dumps({"columns": [], "rows": rows}), encoding="utf-8")
+    res = op.attach(DATA, cache, tmp_path / "out")
+    assert res["problems"] == []
+    after = json.loads((tmp_path / "out" / "gaps.json").read_text(encoding="utf-8"))
+    for x, y in zip(gaps["items"], after["items"]):
+        for k in ("gap_score", "factors", "rank", "p_link", "momentum", "novelty"):
+            assert x[k] == y[k], k  # the ranking is not touched
+    assert after["formula_used"] == gaps["formula_used"]
+    first = after["items"][0]
+    assert first["gap_rate_a"] == 0.2  # 8 of 40 up to the snapshot year; the later year (final + 1) is not counted
+    assert first["gap_rate_b"] is None and first["gap_rate"] is None  # b has under 30 papers: null, never 0
+    assert any("display only" in x for x in after["omitted_components"])
+    c = json.loads((tmp_path / "out" / "concepts.json").read_text(encoding="utf-8"))["entries"]
+    if a in c:
+        assert c[a]["gap_rate"] == 0.2
+    op_file = json.loads((tmp_path / "out" / "open-problems.json").read_text(encoding="utf-8"))
+    assert op_file["rates_by_concept"][a][0] == {"year": final, "concept_rate": 0.2, "ai_ml_rate": 0.1, "papers": 40,
+                                                 "with_open_problem": 8}
+
+
+def test_types_filter_keeps_only_the_chosen_statement_types():
+    hits = [_hit(1, ["a"], kind="open_problem"), _hit(2, ["a"], kind="future_work"), _hit(3, ["a"], kind="limitation")]
+    counts = {("", 2022): (100, 10, 5), ("a", 2022): (40, 8, 4)}
+    out = op.build_export(hits, counts, [("a", "a")], ["a"], lambda i: f"https://example.org/{i}", 2022, types=("open_problem",))
+    assert out["gap_rates"] == {"a": 0.1}  # rates count papers with an open_problem statement only (4 of 40)
+    assert {i["type"] for i in out["file"]["items"]} == {"open_problem"}
+    with pytest.raises(ValueError):
+        op.build_export(hits, counts, [("a", "a")], ["a"], lambda i: i, 2022, types=("open_problem", "limitation"))
+    assert {i["type"] for v in out["concepts"].values() for i in v} == {"open_problem"}

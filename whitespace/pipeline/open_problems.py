@@ -92,6 +92,18 @@ def classify(sentence: str) -> tuple[str, float] | None:
     return None
 
 
+_TRIGGER_WORDS = frozenset({"unclear", "unknown", "unresolved", "unexplored", "limitation", "limitations", "challenge"})
+
+
+def is_trigger_phrase(concept: str) -> bool:
+    """True for a concept that is itself an extraction trigger ("future work", "open problem", "unclear" ...).
+
+    Its rate would be close to 1 by construction, not a research gap, so it is exported without a rate (null).
+    """
+    return any(pat.search(concept) for _, _, pat in _RULES) or bool(_TRIGGER_WORDS & set(concept.lower().split())) \
+        or concept in ("research direction", "future direction")
+
+
 def hits_in(abstract: str) -> list[tuple[str, str, float]]:
     """``(sentence, type, confidence)`` for each matching sentence of one abstract."""
     found = []
@@ -135,12 +147,14 @@ def process_line(line: str, vocab: frozenset[str]) -> tuple[dict, list[dict]] | 
             "concept_ids": own or concepts,  # sentence-level concepts first, else the paper's own
             "sentence_level": bool(own),
         })
-    return {"id": rec.get("id"), "year": year, "concepts": concepts, "has_hit": bool(hits)}, hits
+    return {"id": rec.get("id"), "year": year, "concepts": concepts, "has_hit": bool(hits),
+            "has_op": any(h["type"] == "open_problem" for h in hits)}, hits
 
 
-def _work(lines: list[str]) -> tuple[Counter, Counter, list[dict]]:
+def _work(lines: list[str]) -> tuple[Counter, Counter, Counter, list[dict]]:
     papers: Counter = Counter()  # (concept, year) -> papers mentioning the concept
-    with_hit: Counter = Counter()  # (concept, year) -> of those, papers with a stated open problem
+    with_hit: Counter = Counter()  # (concept, year) -> of those, papers with a stated open problem (any type)
+    with_op: Counter = Counter()  # ... papers with a statement of type open_problem (the best measured type)
     hits: list[dict] = []
     for line in lines:
         r = process_line(line, _VOCAB)
@@ -150,12 +164,16 @@ def _work(lines: list[str]) -> tuple[Counter, Counter, list[dict]]:
         papers[("", meta["year"])] += 1
         if meta["has_hit"]:
             with_hit[("", meta["year"])] += 1
+            if meta["has_op"]:
+                with_op[("", meta["year"])] += 1
         for c in meta["concepts"]:
             papers[(c, meta["year"])] += 1
             if meta["has_hit"]:
                 with_hit[(c, meta["year"])] += 1
+                if meta["has_op"]:
+                    with_op[(c, meta["year"])] += 1
         hits.extend(h)
-    return papers, with_hit, hits
+    return papers, with_hit, with_op, hits
 
 
 def _chunks(path: Path, size: int) -> Iterator[list[str]]:
@@ -175,17 +193,19 @@ def run_corpus(corpus: Path, vocab: Iterable[str], workers: int = 14, chunk: int
     t0 = time.time()
     papers: Counter = Counter()
     with_hit: Counter = Counter()
+    with_op: Counter = Counter()
     hits: list[dict] = []
     n = 0
     with mp.Pool(workers, initializer=_init, initargs=(frozenset(vocab),)) as pool:
-        for p, w, h in pool.imap_unordered(_work, _chunks(corpus, chunk)):
+        for p, w, o, h in pool.imap_unordered(_work, _chunks(corpus, chunk)):
             papers.update(p)
             with_hit.update(w)
+            with_op.update(o)
             hits.extend(h)
             n += 1
             if n % 50 == 0:
                 print(f"  {n * chunk:,} lines, {len(hits):,} hits, {time.time() - t0:.0f}s", flush=True)
-    return {"papers": papers, "with_hit": with_hit, "hits": hits, "seconds": time.time() - t0}
+    return {"papers": papers, "with_hit": with_hit, "with_op": with_op, "hits": hits, "seconds": time.time() - t0}
 
 
 def rates(papers: Counter, with_hit: Counter, concept: str = "") -> list[dict]:
@@ -232,9 +252,44 @@ def label_frame(hits: list[dict], n: int = 100, seed: int = 270, stratify: bool 
              "sentence": h["sentence"]} for i, h in enumerate(picked)]
 
 
+def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    """95% Wilson score interval for k correct out of n."""
+    if n == 0:
+        return 0.0, 1.0
+    p = k / n
+    d = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / d
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / d
+    return max(0.0, centre - half), min(1.0, centre + half)
+
+
+def label_stats(frame: list[dict], labels: dict, who: str = "AI") -> dict:
+    """Precision of the extractor from a labelled frame. ``labels`` = {"correct": [i..], "incorrect": [i..], "unsure": [i..]}.
+
+    Unsure and unlabelled items count as NOT correct (the conservative reading), so ``X/N`` never overstates.
+    """
+    ids = {f["i"] for f in frame}
+    right = set(labels.get("correct", [])) & ids
+    n = len(frame)
+
+    def part(items: list[dict]) -> dict:
+        k = sum(1 for f in items if f["i"] in right)
+        lo, hi = wilson(k, len(items))
+        return {"correct": k, "n": len(items), "precision": round(k / len(items), 4) if items else None,
+                "ci95": [round(lo, 4), round(hi, 4)]}
+
+    out = {"overall": part(frame), "by_type": {t: part([f for f in frame if f["type"] == t]) for t in TYPES},
+           "unsure": len(set(labels.get("unsure", [])) & ids), "labeller": who, "labeller_note": labels.get("note")}
+    k = out["overall"]["correct"]
+    out["wording"] = f"{who}-labelled precision {k}/{n} (not human-validated)" if who == "AI" else \
+        f"Human-labelled precision {k}/{n}"
+    return out
+
+
 # ------------------------------------------------------------------ export (reduced version)
 
 TOP_CONCEPTS, PER_CONCEPT, PER_GAP, MAX_ITEMS = 200, 5, 5, 1200
+RATE_MIN_PAPERS = 30  # a concept with fewer papers up to the snapshot has no stated-gap rate (null, not 0)
 QUALITY_NOTE = ("Extraction quality is unmeasured: sentences were picked by a regex prefilter and have not been "
                 "hand-labelled, so some are not real author-stated open problems.")
 ATTRIBUTION = ("Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the "
@@ -246,7 +301,7 @@ def load_cache(cache_dir: Path) -> tuple[list[dict], dict]:
     hits = [json.loads(line) for line in (cache_dir / "hits.jsonl").read_text(encoding="utf-8").splitlines() if line]
     hits.sort(key=lambda h: (h["paper"]["id"] or "", h["sentence"]))  # the pass writes hits in worker order
     doc = json.loads((cache_dir / "counts.json").read_text(encoding="utf-8"))
-    return hits, {(c, y): (n, w) for c, y, n, w in doc["rows"]}
+    return hits, {(r[0], r[1]): tuple(r[2:]) for r in doc["rows"]}  # (papers, with any statement[, with an open_problem])
 
 
 def _item(h: dict, url, keep: set[str]) -> dict:
@@ -257,12 +312,13 @@ def _item(h: dict, url, keep: set[str]) -> dict:
 
 
 def build_export(hits: list[dict], counts: dict, gap_pairs: list[tuple[str, str]], concept_pool: list[str],
-                 url, final_year: int, exclude: frozenset[str] = frozenset()) -> dict:
+                 url, final_year: int, exclude: frozenset[str] = frozenset(), types: tuple[str, ...] = TYPES) -> dict:
     """Reduced open-problems payloads: ``gap_details`` {a|b: items}, ``concepts`` {id: items}, ``file`` (open-problems.json).
 
     ``concept_pool`` are the concepts that exist in the export; the top ``TOP_CONCEPTS`` of them by papers in the
     last year plus every gap concept get sentences. Rates are display only and never feed the gap score.
     """
+    hits = [h for h in hits if h["type"] in types]  # e.g. only open_problem when the other types measured poorly
     pool = set(concept_pool)
     gap_concepts = {c for pair in gap_pairs for c in pair} & pool
     by_papers = sorted(pool - exclude, key=lambda c: (-counts.get((c, final_year), (0, 0))[0], c))
@@ -285,22 +341,41 @@ def build_export(hits: list[dict], counts: dict, gap_pairs: list[tuple[str, str]
                 if key not in seen and len(items) < MAX_ITEMS:
                     seen.add(key)
                     items.append(it)
+    if tuple(types) == tuple(TYPES):
+        col = 1
+    elif tuple(types) == ("open_problem",):
+        col = 2
+        if any(len(v) < 3 for v in counts.values()):
+            raise ValueError("the cache has no open_problem-only counts; run 'extract' again")
+    else:
+        raise ValueError("rates are only exact for all statement types or for open_problem alone")
     rate_years = sorted({y for (c, y) in counts if c == "" and y <= final_year})
-    rates_by_year = [{"year": y, "concept_rate": None,
-                      "ai_ml_rate": round(counts[("", y)][1] / counts[("", y)][0], 6)} for y in rate_years]
-    rates_by_concept = {c: [{"year": y, "papers": counts[(c, y)][0], "with_open_problem": counts[(c, y)][1],
-                             "rate": round(counts[(c, y)][1] / counts[(c, y)][0], 6)}
+    overall = {y: round(counts[("", y)][col] / counts[("", y)][0], 6) for y in rate_years}
+    rates_by_year = [{"year": y, "concept_rate": None, "ai_ml_rate": overall[y]} for y in rate_years]
+    # the frontend's OpenProblemRatePoint per concept: only years up to the snapshot, so no later knowledge
+    rates_by_concept = {c: [{"year": y, "concept_rate": round(counts[(c, y)][col] / counts[(c, y)][0], 6),
+                             "ai_ml_rate": overall[y], "papers": counts[(c, y)][0],
+                             "with_open_problem": counts[(c, y)][col]}
                             for y in rate_years if (c, y) in counts and counts[(c, y)][0]]
                         for c in sorted(chosen)}
+    cum: dict[str, list[int]] = {}
+    for (c, y), v in counts.items():
+        if c and y <= final_year:
+            t = cum.setdefault(c, [0, 0])
+            t[0] += v[0]
+            t[1] += v[col]
+    # share of a concept's papers (all years up to the snapshot year) with a stated open problem; DISPLAY ONLY
+    gap_rate = {c: round(w / n, 6) for c, (n, w) in sorted(cum.items())
+                if n >= RATE_MIN_PAPERS and not is_trigger_phrase(c)}
     return {
-        "gap_details": gap_details, "concepts": concepts, "gap_rates": rates_by_concept,
+        "gap_details": gap_details, "concepts": concepts, "gap_rates": gap_rate,
         "file": {"placeholder": False, "synthetic": False, "items": items,
                  "concept_options": [{"id": c, "label": c} for c in sorted(chosen) if c in per],
                  "rates_by_year": rates_by_year, "rates_by_concept": rates_by_concept,
                  "quality": "unmeasured", "note": QUALITY_NOTE, "attribution": ATTRIBUTION,
-                 "rate_note": "ai_ml_rate is the share of all corpus papers with a stated open problem; "
-                              "concept_rate is not exported (see rates_by_concept). Display only: not used in any "
-                              "gap score or backtest."},
+                 "rate_note": "ai_ml_rate is the share of all corpus papers with a stated open problem; per-concept "
+                              "series are in rates_by_concept (concept_rate). Rates only count papers up to the snapshot "
+                              "year. Display only: not used in any gap score or backtest."},
     }
 
 
@@ -332,7 +407,8 @@ def _tool_commit() -> str | None:
         return None
 
 
-def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None) -> dict:
+def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None, *, frame: Path | None = None,
+           labels: Path | None = None, labeller: str = "AI", types: tuple[str, ...] = TYPES) -> dict:
     """Add open problems to an already exported folder (the same selection as ``export_all --open-problems``).
 
     Reads gaps/concepts/gap-details/meta/manifest/routes, runs ``export_all.attach_open_problems`` (no second
@@ -356,17 +432,34 @@ def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None) -> di
     if files["meta.json"].get("placeholder") or files["gaps.json"].get("placeholder"):
         raise AttachError("the export is a placeholder/synthetic export; refusing to attach quotes")
     final = files["meta.json"]["year_range"]["max"]
-    info = E.attach_open_problems(files, Path(cache_dir), final)
+    info = E.attach_open_problems(files, Path(cache_dir), final, types=tuple(types))
     info.update({"post_process": "open_problems attach", "tool_commit": _tool_commit(),
                  "cache_sha256": {n: _sha256(Path(cache_dir) / n) for n in ("hits.jsonl", "counts.json")}})
     files["open-problems.json"]["data_label"] = files["gaps.json"].get("data_label")
-    files["meta.json"]["open_problems"] = {"quality": "unmeasured", "items": info["items"], "attribution": ATTRIBUTION,
-                                           "note": QUALITY_NOTE}
+    quality, note, measured = "unmeasured", QUALITY_NOTE, None
+    if labels is not None:
+        if frame is None:
+            raise AttachError("--labels needs --frame (the label frame the labels refer to)")
+        sample = [f for f in json.loads(Path(frame).read_text(encoding="utf-8")) if f["type"] in types]
+        measured = label_stats(sample,
+                               json.loads(Path(labels).read_text(encoding="utf-8")), labeller)
+        o = measured["overall"]
+        quality = "ai_labelled" if labeller == "AI" else "human_labelled"
+        note = (f"{measured['wording']}: {o['correct']} of {o['n']} sampled sentences judged to be a real author-stated open "
+                f"problem, future work or limitation (95% interval {o['ci95'][0]:.2f} to {o['ci95'][1]:.2f}). "
+                "The sample is stratified by type; the rest of the corpus was not labelled."
+                + (f" {measured['labeller_note']}" if measured.get("labeller_note") else ""))
+        files["open-problems.json"]["quality_measurement"] = measured
+        info["quality_measurement"] = measured["wording"]
+    files["open-problems.json"]["quality"] = quality
+    files["open-problems.json"]["note"] = note
+    files["meta.json"]["open_problems"] = {"quality": quality, "items": info["items"], "attribution": ATTRIBUTION,
+                                           "note": note, "rates": "display only: not used in gap_score or the backtest"}
     for r in files["routes.json"]["routes"]:
         if r["file"] == "open-problems.json":
             r["status"] = "real"
             r["note"] = "query ignored here; the client filters. Reduced first version (top gaps and concepts)."
-    changed = ("concepts.json", "gap-details.json", "open-problems.json", "meta.json", "routes.json")
+    changed = ("gaps.json", "concepts.json", "gap-details.json", "open-problems.json", "meta.json", "routes.json")
     for n in changed:
         E.write_payload(export_dir, n, files[n], synthetic=False)
     man = files["manifest.json"]
@@ -403,13 +496,18 @@ def main(argv: list[str] | None = None) -> int:
     at.add_argument("--export-dir", type=Path, required=True)
     at.add_argument("--cache", type=Path, required=True, help="the extract cache directory")
     at.add_argument("--out", type=Path, help="write to a copy of the export instead of in place")
+    at.add_argument("--frame", type=Path, help="label_frame.json the labels refer to")
+    at.add_argument("--labels", type=Path, help='JSON {"correct": [i..], "incorrect": [i..], "unsure": [i..]}')
+    at.add_argument("--labeller", choices=("AI", "human"), default="AI")
+    at.add_argument("--types", default=",".join(TYPES), help="comma list of statement types to export (default all)")
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] not in ("extract", "attach", "-h", "--help"):
         argv = ["extract", *argv]  # the first version took the corpus path directly
     a = ap.parse_args(argv)
     if a.cmd == "attach":
         try:
-            res = attach(a.export_dir, a.cache, a.out)
+            res = attach(a.export_dir, a.cache, a.out, frame=a.frame, labels=a.labels, labeller=a.labeller,
+                         types=tuple(t for t in a.types.split(",") if t))
         except AttachError as exc:
             print(f"attach failed: {exc}", file=sys.stderr)
             return 1
@@ -427,8 +525,8 @@ def main(argv: list[str] | None = None) -> int:
     with open(a.out / "hits.jsonl", "w", encoding="utf-8") as fh:
         for h in hits:
             fh.write(json.dumps(h, ensure_ascii=False) + "\n")
-    counts = [[c, y, res["papers"][(c, y)], res["with_hit"][(c, y)]] for (c, y) in sorted(res["papers"])]
-    (a.out / "counts.json").write_text(json.dumps({"columns": ["concept", "year", "papers", "with_open_problem"],
+    counts = [[c, y, res["papers"][(c, y)], res["with_hit"][(c, y)], res["with_op"][(c, y)]] for (c, y) in sorted(res["papers"])]
+    (a.out / "counts.json").write_text(json.dumps({"columns": ["concept", "year", "papers", "with_open_problem", "with_open_problem_type"],
                                                    "rows": counts}), encoding="utf-8")
     (a.out / "label_frame.json").write_text(json.dumps(label_frame(hits), ensure_ascii=False, indent=1),
                                             encoding="utf-8")
