@@ -93,7 +93,6 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   return (
     <div className="gaps-page">
       <p className="gaps-page__intro">Explore concept pairs that the model ranks as possible future links. P(link) is a model probability; the gap score is a separate ranking score.</p>
-      {response.placeholder && <p className="gap-placeholder" role="note">Placeholder data — these are empty fixtures, not measured results.</p>}
       <form className="gaps-filters" onSubmit={(event) => event.preventDefault()} aria-label="Filter ranked gaps">
         <label className="gaps-filter">
           <span>Filter by area or concept</span>

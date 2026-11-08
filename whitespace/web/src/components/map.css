@@ -1,7 +1,7 @@
 .whitespace-map {
   width: 100%;
   min-width: 0;
-  color: #172332;
+  color: var(--ws-ink);
 }
 
 .whitespace-map__toolbar {
@@ -15,10 +15,10 @@
 .whitespace-placeholder-tag {
   display: inline-flex;
   padding: 0.25rem 0.55rem;
-  border: 1px solid #8a5b00;
+  border: 1px solid var(--ws-warn-ink);
   border-radius: 999px;
-  color: #684500;
-  background: #fff5d7;
+  color: var(--ws-warn-ink);
+  background: var(--ws-warn-bg);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -33,10 +33,10 @@
   min-width: 2.5rem;
   min-height: 2.5rem;
   padding: 0.35rem 0.65rem;
-  border: 1px solid #9aa9b9;
+  border: 1px solid var(--ws-border-strong);
   border-radius: 0.45rem;
-  background: #fff;
-  color: #172332;
+  background: var(--ws-surface);
+  color: var(--ws-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -44,7 +44,7 @@
 .whitespace-map__zoom button:focus-visible,
 .whitespace-time-slider__input:focus-visible,
 .whitespace-map__canvas [role="button"]:focus-visible {
-  outline: 3px solid #135fc2;
+  outline: 3px solid var(--ws-accent);
   outline-offset: 3px;
 }
 
@@ -54,11 +54,11 @@
   height: auto;
   aspect-ratio: 1;
   max-height: min(75vh, 58rem);
-  border: 1px solid #d7e0e9;
+  border: 1px solid var(--ws-border);
   border-radius: 0.75rem;
   background:
-    radial-gradient(circle at 1px 1px, #dce4ec 1px, transparent 0) 0 0 / 24px 24px,
-    #f8fafc;
+    radial-gradient(circle at 1px 1px, var(--ws-border) 1px, transparent 0) 0 0 / 24px 24px,
+    var(--ws-track);
   touch-action: none;
   cursor: grab;
 }
@@ -68,19 +68,19 @@
 }
 
 .whitespace-map__edge {
-  stroke: #73879b;
+  stroke: var(--ws-muted);
   stroke-width: 1.15;
   vector-effect: non-scaling-stroke;
 }
 
 .whitespace-map__node {
-  stroke: #fff;
+  stroke: var(--ws-surface);
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
 .whitespace-map__node--selected {
-  stroke: #102945;
+  stroke: var(--ws-ink);
   stroke-width: 3;
 }
 
@@ -111,21 +111,21 @@
   border-radius: 50%;
 }
 
-.whitespace-map__legend-dot--up { background: #2864b4; }
-.whitespace-map__legend-dot--flat { background: #718096; }
-.whitespace-map__legend-dot--down { background: #b6533b; }
+.whitespace-map__legend-dot--up { background: var(--ws-accent); }
+.whitespace-map__legend-dot--flat { background: var(--ws-muted); }
+.whitespace-map__legend-dot--down { background: var(--ws-error); }
 
 .whitespace-map__note {
   margin: 0.65rem 0 0;
-  color: #536273;
+  color: var(--ws-muted);
   font-size: 0.82rem;
   line-height: 1.5;
 }
 
 .whitespace-map__browse {
-  border: 1px solid #d7e0e9;
+  border: 1px solid var(--ws-border);
   border-radius: 0.6rem;
-  background: #fff;
+  background: var(--ws-surface);
 }
 
 .whitespace-map__browse summary {
@@ -137,8 +137,8 @@
 
 .whitespace-map__browse-status {
   padding: 0.5rem 0.9rem;
-  border-top: 1px solid #d7e0e9;
-  color: #536273;
+  border-top: 1px solid var(--ws-border);
+  color: var(--ws-muted);
   font-size: 0.85rem;
 }
 
@@ -150,7 +150,7 @@
   overflow: auto;
   margin: 0;
   padding: 0.6rem;
-  border-top: 1px solid #d7e0e9;
+  border-top: 1px solid var(--ws-border);
   list-style: none;
 }
 
@@ -172,12 +172,12 @@
 
 .whitespace-map__concept-list button:hover,
 .whitespace-map__concept-list button[aria-pressed="true"] {
-  border-color: #d7e0e9;
-  background: #ecece7;
+  border-color: var(--ws-border);
+  background: var(--ws-selected);
 }
 
 .whitespace-map__concept-meta {
-  color: #536273;
+  color: var(--ws-muted);
   font-size: 0.78rem;
 }
 
@@ -187,25 +187,25 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 0.6rem;
-  border-top: 1px solid #d7e0e9;
+  border-top: 1px solid var(--ws-border);
 }
 
 .whitespace-map__pagination button {
   min-height: 2.5rem;
   padding: 0.35rem 0.75rem;
-  border: 1px solid #9aa9b9;
+  border: 1px solid var(--ws-border-strong);
   border-radius: 0.4rem;
-  background: #fff;
+  background: var(--ws-surface);
   cursor: pointer;
 }
 
 .whitespace-map__pagination button:disabled {
-  color: #536273;
+  color: var(--ws-muted);
   cursor: not-allowed;
 }
 
 .whitespace-map__browse :focus-visible {
-  outline: 3px solid #135fc2;
+  outline: 3px solid var(--ws-accent);
   outline-offset: 2px;
 }
 
@@ -217,7 +217,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 1.5rem;
-  border: 1px dashed #9aa9b9;
+  border: 1px dashed var(--ws-border-strong);
   border-radius: 0.75rem;
   text-align: center;
 }
@@ -241,13 +241,13 @@
 .whitespace-time-slider__input {
   width: 100%;
   min-height: 2.5rem;
-  accent-color: #135fc2;
+  accent-color: var(--ws-accent);
   cursor: pointer;
 }
 
 .whitespace-time-slider__help {
   margin: 0.2rem 0 0;
-  color: #536273;
+  color: var(--ws-muted);
   font-size: 0.82rem;
 }
 
