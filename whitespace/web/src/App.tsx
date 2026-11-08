@@ -40,6 +40,8 @@ export default function App() {
   const [error, setError] = useState<string>();
   const active = sections.find(([route]) => route === path) ?? sections[0];
 
+  useEffect(() => { document.title = `${active[1]} · Whitespace`; }, [active]);
+
   const navigate = useCallback((event: React.MouseEvent<HTMLAnchorElement>, route: string) => {
     event.preventDefault();
     window.history.pushState({}, "", route);
