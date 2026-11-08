@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Whitespace — Research epics</title>
+<script src="a0a8017a-fb1b-4426-8b7e-75bf3c2442bd"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#15171C;text-decoration-color:#B9BCC4;text-underline-offset:3px}a:hover{color:#15171C;text-decoration-color:#15171C}
+</style>
+</helmet>
+<div style="min-height: 960px; background: #F6F6F3; color: #15171C; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 14px; display: flex; flex-direction: column">
+
+<header style="min-height: 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 8px 20px; background: #FFFFFF; border-bottom: 1px solid #E6E6E1">
+<a href="Main.dc.html" aria-current="page" aria-label="Whitespace home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #15171C">
+<svg width="28" height="28" sc-camel-view-box="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" fill="#15171C"></circle><circle cx="21" cy="8" r="4" fill="none" stroke="#15171C" stroke-width="2"></circle><line x1="10.5" y1="17" x2="17.5" y2="11" stroke="#2952E3" stroke-width="2" stroke-dasharray="2.5 2.5"></line></svg>
+<span style="font-weight: 600; font-size: 18px; letter-spacing: -0.01em">Whitespace</span>
+</a>
+<nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #5B606B">
+<span aria-hidden="true" style="color: #B9BCC4">/</span>
+<span aria-current="location" style="color: #15171C; font-weight: 500">Research epics</span>
+</nav>
+<div style="flex: 1"></div>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B606B">OpenAlex · AI/ML · up to 2026</span>
+<span style="font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #FFFFFF; color: #5B606B; border: 1px solid #D1D1CB">Sample data</span>
+</header>
+
+<main style="flex: 1; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<aside aria-labelledby="ep-h" style="flex: 1 1 280px; box-sizing: border-box; padding: 20px; background: #FFFFFF; border-right: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<h2 id="ep-h" style="margin: 0; font-size: 12px; font-weight: 600; color: #3F444D">Research epics</h2>
+<button type="button" sc-camel-on-click="{{newEpic}}" style="min-height: 32px; padding: 0 10px; border: 1px solid #D1D1CB; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 500; color: #15171C; cursor: pointer">New epic</button>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{epics}}" as="e" hint-placeholder-count="3">
+<li><button type="button" sc-camel-on-click="{{e.pick}}" aria-pressed="{{e.sel}}" style="width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 0; border-radius: 6px; background: {{e.bg}}; font: inherit; text-align: left; cursor: pointer; color: #15171C">
+<span style="font-size: 14px; font-weight: {{e.w}}">{{e.name}}</span>
+<span style="font-size: 12px; color: #5B606B">{{e.meta}}</span>
+</button></li>
+</sc-for>
+</ul>
+<p style="margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: #5B606B">An epic groups the threads that serve one goal, such as choosing a thesis topic.</p>
+</aside>
+
+<section aria-labelledby="ep-title" style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 id="ep-title" style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.01em">{{epic.name}}</h1>
+<p style="margin: 0; font-size: 14px; color: #5B606B">{{epic.desc}}</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px">
+<sc-for list="{{epicStats}}" as="st" hint-placeholder-count="4">
+<div style="padding: 10px 16px; border-left: {{st.bl}}; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 12px; color: #5B606B">{{st.label}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums">{{st.v}}</span>
+</div>
+</sc-for>
+</div>
+
+<section aria-labelledby="nt-h" style="padding: 18px; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+<h2 id="nt-h" style="margin: 0; font-size: 16px; font-weight: 600">Start a new thread</h2>
+<div role="group" aria-label="Start from" style="display: flex; padding: 3px; background: #F0F0EC; border-radius: 6px; gap: 2px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{m.on}}" sc-camel-on-click="{{m.pick}}" style="min-height: 32px; padding: 0 12px; border: 0; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; background: {{m.bg}}; color: {{m.fg}}; box-shadow: {{m.sh}}">{{m.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px">
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 6px">
+<label for="nt-in" style="font-size: 13px; color: #3F444D">{{inLabel}}</label>
+<sc-if value="{{topicMode}}" hint-placeholder-val="{{ true }}">
+<input id="nt-in" type="text" value="{{draft}}" sc-camel-on-input="{{onDraft}}" placeholder="e.g. uncertainty in molecular generation" style="height: 40px; box-sizing: border-box; padding: 0 12px; border: 1px solid #D1D1CB; border-radius: 6px; font: inherit; font-size: 14px; color: #15171C; background: #FFFFFF">
+</sc-if>
+<sc-if value="{{paperMode}}">
+<textarea id="nt-in" rows="3" value="{{draft}}" sc-camel-on-input="{{onDraft}}" placeholder="Paste an abstract. We find its nearest concepts and open the map there." style="box-sizing: border-box; padding: 10px 12px; border: 1px solid #D1D1CB; border-radius: 6px; font: inherit; font-size: 14px; line-height: 1.5; color: #15171C; resize: vertical"></textarea>
+</sc-if>
+</div>
+<button type="button" sc-camel-on-click="{{create}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 6px; background: #15171C; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Create thread</button>
+</div>
+<sc-if value="{{draftError}}"><p role="alert" style="margin: 0; font-size: 13px; color: #A3262B">Name a topic or paste an abstract first.</p></sc-if>
+</section>
+
+<section aria-labelledby="th-h" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 id="th-h" style="margin: 0; font-size: 16px; font-weight: 600">Threads</h2>
+<span style="font-size: 12px; color: #5B606B">Open a thread to continue on its map</span>
+</div>
+<div style="overflow-x: auto; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px">
+<div style="min-width: 640px">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 120px 96px 112px 84px; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #E6E6E1; font-size: 12px; color: #5B606B">
+<span>Thread</span><span>Last opened</span><span style="text-align: right">Saved gaps</span><span style="text-align: right">Open problems</span><span>Status</span>
+</div>
+<sc-for list="{{threads}}" as="t" hint-placeholder-count="4">
+<a href="Explore.dc.html" style="display: grid; grid-template-columns: minmax(0, 1fr) 120px 96px 112px 84px; gap: 12px; align-items: center; min-height: 56px; padding: 8px 16px; border-bottom: 1px solid #F0F0EC; text-decoration: none; color: #15171C">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-weight: 600">{{t.name}}</span><span style="font-size: 12px; color: #5B606B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.seeds}}</span></span>
+<span style="font-size: 13px; color: #3F444D">{{t.last}}</span>
+<span style="text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums">{{t.gaps}}</span>
+<span style="text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums">{{t.probs}}</span>
+<span><span style="font-size: 12px; font-weight: 500; padding: 2px 6px; border-radius: 4px; border: 1px solid {{t.sbd}}; background: {{t.sbg}}; color: {{t.sfg}}">{{t.status}}</span></span>
+</a>
+</sc-for>
+<sc-if value="{{noThreads}}"><p style="margin: 0; padding: 20px 16px; font-size: 13px; color: #5B606B">No threads in this epic yet. Start one above, or take a suggestion.</p></sc-if>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="sg-h" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 id="sg-h" style="margin: 0; font-size: 16px; font-weight: 600">Suggested next threads</h2>
+<span style="font-size: 12px; color: #5B606B">From what you opened and saved · reasons on the right</span>
+</div>
+<sc-if value="{{hasSugs}}">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px">
+<sc-for list="{{sugs}}" as="g" hint-placeholder-count="2">
+<article style="padding: 16px; background: #FFFFFF; border: 1px solid #E6E6E1; border-radius: 8px; display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 15px; font-weight: 600">{{g.name}}</h3>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px">
+<span>{{g.a}}</span>
+<svg width="40" height="8" sc-camel-view-box="0 0 40 8" aria-hidden="true"><line x1="1" y1="4" x2="39" y2="4" stroke="#2952E3" stroke-width="2" stroke-dasharray="4 3"></line></svg>
+<span>{{g.b}}</span>
+<span style="margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #2952E3">P {{g.p}}</span>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #3F444D">{{g.why}}</p>
+<div style="display: flex; gap: 8px; align-items: center; margin-top: auto">
+<button type="button" sc-camel-on-click="{{g.start}}" style="min-height: 36px; padding: 0 14px; border: 0; border-radius: 6px; background: #15171C; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Start thread</button>
+<button type="button" sc-camel-on-click="{{g.dismiss}}" style="min-height: 36px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #3F444D; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer">Not now</button>
+</div>
+</article>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{noSugs}}"><p style="margin: 0; padding: 16px; background: #FFFFFF; border: 1px dashed #D1D1CB; border-radius: 8px; font-size: 13px; color: #5B606B">{{noSugText}}</p></sc-if>
+</section>
+</section>
+
+<aside aria-labelledby="ac-h" style="flex: 1 1 380px; box-sizing: border-box; padding: 20px; background: #FFFFFF; border-left: 1px solid #E6E6E1; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="ac-h" style="margin: 0; font-size: 16px; font-weight: 600">Why these suggestions</h2>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5B606B">Suggestions use only your activity in this epic. Nothing leaves your workspace.</p>
+</div>
+
+<label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid #E6E6E1; border-radius: 8px; font-size: 13px; cursor: pointer">
+<span>Use my activity for suggestions</span>
+<input type="checkbox" checked="{{tracking}}" sc-camel-on-change="{{toggleTracking}}" style="width: 16px; height: 16px; margin: 0; accent-color: #15171C">
+</label>
+
+<sc-if value="{{hasActivity}}">
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Concepts you open most</h3>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{visits}}" as="v" hint-placeholder-count="5">
+<li style="display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; justify-content: space-between; font-size: 13px"><span>{{v.label}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3F444D">{{v.n}} visits</span></span>
+<span style="display: block; height: 4px; background: #EFEFEA; border-radius: 2px"><span style="display: block; height: 4px; width: {{v.w}}%; background: #3F444D; border-radius: 2px"></span></span>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Recent searches</h3>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{searches}}" as="q" hint-placeholder-count="3">
+<li style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #F0F0EC; font-size: 13px"><span>“{{q.t}}”</span><span style="color: #5B606B">{{q.when}}</span></li>
+</sc-for>
+</ul>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600">Recently saved gaps</h3>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{saved}}" as="sv" hint-placeholder-count="3">
+<li><a href="Gaps.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #E6E6E1; border-radius: 6px; font-size: 13px; text-decoration: none"><span style="flex: 1; min-width: 0">{{sv.a}} ↔ {{sv.b}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #2952E3">P {{sv.p}}</span></a></li>
+</sc-for>
+</ul>
+</section>
+
+<button type="button" sc-camel-on-click="{{clearActivity}}" style="align-self: flex-start; min-height: 36px; padding: 0 12px; border: 1px solid #D1D1CB; border-radius: 6px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 500; color: #15171C; cursor: pointer">Clear activity</button>
+</sc-if>
+
+<sc-if value="{{noActivity}}"><p style="margin: 0; padding: 14px; background: #F6F6F3; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #3F444D">{{noActivityText}}</p></sc-if>
+</aside>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      epic: 'thesis', mode: 'topic', draft: '', draftError: false, tracking: true, cleared: false, dismissed: {}, started: {}, extraEpics: 0,
+      threads: {
+        thesis: [
+          { name: 'Generative models for molecules', seeds: 'Flow matching · Molecular property prediction', last: '2 days ago', gaps: 3, probs: 5, status: 'Active' },
+          { name: 'Interpretability after RLHF', seeds: 'Mechanistic interpretability · RLHF', last: '1 week ago', gaps: 2, probs: 4, status: 'Active' },
+          { name: 'Uncertainty in open-vocabulary detection', seeds: 'Open-vocabulary detection · Uncertainty quantification', last: '3 weeks ago', gaps: 1, probs: 2, status: 'Paused' },
+          { name: 'Continual learning at scale', seeds: 'Continual learning · Mixture of experts', last: '1 month ago', gaps: 0, probs: 3, status: 'Paused' }
+        ],
+        lab: [
+          { name: 'Efficient training', seeds: 'Mixture of experts · Federated learning', last: '5 days ago', gaps: 2, probs: 1, status: 'Active' },
+          { name: 'Agents with world models', seeds: 'In-context learning · Model-based RL', last: '2 weeks ago', gaps: 1, probs: 2, status: 'Active' }
+        ],
+        reading: [
+          { name: 'Diffusion beyond images', seeds: 'Diffusion models · Multi-agent RL', last: '3 days ago', gaps: 1, probs: 3, status: 'Active' }
+        ]
+      },
+      epicsMeta: [
+        { id: 'thesis', name: 'Thesis topic search', desc: 'Find a novel, timely MSc dissertation topic by summer.', last: '2 days ago' },
+        { id: 'lab', name: 'Lab roadmap 2027', desc: 'Directions the group could take on next year.', last: '5 days ago' },
+        { id: 'reading', name: 'Reading group', desc: 'Papers and gaps to bring to Thursday sessions.', last: '3 days ago' }
+      ]
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const meta = s.epicsMeta;
+    const cur = meta.filter((e) => e.id === s.epic)[0];
+    const list = s.threads[s.epic] || [];
+    const tone = { Active: ['#E3F4E9', '#14532D', '#E3F4E9'], Paused: ['#ECECE7', '#3F444D', '#ECECE7'], New: ['#FFFFFF', '#15171C', '#D1D1CB'] };
+    const threads = list.map((t) => ({ name: t.name, seeds: t.seeds, last: t.last, gaps: t.gaps, probs: t.probs, status: t.status, sbg: tone[t.status][0], sfg: tone[t.status][1], sbd: tone[t.status][2] }));
+    const sum = (k) => list.reduce((a, t) => a + t[k], 0);
+
+    const SUGS = {
+      thesis: [
+        { id: 's1', name: 'Diffusion models for continual learning', a: 'Diffusion models', b: 'Continual learning', p: '0.44', why: 'You opened Diffusion models 9 times and saved 2 gaps that involve Continual learning.' },
+        { id: 's2', name: 'Flow matching meets offline RL', a: 'Flow matching', b: 'Offline RL', p: '0.41', why: 'Grows out of “Generative models for molecules”: Offline RL sits next to 3 papers you saved there.' }
+      ],
+      lab: [
+        { id: 's3', name: 'Federated preference learning', a: 'Federated learning', b: 'RLHF', p: '0.38', why: 'Both concepts appear in your two threads here but have never been mapped together.' }
+      ],
+      reading: []
+    };
+    const canSuggest = s.tracking && !s.cleared;
+    const sugsAll = (SUGS[s.epic] || []).filter((g) => !s.dismissed[g.id] && !s.started[g.id]);
+    const sugs = canSuggest ? sugsAll.map((g) => ({
+      name: g.name, a: g.a, b: g.b, p: g.p, why: g.why,
+      start: () => {
+        const th = Object.assign({}, this.state.threads);
+        th[this.state.epic] = [{ name: g.name, seeds: g.a + ' · ' + g.b, last: 'Just now', gaps: 0, probs: 0, status: 'New' }].concat(th[this.state.epic] || []);
+        const st = Object.assign({}, this.state.started); st[g.id] = true;
+        this.setState({ threads: th, started: st });
+      },
+      dismiss: () => { const d = Object.assign({}, this.state.dismissed); d[g.id] = true; this.setState({ dismissed: d }); }
+    })) : [];
+    let noSugText = 'No suggestions right now. Explore a few concepts and they will appear here.';
+    if (!s.tracking) noSugText = 'Suggestions are off. Turn on “Use my activity for suggestions” on the right to see them.';
+    else if (s.cleared) noSugText = 'Activity cleared. Suggestions will return after you explore a few concepts.';
+
+    const pickMode = (m) => () => this.setState({ mode: m, draftError: false });
+    const seg = (on) => ({ bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#15171C' : '#5B606B', sh: on ? '0 1px 2px rgba(20,20,20,0.12)' : 'none' });
+
+    const hasActivity = s.tracking && !s.cleared && (s.epic === 'thesis' || s.epic === 'lab');
+    return {
+      epics: meta.map((e) => {
+        const n = (s.threads[e.id] || []).length;
+        const on = e.id === s.epic;
+        return { name: e.name, meta: n + (n === 1 ? ' thread' : ' threads') + ' · ' + e.last, sel: on, bg: on ? '#ECECE7' : 'transparent', w: on ? 600 : 500, pick: () => this.setState({ epic: e.id, draftError: false }) };
+      }),
+      newEpic: () => {
+        const k = this.state.extraEpics + 1;
+        const id = 'new' + k;
+        const th = Object.assign({}, this.state.threads); th[id] = [];
+        this.setState({ extraEpics: k, epic: id, threads: th, epicsMeta: this.state.epicsMeta.concat([{ id: id, name: 'Untitled epic ' + k, desc: 'Name this epic after the goal its threads serve.', last: 'just now' }]) });
+      },
+      epic: cur,
+      epicStats: [
+        { label: 'Threads', v: String(list.length), bl: 'none' },
+        { label: 'Saved gaps', v: String(sum('gaps')), bl: '1px solid #E6E6E1' },
+        { label: 'Open problems collected', v: String(sum('probs')), bl: '1px solid #E6E6E1' },
+        { label: 'Last active', v: list.length ? list[0].last : '–', bl: '1px solid #E6E6E1' }
+      ],
+      modes: [['topic', 'Topic'], ['paper', 'From my paper']].map((m) => Object.assign({ label: m[1], on: s.mode === m[0], pick: pickMode(m[0]) }, seg(s.mode === m[0]))),
+      topicMode: s.mode === 'topic', paperMode: s.mode === 'paper',
+      inLabel: s.mode === 'topic' ? 'What do you want to explore?' : 'Your abstract',
+      draft: s.draft, onDraft: (e) => this.setState({ draft: e.target.value, draftError: false }), draftError: s.draftError,
+      create: () => {
+        const text = this.state.draft.trim();
+        if (!text) { this.setState({ draftError: true }); return; }
+        const name = this.state.mode === 'paper' ? 'From my paper: ' + text.split(/\s+/).slice(0, 5).join(' ') + '…' : text.charAt(0).toUpperCase() + text.slice(1);
+        const th = Object.assign({}, this.state.threads);
+        th[this.state.epic] = [{ name: name, seeds: 'Seed concepts found when the map opens', last: 'Just now', gaps: 0, probs: 0, status: 'New' }].concat(th[this.state.epic] || []);
+        this.setState({ threads: th, draft: '' });
+      },
+      threads: threads, noThreads: threads.length === 0,
+      sugs: sugs, hasSugs: sugs.length > 0, noSugs: sugs.length === 0, noSugText: noSugText,
+      tracking: s.tracking, toggleTracking: () => this.setState({ tracking: !this.state.tracking }),
+      hasActivity: hasActivity, noActivity: !hasActivity,
+      noActivityText: !s.tracking ? 'Activity is not used while this is off. Your threads are unchanged.' : (s.cleared ? 'Activity cleared.' : 'No activity in this epic yet.'),
+      visits: [['Diffusion models', 9], ['Flow matching', 7], ['Continual learning', 5], ['RLHF', 4], ['Molecular property prediction', 3]].map((v) => ({ label: v[0], n: v[1], w: Math.round((v[1] / 9) * 100) })),
+      searches: [{ t: 'flow matching chemistry', when: '2 days ago' }, { t: 'reward model interpretability', when: '1 week ago' }, { t: 'catastrophic forgetting diffusion', when: '1 week ago' }],
+      saved: [{ a: 'Flow matching', b: 'Molecular property prediction', p: '0.71' }, { a: 'Diffusion models', b: 'Continual learning', p: '0.44' }, { a: 'Mechanistic interpretability', b: 'RLHF', p: '0.68' }],
+      clearActivity: () => this.setState({ cleared: true })
+    };
+  }
+}
+</script>
+
+
+</body></html>
