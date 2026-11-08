@@ -35,7 +35,7 @@ const HOME = new THREE.Vector3(0, -105, 75);
 const TARGET = new THREE.Vector3(0, 0, 0);
 const TOP_DOWN = new THREE.Vector3(0, -1, 130);
 const FRONT_ON = new THREE.Vector3(0, -130, 6);
-const HELP = "Drag to orbit, scroll or pinch to zoom, right-drag to pan. Use Top and Front to orient the map, then click a node for details.";
+const HELP = "Drag to orbit around the centre, scroll or pinch to zoom, then click a node for details. Use Top and Front to orient the map.";
 type CameraView = "top" | "front" | "overview";
 
 function growthBucket(g: number | null): number {
@@ -147,7 +147,10 @@ export function MapCanvas3D({
       sums.set(c.area, s);
     });
     const areas = [...sums].map(([name, s]) => ({ name, v: new THREE.Vector3(s.x / s.n, s.y / s.n, s.z / s.n) }));
-    return { n, pos, size, color, bucket, indexById, labelOrder, areas };
+    const center = new THREE.Vector3();
+    for (let i = 0; i < n; i += 1) center.add(new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]));
+    if (n > 0) center.multiplyScalar(1 / n);
+    return { n, pos, size, color, bucket, indexById, labelOrder, areas, center };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [concepts, theme]);
 
@@ -188,11 +191,11 @@ export function MapCanvas3D({
     controls.target.copy(TARGET);
     controls.enableDamping = !reduced;
     controls.dampingFactor = 0.12;
-    controls.screenSpacePanning = true;
+    controls.enablePan = false;
     controls.minDistance = 8;
     controls.maxDistance = 400;
     controls.zoomSpeed = 0.9;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
     controls.update();
 
     // Labels pool and rings, built once.
@@ -469,24 +472,27 @@ export function MapCanvas3D({
     };
     const resetView = () => {
       flight = null;
-      camera.position.copy(HOME);
-      controls.target.copy(TARGET);
+      const center = live.current.data.center;
+      camera.position.copy(center).add(HOME);
+      controls.target.copy(center);
       controls.update();
       requestRender();
     };
     const setCameraView = (view: CameraView) => {
       if (view === "overview") { resetView(); return; }
+      const center = live.current.data.center;
       const direction = (view === "top" ? TOP_DOWN : FRONT_ON).clone().normalize();
-      const distance = Math.max(controls.minDistance, Math.min(controls.maxDistance, camera.position.distanceTo(controls.target)));
+      const distance = Math.max(controls.minDistance, Math.min(controls.maxDistance, camera.position.distanceTo(center)));
       const toO = direction.multiplyScalar(distance);
       if (reduced) {
         flight = null;
-        camera.position.copy(controls.target).add(toO);
+        controls.target.copy(center);
+        camera.position.copy(center).add(toO);
         controls.update();
         requestRender();
         return;
       }
-      flight = { t0: performance.now(), dur: 260, fromT: controls.target.clone(), toT: controls.target.clone(), fromO: camera.position.clone().sub(controls.target), toO };
+      flight = { t0: performance.now(), dur: 260, fromT: controls.target.clone(), toT: center.clone(), fromO: camera.position.clone().sub(controls.target), toO };
       requestRender();
     };
 
@@ -531,6 +537,7 @@ export function MapCanvas3D({
       }
       hoverRef.current = -1;
       projDirty = true;
+      resetView();
       requestRender();
     };
     const setLines = () => {
@@ -572,9 +579,10 @@ export function MapCanvas3D({
     const flyTo = (index: number, instant: boolean) => {
       const d = live.current.data;
       if (index < 0 || index >= d.n) return;
-      const toT = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]);
+      const toT = d.center.clone();
       const fromO = camera.position.clone().sub(controls.target);
-      const toO = fromO.clone().setLength(Math.max(controls.minDistance, Math.min(fromO.length(), 70)));
+      const relative = new THREE.Vector3(d.pos[index * 3], d.pos[index * 3 + 1], d.pos[index * 3 + 2]).sub(toT);
+      const toO = new THREE.Vector3(-relative.x, -relative.y, Math.max(18, relative.z + 28)).normalize().multiplyScalar(Math.max(controls.minDistance, Math.min(fromO.length(), 90)));
       if (instant || reduced) {
         flight = null;
         controls.target.copy(toT);
@@ -670,7 +678,7 @@ export function MapCanvas3D({
         tabIndex={0}
         role="region"
         title={HELP}
-        aria-label="3D concept map. Drag to orbit, scroll or pinch to zoom, right-drag to pan. Use Top, Front, or Overview camera controls. Arrow keys rotate, plus and minus zoom, zero resets."
+        aria-label="3D concept map. Drag to orbit around the centre, scroll or pinch to zoom. Use Top, Front, or Overview camera controls. Arrow keys rotate, plus and minus zoom, zero resets."
       >
         {unsupported ? (
           <div className="ws3d__unsupported" role="status">This browser cannot display the 3D research map.</div>
@@ -687,7 +695,7 @@ export function MapCanvas3D({
               <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>
               <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out" title="Zoom out (-)">{"−"}</button>
             </div>
-            <p className="ws3d__guide">Drag to orbit · Scroll to zoom · Right-drag to pan · Click a node to inspect it</p>
+            <p className="ws3d__guide">Drag to orbit · Scroll to zoom · Click a node to inspect it</p>
             {!concepts.length && <div className="ws3d__unsupported ws3d__empty" role="status">No concepts match the current filters.</div>}
             {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not recover, refresh the page.</div>}
             {hoverText && <div className="ws3d__hover" aria-hidden="true">{hoverText}</div>}
