@@ -1,5 +1,16 @@
 # Whitespace
 
+[![Live site](https://img.shields.io/badge/live-whitespace--hacktheburgh--26.vercel.app-2952E3?logo=vercel&logoColor=white)](https://whitespace-hacktheburgh-26.vercel.app)
+[![CI](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml)
+[![Pipeline tests](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml)
+[![Deploy production](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-149ECA?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Data: OpenAlex](https://img.shields.io/badge/data-OpenAlex-F4A300)
+![HackTheBurgh XIII](https://img.shields.io/badge/HackTheBurgh-XIII-15171C)
+
 **See where AI research is going, and the questions nobody has answered yet.**
 
 **Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)**
