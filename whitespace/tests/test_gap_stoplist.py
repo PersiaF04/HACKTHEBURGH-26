@@ -74,7 +74,8 @@ def test_export_states_the_stoplist_in_gaps_and_meta_and_validates(dry, tmp_path
     out = tmp_path / "on"
     run = E.load_run(dry)
     trained, _ = E.train_production(run, "through-2020")
-    built = E.build_real_files(run, trained, list(range(2015, 2021)), **EXPORT_KW)
+    E.ensure_caches(run, [2019, 2020], None)
+    built = E.build_real_files(run, trained, [2019, 2020], **EXPORT_KW)
     rec = built["gaps.json"]["stoplist"]
     assert rec["phrases"] == sorted(GENERIC_PHRASES) and rec["applied"] is True
     assert built["meta.json"]["production_forecast"]["stoplist"] == rec
@@ -88,7 +89,8 @@ def test_export_states_the_stoplist_in_gaps_and_meta_and_validates(dry, tmp_path
 def test_no_stoplist_flag_restores_old_output_and_nothing_else_changes(dry, tmp_path):
     run = E.load_run(dry)
     trained, _ = E.train_production(run, "through-2020")
-    years = list(range(2015, 2021))
+    years = [2019, 2020]
+    E.ensure_caches(run, years, None)
     on = E.build_real_files(run, trained, years, **EXPORT_KW)
     off = E.build_real_files(run, trained, years, stoplist=None, **EXPORT_KW)
     assert "stoplist" not in off["gaps.json"]
