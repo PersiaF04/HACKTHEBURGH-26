@@ -1,128 +1,122 @@
-# Whitespace
+<h1 align="center">Whitespace</h1>
 
-[![Live site](https://img.shields.io/badge/live-whitespace--hacktheburgh--26.vercel.app-2952E3?logo=vercel&logoColor=white)](https://whitespace-hacktheburgh-26.vercel.app)
-[![CI](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml)
-[![Pipeline tests](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml)
-[![Deploy production](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml/badge.svg)](https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-149ECA?logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
-![Data: OpenAlex](https://img.shields.io/badge/data-OpenAlex-F4A300)
-![HackTheBurgh XIII](https://img.shields.io/badge/HackTheBurgh-XIII-15171C)
+<p align="center">See where AI research is going, and the questions nobody has answered yet.</p>
 
-**See where AI research is going, and the questions nobody has answered yet.**
+<p align="center"><a href="https://whitespace-hacktheburgh-26.vercel.app">Explore the live site</a></p>
 
-**Live site: [whitespace-hacktheburgh-26.vercel.app](https://whitespace-hacktheburgh-26.vercel.app)** (placeholder data until the real export lands)
+<p align="center">
+  <a href="https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml"><img alt="Pipeline tests" src="https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/whitespace.yml/badge.svg"></a>
+  <a href="https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml"><img alt="Deploy" src="https://github.com/PersiaF04/HACKTHEBURGH-26/actions/workflows/deploy.yml/badge.svg"></a>
+  <img alt="HackTheBurgh XIII" src="https://img.shields.io/badge/HackTheBurgh-XIII-15171C">
+</p>
 
-Whitespace is a research-discovery tool for AI research. It builds a concept graph from OpenAlex works whose primary subfield is Artificial Intelligence (subfield 1702), 2010-2023, follows how it changes year by year, and ranks the concept pairs that aren't linked yet by how likely they are to become linked within three years. Alongside the forecast it shows where published work has no linked code in the Papers with Code archive. Mining the open problems authors state is planned, not built.
+Whitespace is a research-discovery tool for AI literature. It turns OpenAlex works whose primary subfield is Artificial Intelligence (subfield 1702) into a changing concept graph, then ranks unlinked concept pairs by their likelihood of co-occurring within three years. It also shows where papers have linked code in the Papers with Code archive.
 
 Built at HackTheBurgh XIII for the HRT and G-Research tracks.
 
-> **Status:** the real run has been scored once (2020 test year, see [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122)), but the export is not merged yet, so the site still shows placeholder data, labelled as such on every page. The forecast is evaluated once on a held-out test year, and the result is published whichever way it falls.
-
 ![Whitespace research map](docs/images/research-map.png)
 
-## Who it's for
+*Research map screenshot; the live site currently uses labelled placeholder data.*
 
-| User | Need |
-| --- | --- |
-| PhD and MSc students | Choose a novel, timely thesis topic |
-| Researchers | Spot emerging directions and avoid saturated ones |
-| Lab leads and supervisors | Decide which directions to pursue or recommend |
+**Contents:** [Problem](#the-problem) · [What it does](#what-it-does) · [Results](#results) · [How it works](#how-it-works) · [Tracks](#tracks) · [Tech stack](#tech-stack) · [Run locally](#run-locally) · [Deployment](#deployment) · [Data and limitations](#data-and-limitations) · [Team](#team) · [Licence](#licence)
+
+## The problem
+
+Research moves faster than people can read it. Search finds work that already exists, but does not rank combinations that have not yet become connected in published literature. Authors' open problems are scattered across papers, and paper-to-code links are incomplete and difficult to compare.
 
 ## What it does
 
-- **Explore:** a research map of the latest snapshot year. Concepts are sized by paper count and coloured by growth. Open a concept to see its trend, predicted gaps and top papers. Search and the open-problems view are placeholders for now.
-- **Gaps:** unlinked concept pairs ranked by the Platt-scaled link probability (calibration is imperfect: see Evidence) that they link within three years, with score components and supporting papers.
-- **Evidence** (at `/evidence`): the backtest. Average precision, precision@k, calibration and base rate against every declared baseline, plus hits and misses.
-- **Code coverage** (at `/coverage`): a concept × year heatmap of how many papers have code linked in the Papers with Code archive. Click a cell to list the papers without a link.
+- **Research map:** explore the latest snapshot as a 3D concept map. Concepts are sized by paper count and coloured by growth; selecting one reveals its trend, predicted gaps and supporting papers. The map has no time slider.
+- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Search and Open problems are MVP features that are currently placeholders.
+- **Evidence:** review the one-shot backtest, baselines, calibration, base rate, and hits and misses at [`/evidence`](https://whitespace-hacktheburgh-26.vercel.app/evidence).
+- **Code coverage:** explore the concept-by-year archive coverage and papers without a linked record at [`/coverage`](https://whitespace-hacktheburgh-26.vercel.app/coverage).
 
-### Screens
+The header navigation has three tabs: Research map, Gap finder and Open problems. Evidence and Code coverage are available through footer links and the direct URLs above.
 
-These screenshots of the live site show placeholder data; they will be replaced once the real export is live.
+## Results
 
-| Gaps and open problems | Evidence | Code coverage |
-| --- | --- | --- |
-| ![Gaps and open problems](docs/images/gaps.png) | ![Evidence](docs/images/evidence.png) | ![Code coverage](docs/images/coverage.png) |
+The real backtest was scored once at the 2020 test origin (outcomes 2021–2023) on frozen commit `93448d2`. The aggregate result below is the pre-registered comparison against the baseline selected on the 2017 calibration origin; it does not mean the model beats the stronger structural baselines within strata. See [issue #122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122) for the result and its review correction.
 
-## The two tracks
+| Measure | Result |
+| --- | --- |
+| Average precision (all strata; 3,943,852 eligible pairs, 1,108,392 positives; base rate 0.281) | Model 0.6876; `current_weight` baseline 0.5984; difference +0.0892 (95% concept-block bootstrap interval [0.0845, 0.0945]) |
+| Precision@100 | Model 1.00; baseline 0.66; difference +0.34 (wide interval [0.11, 0.62]); indicative only, since other baselines reach 0.91–1.00 |
+| ROC AUC (all strata) | Model 0.867; baseline 0.818 |
+| Calibration | Imperfect: ECE 0.143, Brier skill 0.186; top-decile prediction 0.53 versus 0.78 observed |
+| Papers with linked code in the archive | 43,581 of 731,511 works (5.96%); only 139,613 have an arXiv ID, so this archive-based rate is a lower bound |
 
-The track framings below are the team's own wording; the official prompts aren't confirmed.
-
-- **HRT track: which research gap to pursue.** The probabilities come from a purged temporal backtest: the model is fit on origins through 2014, calibrated on 2017 and tested once on 2020, with outcomes in 2021–2023, so no outcome window leaks into a later split. The pre-registered headline is the model's average precision minus the best baseline's (the baseline is chosen on 2017, never on the test year), with a 95% bootstrap interval. The verdict is "beats the baseline" only if the whole interval is above zero.
-- **G-Research track: making the invisible visible.** The map shows where research is moving, and the coverage view shows where published work has no linked code. Mining limitations and future work from abstracts is planned.
+The aggregate AP gain is partly driven by the strata mix: within each starting-weight stratum, the model is below the five structural baselines (common neighbours, Adamic–Adar, Jaccard, degree product and preferential attachment) on AP and AUC. The baseline is near chance within strata (AUC about 0.50). P@100 is not distinctive. Concept vocabulary uses deterministic phrases without embeddings; concept quality is unmeasured. The Papers with Code 100-row hand-check frame is unlabelled, so no hand-check result is reported.
 
 ## How it works
 
-1. **Ingest:** OpenAlex works in AI (subfield 1702), downloaded in checkpointed windows with a manifest.
-2. **Concepts:** phrases extracted per snapshot year, so a year never uses vocabulary from the future.
-3. **Graph:** two concepts are linked once they co-occur in at least three papers.
-4. **Model:** pair features from each snapshot and a link model, calibrated on a separate origin.
-5. **Evaluation:** a purged backtest on every eligible pair, not sampled negatives, against declared baselines.
-6. **Code coverage:** papers joined locally to the Papers with Code archive, with no API calls.
-7. **Export:** static JSON files for the site, with placeholder and synthetic flags, a route map and a validator.
+1. **Ingest:** collect OpenAlex works in AI (subfield 1702) and keep a checkpointed manifest.
+2. **Build concepts:** extract phrases per snapshot year, without using later vocabulary.
+3. **Build the graph:** link two concepts when they co-occur in at least three papers.
+4. **Rank gaps:** score eligible pairs from snapshot features and a link model.
+5. **Evaluate:** score the full eligible pair population in a purged temporal backtest against declared baselines.
+6. **Measure code coverage:** join papers locally to the Papers with Code archive; no API calls are made by the site.
+7. **Export:** write static JSON artifacts with route, placeholder and synthetic-data flags, then validate them.
 
-The site is a static app: every result is precomputed, so the demo makes no live external calls while it's being judged.
+The site is a static app. Results are precomputed, so the demo makes no live external calls.
+
+## Tracks
+
+These are the team's framings; the official prompts have not been confirmed.
+
+- **HRT:** help researchers decide which research gap to pursue, with the backtest and its limitations visible.
+- **G-Research:** make research directions and recorded code coverage easier to see. The archive view indicates linked code, not whether code exists elsewhere.
 
 ## Tech stack
 
-- **Pipeline:** Python 3.11, with offline tests.
-- **Frontend:** Vite, React, TypeScript, IBM Plex.
-- **Hosting:** Vercel, deployed automatically from `main` by GitHub Actions.
-
-## Repository layout
-
-| Path | Contents |
-| --- | --- |
-| `whitespace/pipeline/` | Ingest, concepts, graphs, labels, baselines, model, backtest, metrics, code layer and exporters |
-| `whitespace/tests/` | Offline tests, plus a labelled synthetic sample export |
-| `whitespace/web/` | Frontend; exported data goes in `public/data/` |
-| `docs/` | Demo script, judge Q&A, submission checklist, team coordination |
-| `docs/BACKLOG.md` | Deferred and removed items (not built) |
-| `.github/workflows/` | CI (Markdown lint, web build, pipeline tests) and the production deploy |
-| `PRD.md` | Product requirements and evaluation protocol |
+- **Pipeline:** Python 3.11
+- **Frontend:** Vite, React, TypeScript and IBM Plex
+- **Hosting:** Vercel, deployed from `main` by GitHub Actions
 
 ## Run locally
 
-Pipeline tests, from the repository root:
+From the repository root, install the pipeline requirements and run its offline tests:
 
 ```sh
 python -m pip install -r whitespace/requirements.txt
 python -m pytest -q whitespace
 ```
 
-Frontend, with Node.js 22:
+With Node.js 22, install and run the frontend:
 
 ```sh
 npm --prefix whitespace/web ci
-npm --prefix whitespace/web run dev      # development server
-npm --prefix whitespace/web run build    # type-check and build
+npm --prefix whitespace/web run dev
 ```
 
-With no files in `whitespace/web/public/data/`, the frontend uses its bundled placeholder fixtures. Copy an export there to see it rendered.
+To type-check and build it:
+
+```sh
+npm --prefix whitespace/web run build
+```
+
+Without files in `whitespace/web/public/data/`, the frontend uses bundled placeholder fixtures. Copy an export there to view it.
 
 ## Deployment
 
-Every merge to `main` that changes `whitespace/web/` deploys production through [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). The job runs only on `main`, uses a Vercel token held in the protected `production` environment, and never runs on pull requests. You can also start it from *Actions → Deploy production → Run workflow*. Deep links work because `whitespace/web/vercel.json` rewrites every route to the app.
+Changes to `whitespace/web/` merged to `main` deploy production through [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). The job runs only on `main`, uses a Vercel token in the protected `production` environment, and does not run on pull requests. It can also be started from *Actions → Deploy production → Run workflow*. Deep links work because `whitespace/web/vercel.json` rewrites routes to the app.
 
 ## Data and limitations
 
-- **Papers:** [OpenAlex](https://openalex.org) metadata (CC0). Raw abstracts aren't committed or published.
-- **Code links:** the [Papers with Code archive](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code) (CC BY-SA 4.0, snapshot of 28 July 2025). Coverage is a lower bound: a paper without a link has no code in that archive, not necessarily no code at all. Papers after mid-2025 will look unlinked.
-- **Links:** a "link" means co-occurrence in at least three papers. It measures attention, not importance or truth.
-- **Prior art:** forecasting concept pairs isn't new; see, for example, Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881). ERLA (IC Hack 26) is a related project; this is based only on its Devpost entry and repository, not on a detailed comparison. Whitespace's contribution is the purged out-of-sample evaluation (residual: topic assignments are a post-October-2026 snapshot) and turning the forecast into a decision tool.
+- **Papers:** [OpenAlex](https://openalex.org) metadata (CC0). Raw abstracts are not committed or published. The topic filter uses OpenAlex topic assignments made after October 2026, so they are not as known at each historical origin.
+- **Code links:** the [Papers with Code archive](https://huggingface.co/datasets/pwc-archive/links-between-paper-and-code), CC BY-SA 4.0, snapshot of 28 July 2025. Coverage is a lower bound: a missing link means the archive has no link, not that no code exists. Papers after mid-2025 will look unlinked. The 100-row hand-check frame remains unlabelled; join precision and archive recall are not established.
+- **Link definition:** a link means co-occurrence in at least three papers. This measures attention, not importance or truth.
+- **Forecast:** the held-out result comes from one 2020 test origin. The production forecast has no held-out test of its own; the published aggregate comparison is against `current_weight`, selected on 2017. Within each starting-weight stratum the model is below the five structural baselines on AP and AUC.
+- **Prior art:** forecasting concept pairs is not new; see Krenn et al., [arXiv:2210.00881](https://arxiv.org/abs/2210.00881). ERLA (IC Hack 26) is related. This comparison is based only on its [Devpost entry](https://devpost.com/software/magi-2bhmze) and [repository](https://github.com/e24z/ic_hack_26), not a detailed comparison. Whitespace's contribution is the purged out-of-sample evaluation (with the residual that topic assignments are a post-October-2026 snapshot) and turning the forecast into a decision tool.
 
 ## Team
 
-- **Persia** ([@PersiaF04](https://github.com/PersiaF04)): product owner.
-- **Varshil:** frontend and design.
-- **sanamorii:** pipeline, model and evaluation.
+- **Persia** ([@PersiaF04](https://github.com/PersiaF04)): product owner
+- **Varshil:** frontend and design
+- **sanamorii:** pipeline, model and evaluation
 
 The team builds with AI coding agents: Claude Code agents implement issues and Codex agents review pull requests, under the team's decisions on scope and merging. See [`AGENTS.md`](AGENTS.md) and [`TEAMWORK.md`](TEAMWORK.md) for how work is organised.
 
 ## Licence
 
-The code is released under the [MIT License](LICENSE).
-
-The data sources keep their own licences, which the MIT licence does not cover: OpenAlex metadata is CC0, and the coverage data derived from the Papers with Code archive is CC BY-SA 4.0.
+The code is released under the [MIT License](LICENSE). Data sources keep their own licences, which the MIT licence does not cover: OpenAlex metadata is CC0, and coverage data derived from the Papers with Code archive is CC BY-SA 4.0.
