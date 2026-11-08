@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, MOCK_META } from "./api";
-import type { BacktestResponse, CoverageResponse, GapDetailResponse, GapListResponse, MapResponse, MetaResponse, OpenProblemResponse, SearchResponse } from "./api";
+import type { GapDetailResponse, GapListResponse, MapResponse, MetaResponse, SearchResponse } from "./api";
 import { Explore } from "./pages/Explore";
 import { GapsPage } from "./pages/Gaps";
-import { OpenProblemsPage } from "./pages/OpenProblemsPage";
-import EvidencePage from "./pages/Evidence";
-import { CoveragePage } from "./pages/CoveragePage";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
-import { PaperLink } from "./components/PaperLink";
 import { SkeletonBlock, SkeletonText } from "./components/Skeleton";
-import { fmtText, fmtYear } from "./lib/format";
+import { fmtYear } from "./lib/format";
 
 const PLACEHOLDER_TIP = "Placeholder data: this build shows fixtures, not results";
 const REAL_TIP = "Real export: OpenAlex AI subfield 1702";
@@ -25,26 +21,23 @@ function PageSkeleton({ label }: { label: string }) {
   );
 }
 
-// Routes stay mounted; only the first two are linked in the header.
+// Evidence and Coverage temporarily unmounted at Varshil's request; restore the two routes and the footer links.
+// Their page components, api.ts functions and css are kept. Hidden paths redirect to the matching visible page.
 const sections = [
   ["/", "Research map"],
   ["/gaps", "Gaps & open problems"],
-  ["/open-problems", "Gaps & open problems"],
-  ["/evidence", "Evidence"],
-  ["/coverage", "Code coverage"],
 ] as const;
-const navTabs = [["/", "Research map"], ["/gaps", "Gaps & open problems"]] as const;
+const navTabs = sections;
+const REDIRECTS: Record<string, string> = { "/evidence": "/", "/coverage": "/", "/open-problems": "/gaps" };
 
 function currentPath() {
-  return window.location.pathname;
+  const redirect = REDIRECTS[window.location.pathname.replace(/\/+$/, "") || "/"];
+  if (redirect) window.history.replaceState({}, "", redirect);
+  return redirect ?? (window.location.pathname.replace(/\/+$/, "") || "/");
 }
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
-  const [retry, setRetry] = useState(0);
-  const [problemConcept, setProblemConcept] = useState("");
-  const [problemType, setProblemType] = useState<"all" | "future_work" | "limitation" | "open_problem">("all");
-  const [selectedCoverageCell, setSelectedCoverageCell] = useState<{ conceptId: string; year: number } | null>(null);
   const year = useWhitespaceStore((state) => state.year);
   const selectedConcepts = useWhitespaceStore((state) => state.selectedConcepts);
   const setYear = useWhitespaceStore((state) => state.setYear);
@@ -52,9 +45,6 @@ export default function App() {
   const [meta, setMeta] = useState<MetaResponse>(MOCK_META);
   const [map, setMap] = useState<MapResponse | null>(null);
   const [gaps, setGaps] = useState<GapListResponse | null>(null);
-  const [openProblems, setOpenProblems] = useState<OpenProblemResponse | null>(null);
-  const [backtest, setBacktest] = useState<BacktestResponse | null>(null);
-  const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [error, setError] = useState<string>();
   const active = sections.find(([route]) => route === path) ?? sections[0];
@@ -86,15 +76,6 @@ export default function App() {
         } else if (path === "/gaps") {
           const value = await api.gaps({ limit: 50 });
           if (current) setGaps(value);
-        } else if (path === "/open-problems") {
-          const value = await api.openProblems(problemConcept, problemType === "all" ? "" : problemType);
-          if (current) setOpenProblems(value);
-        } else if (path === "/evidence") {
-          const value = await api.backtest();
-          if (current) setBacktest(value);
-        } else if (path === "/coverage") {
-          const value = await api.coverage(year);
-          if (current) setCoverage(value);
         }
         if (current) setStatus("ready");
       } catch (reason) {
@@ -106,29 +87,22 @@ export default function App() {
     };
     void load();
     return () => { current = false; };
-  }, [path, year, retry, problemConcept, problemType]);
+  }, [path, year]);
 
   const selectedConceptId = selectedConcepts[0] ?? null;
-  const isPlaceholder = path === "/" ? map?.placeholder ?? true
-    : path === "/gaps" ? gaps?.placeholder ?? true
-      : path === "/open-problems" ? openProblems?.placeholder ?? true
-        : path === "/coverage" ? coverage?.placeholder ?? true
-          : backtest?.placeholder ?? true;
-  const yearRange = meta.year_range ?? { min: 2015, max: 2026 };
+  const isPlaceholder = path === "/" ? map?.placeholder ?? true : gaps?.placeholder ?? true;
 
   // Start inside the exported years: the corpus may end before the default year.
   useEffect(() => {
     const range = meta.year_range;
     if (range && (year < range.min || year > range.max)) setYear(range.max);
   }, [meta.year_range]); // only when the data's year range changes, not on every year change
-  const retryPage = () => setRetry((value) => value + 1);
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
 
   const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
   const badgeTip = isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
-  const fullBleed = path === "/" || path === "/gaps" || path === "/open-problems";
-  const tabActive = (route: string) => route === "/" ? path === "/" : path === "/gaps" || path === "/open-problems";
+  const tabActive = (route: string) => route === path;
 
   return (
     <div className="app-shell">
@@ -146,34 +120,13 @@ export default function App() {
         </nav>
         <span className="data-badge" tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
       </header>
-      <main id="main-content" className={fullBleed ? "main-content" : "main-content main-content--padded"}>
-          {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} yearRange={yearRange} selectedConceptId={selectedConceptId} onYearChange={setYear} onSelectConcept={selectConcept} onSearch={search} />}
+      <main id="main-content" className="main-content">
+          {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} selectedConceptId={selectedConceptId} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <PageSkeleton label="Loading research map…" />}
           {path === "/gaps" && status === "loading" && !gaps && <PageSkeleton label="Loading gap finder…" />}
           {path === "/gaps" && gaps && <GapsPage response={gaps} loadDetail={loadGap} loading={status === "loading"} error={status === "error" ? error : null} />}
-          {path === "/open-problems" && <OpenProblemsPage response={openProblems} selectedConcept={problemConcept} onConceptChange={setProblemConcept} selectedType={problemType} onTypeChange={setProblemType} status={status} errorMessage={error} onRetry={retryPage} />}
-          {path === "/evidence" && <EvidencePage response={backtest} status={status} errorMessage={error} />}
-          {path === "/coverage" && <>
-            <CoveragePage response={coverage} selectedYear={year} onYearChange={setYear} onSelectCell={(cell) => {
-              setSelectedCoverageCell({ conceptId: cell.concept_id, year: cell.year });
-            }} status={status} errorMessage={error} onRetry={retryPage} />
-            {selectedCoverageCell && (() => {
-              const concept = coverage?.concepts.find((item) => item.id === selectedCoverageCell.conceptId);
-              const cell = concept?.cells.find((item) => item.year === selectedCoverageCell.year);
-              return <section className="coverage-selection" aria-live="polite" aria-labelledby="coverage-selection-title">
-                <h2 id="coverage-selection-title">Papers without a linked code record</h2>
-                <p>{fmtText(concept?.label)} - {fmtYear(selectedCoverageCell.year)}. A missing archive link does not mean an implementation does not exist.</p>
-                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><PaperLink paper={paper} /></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
-              </section>;
-            })()}
-          </>}
             {status === "error" && <p className="app-error" role="alert">{error}</p>}
       </main>
-      <footer className="app-footer">
-        <span>More:</span>
-        <a href="/evidence" aria-current={path === "/evidence" ? "page" : undefined} onClick={(event) => navigate(event, "/evidence")}>Evidence</a>
-        <a href="/coverage" aria-current={path === "/coverage" ? "page" : undefined} onClick={(event) => navigate(event, "/coverage")}>Code coverage</a>
-      </footer>
     </div>
   );
 }

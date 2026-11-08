@@ -373,7 +373,7 @@ export function MapCanvas3D({
     window.addEventListener("resize", resize);
 
     // Picking: nearest projected node within its pixel radius (no raycast, no per-frame work).
-    const hit = (clientX: number, clientY: number): number => {
+    const hit = (clientX: number, clientY: number, slop = 0): number => {
       if (projDirty) { camera.updateMatrixWorld(); project(); }
       const rect = canvas.getBoundingClientRect();
       const px = clientX - rect.left, py = clientY - rect.top;
@@ -382,7 +382,7 @@ export function MapCanvas3D({
       for (let i = 0; i < n; i += 1) {
         const depth = screen[i * 3 + 2];
         if (depth <= 0) continue;
-        const reach = Math.max(9, pxSize(i, depth) / 2 + 3);
+        const reach = Math.max(9 + slop, pxSize(i, depth) / 2 + 3 + slop);
         const dx = screen[i * 3] - px;
         if (dx > reach || dx < -reach) continue;
         const dy = screen[i * 3 + 1] - py;
@@ -395,15 +395,20 @@ export function MapCanvas3D({
       return best;
     };
 
+    // A second finger (pinch) or any drag never counts as a tap; touch taps get a larger hit radius.
     let down: { x: number; y: number; moved: boolean } | null = null;
+    const pointers = new Set<number>();
     const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY, moved: false };
+      pointers.add(e.pointerId);
+      const wasMulti = pointers.size > 1;
+      down = { x: e.clientX, y: e.clientY, moved: wasMulti };
       flight = null; // the user takes over from any camera flight
       if (hoverRef.current >= 0) { hoverRef.current = -1; canvas.style.cursor = ""; setHoverText(""); requestRender(); }
     };
     const onMove = (e: PointerEvent) => {
       if (down) {
-        if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 4) down.moved = true;
+        if (pointers.size > 1) down.moved = true;
+        else if (Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 4) down.moved = true;
         return;
       }
       const i = hit(e.clientX, e.clientY);
@@ -416,13 +421,14 @@ export function MapCanvas3D({
     };
     const onUp = (e: PointerEvent) => {
       const d0 = down;
-      down = null;
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) down = null; else if (down) down.moved = true;
       if (d0 && !d0.moved && e.button === 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        const i = hit(e.clientX, e.clientY);
+        const i = hit(e.clientX, e.clientY, e.pointerType === "touch" ? 14 : 0);
         if (i >= 0) live.current.onSelectConcept(live.current.concepts[i].id);
       }
     };
-    const onCancel = () => { down = null; };
+    const onCancel = (e: PointerEvent) => { pointers.delete(e.pointerId); down = null; };
     const onLeave = () => {
       if (hoverRef.current >= 0) { hoverRef.current = -1; setHoverText(""); requestRender(); }
     };

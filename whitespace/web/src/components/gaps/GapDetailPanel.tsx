@@ -54,7 +54,7 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
       <div className="gx-detail__head">
         <span className="gx-eyebrow">Gap detail</span>
         <h2 className="gx-detail__title gx-detail__title--idle">Select a gap to see why it ranks</h2>
-        <p className="gx-detail__status">{empty ? "Pick a row in the table once ranked gaps are loaded." : "Pick a row in the table to open its evidence here."}</p>
+        <p className="gx-detail__status">{empty ? "Pick a row in the table once ranked gaps are loaded." : "Nothing is selected. Start with the first row in the table, which has the highest gap score, to open its evidence here."}</p>
       </div>
       <section className="gx-sec">
         <h3 className="gx-h3">What you will see</h3>

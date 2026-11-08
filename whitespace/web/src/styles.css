@@ -51,10 +51,6 @@ html, body, #root { width: 100%; min-height: 100vh; }
 
 .data-badge { position: relative; cursor: help; }
 .data-badge[data-tip]:hover::after, .data-badge[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; width: max-content; max-width: min(300px, 80vw); padding: 8px 10px; border-radius: 6px; background: var(--ws-ink); color: #fff; font: 400 12px/1.4 var(--ws-sans); white-space: normal; text-align: left; }
-.app-footer { flex: none; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; padding: 6px 20px; border-top: 1px solid var(--ws-border); background: var(--ws-surface); color: var(--ws-muted); font-size: 12px; }
-.app-footer a { color: var(--ws-ink-2); text-decoration: none; }
-.app-footer a:hover { text-decoration: underline; }
-.app-footer a[aria-current="page"] { font-weight: 600; color: var(--ws-ink); }
 .page-skeleton { display: grid; gap: 14px; align-content: start; padding: 24px 32px; }
 
 /* Page area fills everything below the header; pages own their columns. */
@@ -74,12 +70,14 @@ h1, h2, h3 { font-family: var(--ws-sans); letter-spacing: -.01em; color: var(--w
 .coverage-selection ul { display: grid; gap: 8px; padding-left: 20px; }
 .coverage-selection a { color: var(--ws-accent); }
 .app-error { border-color: var(--ws-error); color: var(--ws-error); }
-@media (max-width: 760px) {
+@media (max-width: 1100px) {
+  /* Stacked layouts scroll the page; release the fixed-height shell. */
   .app-shell { height: auto; min-height: 100vh; overflow: visible; }
   .main-content { overflow: visible; }
+}
+@media (max-width: 760px) {
   .main-content--padded { padding: 20px 16px 36px; }
   .topbar { padding: 8px 16px; }
-  .app-footer { padding: 8px 16px; }
   .page-skeleton { padding: 20px 16px; }
   .topbar-spacer { display: none; }
   .data-badge { margin-left: auto; }

@@ -104,8 +104,8 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     return counted.length ? counted.reduce((s, o) => s + (o.paper_count as number), 0) : null;
   }, [options, concepts]);
 
-  // The selected gap defaults to the top of the current list and follows the filters.
-  const selected = rows.find((r) => gapKey(r.gap) === selectedId) ?? rows[0] ?? null;
+  // Nothing is selected until the reader picks a row; a filtered-out pick clears itself.
+  const selected = rows.find((r) => gapKey(r.gap) === selectedId) ?? null;
   const selGap = selected?.gap ?? null;
   const selKey = selGap ? gapKey(selGap) : null;
 

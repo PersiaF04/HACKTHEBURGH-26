@@ -18,7 +18,8 @@
 @media (max-width: 1100px) {
   .ex { flex-direction: column; height: auto; overflow: visible; }
   .ex__left, .ex__right { flex: none; width: auto; overflow: visible; border: 0; }
-  .ex__left { border-bottom: 1px solid var(--ws-border); }
+  .ex__centre { order: 1; } .ex__right { order: 2; } .ex__left { order: 3; }
+  .ex__left { border-top: 1px solid var(--ws-border); }
   .ex__right { border-top: 1px solid var(--ws-border); }
   .ex__centre { flex: none; overflow: visible; }
   .ex__loading { min-height: 240px; }
