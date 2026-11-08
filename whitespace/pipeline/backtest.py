@@ -36,6 +36,26 @@ log = logging.getLogger(__name__)
 
 # Pre-registered headline: fixed in code before any test origin is scored.
 HEADLINE = {"metric": "average_precision", "stratum": "all", "also": "precision_at_100"}
+
+# One convention for what a run is, shared by the runner, the run script and every exporter.
+# Only an explicit "real" run (no generator) may produce numbers presented as results.
+DATA_LABELS = ("real", "synthetic", "unlabelled")
+
+
+def check_data_label(label: str) -> str:
+    if label not in DATA_LABELS:
+        raise ValueError(f"data_label must be one of {DATA_LABELS}, got {label!r}")
+    return label
+
+
+def is_real_run(manifest_or_label) -> bool:
+    """True only for ``data_label == "real"`` and no synthetic generator in the manifest."""
+    if isinstance(manifest_or_label, str):
+        return manifest_or_label == "real"
+    try:
+        return manifest_or_label.get("data_label") == "real" and not manifest_or_label.get("generator")
+    except AttributeError:
+        return False
 STRATA = ("0", "1", "2", "all")
 
 
@@ -206,14 +226,26 @@ def evaluate_origin(works, trained, config, origin, best_baseline: str) -> dict:
     perm = np.random.default_rng(config.seed + 1000 + origin).permutation(len(y))
     pairs_p = PairSet(pairs.names, pairs.i[perm], pairs.j[perm], pairs.weight[perm])
     y, d, prob = y[perm], d[perm], prob[perm]
-    systems = {"model": d, **{k: v[perm] for k, v in ctx.scores.items()}}
+    # The product shows the calibrated probability sigmoid(a*d + b), so every model ranking metric
+    # uses its logit a*d + b. This differs from the raw decision d when the fitted slope is
+    # negative (the deployed ranking is then reversed); it is monotone in the probability but does
+    # not saturate to ties the way the probability itself can.
+    slope, intercept = float(trained.platt.a), float(trained.platt.b)
+    z = slope * d + intercept
+    systems = {"model": z, **{k: v[perm] for k, v in ctx.scores.items()}}
     result = {
         "eligible_universe": len(pairs),
         "subsampled": False,
         "strata_base_rates": strata(pairs_p, y),
-        "model": _by_stratum(d, y, pairs_p.weight, config.ks),
+        "model_rank_basis": "calibrated logit a*d+b (the ordering of the deployed probability)",
+        "platt_slope": slope,
+        "model": _by_stratum(z, y, pairs_p.weight, config.ks),
         "baselines": {k: _by_stratum(v, y, pairs_p.weight, config.ks) for k, v in systems.items() if k != "model"},
     }
+    if slope <= 0:
+        result["warning"] = ("non-positive Platt slope: the model ranks pairs against the calibration origin's "
+                             "labels, so the deployed (calibrated) ranking is reversed or flat; the metrics shown "
+                             "describe that deployed ranking, not the raw model score")
     try:
         cal = M.calibration(prob, y, 10)
         result["calibration"] = {
@@ -226,7 +258,7 @@ def evaluate_origin(works, trained, config, origin, best_baseline: str) -> dict:
     try:
         boot = {
             name: M.grouped_bootstrap_diff(
-                y, d, systems[best_baseline], pairs_p.i, metric=fn,
+                y, z, systems[best_baseline], pairs_p.i, metric=fn,
                 n_boot=config.n_boot, seed=config.seed,
             )
             for name, fn in (("average_precision", _ap), ("precision_at_100", _p100))
@@ -265,7 +297,7 @@ def run_backtest(
     *,
     guard: OneShotGuard | None = None,
     override_one_shot: bool = False,
-    data_label: str = "unspecified",
+    data_label: str = "unlabelled",
     generator: dict | None = None,
 ) -> dict:
     """Run the purged backtest and return the ``metrics`` dict (see whitespace/README.md)."""
@@ -282,7 +314,7 @@ def run_backtest(
             "config_hash": key, "seed": config.seed, "config": asdict(config),
             "fit_origins": list(config.fit_origins), "calibration_origins": list(config.calibration_origins),
             "test_origins": list(config.test_origins), "n_works": len(works),
-            "link_threshold": LINK_THRESHOLD, "data_label": data_label,
+            "link_threshold": LINK_THRESHOLD, "data_label": check_data_label(data_label),
             "generator": generator, "generator_size": (generator or {}).get("n_works"),
         },
         "one_shot_override_used": overridden,

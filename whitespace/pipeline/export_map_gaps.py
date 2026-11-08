@@ -30,6 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .backtest import DATA_LABELS, is_real_run
 from .common import LINK_THRESHOLD, MIN_PAPERS, Work, normalise_arxiv_id, snapshot_end
 from .graphs import PairSet, Snapshot, build_snapshot, vocabulary
 
@@ -356,7 +357,11 @@ def headline_from_backtest(backtest: dict | None) -> dict:
     out: dict = dict.fromkeys(HEADLINE_KEYS)
     if not backtest or not isinstance(backtest.get("test"), dict):
         return out
-    out["backtest_data_label"] = backtest.get("manifest", {}).get("data_label")
+    manifest = backtest.get("manifest")
+    label = manifest.get("data_label") if isinstance(manifest, dict) else None
+    out["backtest_data_label"] = label if label in DATA_LABELS else "unlabelled"
+    if not is_real_run(manifest):  # synthetic, unlabelled, dry-run or missing manifest: numbers stay null
+        return out
     for origin in sorted(backtest["test"], key=int, reverse=True):
         head = backtest["test"][origin].get("headline", {})
         diff = head.get("paired_difference")
@@ -409,6 +414,7 @@ def build_export(
     files["concepts.json"] = {
         n: build_concept(final_visible, final, n, ctx["names"], ctx["adj"]) for n in names
     }
+    headline = headline_from_backtest(backtest)
     files["meta.json"] = {
         "placeholder": False,
         "year_range": {"min": years[0], "max": final},
@@ -417,14 +423,15 @@ def build_export(
             "predicted_edges_final_year": len(files[f"map-{final}.json"]["edges"]),
             "ranked_gaps": len(gaps["items"]),
         },
-        "headline_metrics": headline_from_backtest(backtest),
+        "headline_metrics": headline,
         "gap_score": {
             "formula_used": gaps["formula_used"], "formula_full": GAP_FORMULA_FULL,
             "omitted_components": gaps["omitted_components"], "note": GAP_NOTE,
         },
         "layout": {"method": "truncated SVD of positive-PMI co-occurrence matrix", "layout_year": final,
                    "note": LAYOUT_NOTE},
-        "backtest_available": bool(backtest),
+        "backtest_available": bool(backtest) and is_real_run(backtest.get("manifest")),
+        "backtest_data_label": headline["backtest_data_label"],
     }
     return clean(files)
 
