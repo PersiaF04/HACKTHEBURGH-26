@@ -41,6 +41,8 @@ export default function App() {
   const [error, setError] = useState<string>();
   const active = sections.find(([route]) => route === path) ?? sections[0];
 
+  useEffect(() => { document.title = `${active[1]} · Whitespace`; }, [active]);
+
   const navigate = useCallback((event: React.MouseEvent<HTMLAnchorElement>, route: string) => {
     event.preventDefault();
     window.history.pushState({}, "", route);
@@ -115,24 +117,22 @@ export default function App() {
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="topbar">
         <a className="brand" href="/" onClick={(event) => navigate(event, "/")} aria-label="Whitespace home">
-          <span className="brand-mark" aria-hidden="true">W</span><span>Whitespace</span>
+          <span className="brand-mark" aria-hidden="true" /><span>Whitespace</span>
         </a>
-        <p className="topbar-note">Research directions, with evidence</p>
-      </header>
-      <div className="workspace">
-        <nav className="side-nav" aria-label="Main navigation">
+        <nav className="view-tabs" aria-label="Main navigation">
           {sections.map(([route, label]) => (
             <a key={route} href={route} aria-current={path === route ? "page" : undefined} onClick={(event) => navigate(event, route)}>{label}</a>
           ))}
         </nav>
+        <span className={isPlaceholder ? "data-badge data-badge--placeholder" : "data-badge"}>
+          {isPlaceholder ? "Placeholder data, not results" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${meta.year_range.min}–${meta.year_range.max}` : ""}`}
+        </span>
+      </header>
+      <div className="workspace">
         <main id="main-content" className="main-content">
           <div className="page-heading">
-            <div>
-              <p className="eyebrow">AI research landscape{meta.placeholder ? " - placeholder data" : meta.year_range?.min && meta.year_range?.max ? ` - ${meta.year_range.min} to ${meta.year_range.max}` : ""}</p>
-              <h1>{active[1]}</h1>
-              {meta.titles_available === false && meta.titles_note && <p className="topbar-note">Note: {meta.titles_note}.</p>}
-            </div>
-            <span className="offline-pill">Offline demo</span>
+            <h1>{active[1]}</h1>
+            {meta.titles_available === false && meta.titles_note && <p className="topbar-note">Note: {meta.titles_note}.</p>}
           </div>
           {isPlaceholder && <div className="placeholder-banner" role="status"><strong>Placeholder data</strong><span>{MOCK_NOTICE}</span></div>}
           {noDataForYear && <p className="placeholder-banner" role="status"><strong>No data for {year}</strong><span>{meta.year_range ? `The exported data covers ${meta.year_range.min} to ${meta.year_range.max}. Later years are absent, not zero.` : "No file was exported for this year."}</span></p>}
