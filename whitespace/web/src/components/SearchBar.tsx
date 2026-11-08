@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent } from "react";
 import type { ConceptSummary, SearchResponse } from "../api";
 import "./explore.css";
 
@@ -41,102 +41,66 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts }: Se
   const uid = useId();
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
-  const [results, setSearchResults] = useState<SearchResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [abstract, setAbstract] = useState("");
   const [matches, setMatches] = useState<Match[] | null>(null);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = query.trim();
-    if (!value || busy) return;
+  const needle = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!needle || !concepts) return [];
+    return concepts
+      .filter((c) => c.label.toLowerCase().includes(needle))
+      .sort((a, b) => Number(b.label.toLowerCase().startsWith(needle)) - Number(a.label.toLowerCase().startsWith(needle)) || (b.paper_count ?? 0) - (a.paper_count ?? 0))
+      .slice(0, 6);
+  }, [needle, concepts]);
 
-    setBusy(true);
-    setError(null);
-    try {
-      const response = await onSearch(value);
-      setSearchResults(response);
-      onResults(response);
-    } catch {
-      setError("Search is unavailable. Try again in a moment.");
-      setSearchResults(null);
-    } finally {
-      setBusy(false);
-    }
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!needle) return;
+    if (results.length > 0) onSelectConcept(results[0].id);
+    else onSearch(needle).then(onResults).catch(() => undefined);
   }
 
   function findNearest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!abstract.trim() || !concepts) return;
-    setMatches(nearestByTermOverlap(abstract, concepts));
+    setMatches(nearestByTermOverlap(abstract, concepts, 4));
   }
 
   return (
-    <div className="whitespace-search">
+    <section className="whitespace-search" aria-label="Search">
       <div className="whitespace-seg" role="group" aria-label="Search mode">
-        <button type="button" aria-pressed={mode === "search"} onClick={() => setMode("search")}>
-          Find a concept or paper
-        </button>
-        <button type="button" aria-pressed={mode === "paper"} onClick={() => setMode("paper")}>
-          From my paper
-        </button>
+        <button type="button" aria-pressed={mode === "search"} onClick={() => setMode("search")}>Search</button>
+        <button type="button" aria-pressed={mode === "paper"} onClick={() => setMode("paper")}>From my paper</button>
       </div>
 
       {mode === "search" && (
-        <>
-          <form className="whitespace-search__form" onSubmit={submit} role="search">
-            <label htmlFor={`${uid}-q`}>Find a concept or paper</label>
-            <div className="whitespace-search__controls">
-              <input
-                id={`${uid}-q`}
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.currentTarget.value)}
-                placeholder="Try a research topic or paper title"
-                autoComplete="off"
-              />
-              <button type="submit" disabled={busy || !query.trim()}>
-                {busy ? "Searching…" : "Search"}
-              </button>
-            </div>
-          </form>
-          <div className="whitespace-search__results" aria-live="polite" aria-busy={busy}>
-            {error && <p className="whitespace-search__error" role="alert">{error}</p>}
-            {results && results.concepts.length === 0 && results.papers.length === 0 && (
-              <p className="whitespace-search__message">No matching papers or concepts were returned.</p>
-            )}
-            {results && results.concepts.length > 0 && (
-              <div>
-                <h3>Concepts</h3>
-                <ul className="whitespace-search__list">
-                  {results.concepts.map((concept) => (
-                    <li key={concept.id}>
-                      <button type="button" onClick={() => onSelectConcept(concept.id)}>{concept.label}</button>
-                      {typeof concept.paper_count === "number" && (
-                        <span className="whitespace-mono"> {concept.paper_count.toLocaleString()}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {results && results.papers.length > 0 && (
-              <div>
-                <h3>Papers</h3>
-                <ul className="whitespace-search__list">
-                  {results.papers.map((paper) => (
-                    <li key={paper.id}>
-                      <a href={paper.url} target="_blank" rel="noreferrer">
-                        {paper.title} <span>({paper.year})</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        <form className="whitespace-search__form" onSubmit={submit} role="search">
+          <label htmlFor={`${uid}-q`}>Find a concept or paper</label>
+          <div className="whitespace-search__field">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="#5B606B" strokeWidth="1.6" /><line x1="11" y1="11" x2="14.5" y2="14.5" stroke="#5B606B" strokeWidth="1.6" strokeLinecap="round" /></svg>
+            <input
+              id={`${uid}-q`}
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              placeholder="e.g. diffusion, offline RL"
+              autoComplete="off"
+            />
           </div>
-        </>
+          {results.length > 0 && (
+            <ul className="whitespace-search__results">
+              {results.map((c) => (
+                <li key={c.id}>
+                  <button type="button" onClick={() => onSelectConcept(c.id)}>
+                    <span>{c.label}</span>
+                    {typeof c.paper_count === "number" && <span className="whitespace-mono">{c.paper_count.toLocaleString("en-GB")}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {needle && results.length === 0 && <p className="whitespace-search__none">No concept matches {"“"}{query.trim()}{"”"}.</p>}
+        </form>
       )}
 
       {mode === "paper" && (
@@ -148,33 +112,26 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts }: Se
             rows={6}
             value={abstract}
             onChange={(event) => setAbstract(event.currentTarget.value)}
-            aria-describedby={`${uid}-note`}
+            placeholder="We find its nearest concepts and the unexplored pairs next to them."
           />
-          <p id={`${uid}-note`} className="whitespace-note">
-            Matching runs in your browser by word overlap with concept names. It is not a semantic or embedding
-            match, so treat the order as a rough guide.
-          </p>
           <button type="submit" className="whitespace-primary" disabled={!abstract.trim() || !concepts}>
             Find nearest concepts
           </button>
-          {!concepts && <p className="whitespace-note">Nearest-concept matching is not available: no concept list has loaded.</p>}
-          <div aria-live="polite">
-            {matches && matches.length === 0 && (
-              <p className="whitespace-note">No concept names share words with this abstract.</p>
-            )}
-            {matches && matches.length > 0 && (
-              <ul className="whitespace-search__list whitespace-search__list--plain">
-                {matches.map(({ concept, score }) => (
-                  <li key={concept.id}>
-                    <button type="button" onClick={() => onSelectConcept(concept.id)}>{concept.label}</button>
-                    <span className="whitespace-mono"> {Math.round(score * 100)}% of name words found</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {matches && matches.length === 0 && <p className="whitespace-search__none">No concept names share words with this abstract.</p>}
+          {matches && matches.length > 0 && (
+            <ul className="whitespace-search__nearest">
+              {matches.map(({ concept, score }) => (
+                <li key={concept.id}>
+                  <button type="button" onClick={() => onSelectConcept(concept.id)}>
+                    <span><span>{concept.label}</span><span className="whitespace-mono">match {score.toFixed(2)}</span></span>
+                    <span className="whitespace-search__bar"><span style={{ width: `${Math.round(score * 100)}%` }} /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </form>
       )}
-    </div>
+    </section>
   );
 }

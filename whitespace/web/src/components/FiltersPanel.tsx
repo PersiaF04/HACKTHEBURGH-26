@@ -34,10 +34,10 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
 
   return (
     <div className="whitespace-filters">
-      <section aria-labelledby={`${uid}-areas`} className="whitespace-filters__section">
-        <h2 id={`${uid}-areas`}>Research areas</h2>
-        {areas && areas.length > 0 ? (
-          areas.map((area) => (
+      {areas && areas.length > 0 && (
+        <section aria-labelledby={`${uid}-areas`} className="whitespace-filters__section whitespace-filters__areas">
+          <h2 id={`${uid}-areas`}>Research areas</h2>
+          {areas.map((area) => (
             <label key={area.id} className="whitespace-check">
               <input
                 type="checkbox"
@@ -45,20 +45,18 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
                 onChange={() => onToggleArea?.(area.id)}
               />
               <span>{area.name}</span>
-              {typeof area.count === "number" && <span className="whitespace-mono">{area.count.toLocaleString()}</span>}
+              {typeof area.count === "number" && <span className="whitespace-mono">{area.count.toLocaleString("en-GB")}</span>}
             </label>
-          ))
-        ) : (
-          <p className="whitespace-note">Research areas are not available in this data.</p>
-        )}
-      </section>
+          ))}
+        </section>
+      )}
 
       <section aria-labelledby={`${uid}-filters`} className="whitespace-filters__section">
         <h2 id={`${uid}-filters`}>Filters</h2>
         <div className="whitespace-filters__row">
           <div className="whitespace-filters__label">
             <label htmlFor={`${uid}-min`}>Minimum papers</label>
-            <span className="whitespace-mono">{filters.minPapers.toLocaleString()}</span>
+            <span className="whitespace-mono">{filters.minPapers.toLocaleString("en-GB")}</span>
           </div>
           <input
             id={`${uid}-min`}
@@ -93,8 +91,7 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
           />
           <span>Show predicted links</span>
         </label>
-        <p className="whitespace-note">Linked edges (3 or more shared papers) are not in this data export, so only predicted links can be drawn.</p>
-        <button type="button" className="whitespace-linkbtn" onClick={onReset}>
+        <button type="button" className="whitespace-filters__reset" onClick={onReset}>
           Reset filters
         </button>
       </section>

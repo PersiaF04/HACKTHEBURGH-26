@@ -8,8 +8,8 @@ type ConceptPanelProps = {
   detail: ConceptResponse | null | undefined;
   /** Gaps involving this concept; undefined while loading. */
   gaps: GapSummary[] | undefined;
-  /** Whether the data is placeholder data. */
-  placeholder: boolean;
+  /** Whether the data is placeholder data (the header badge is the only signal; unused here). */
+  placeholder?: boolean;
   /** Snapshot year, the last observed year for the chart. */
   year: number;
   /** Called when a linked concept or gap partner is picked. */
@@ -43,7 +43,13 @@ function parseForecast(raw: unknown): ForecastRow[] {
 }
 
 const fmtPct = (v: number) => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`;
-const NA = <span className="whitespace-na">not available</span>;
+const DASH = "—";
+
+function goToGaps(event: React.MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
+  window.history.pushState({}, "", "/gaps");
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 const TYPE_LABEL: Record<string, string> = { future_work: "Future work", limitation: "Limitation", open_problem: "Open problem" };
 
@@ -58,6 +64,7 @@ function PapersPerYear({ counts, forecast }: { counts: { year: number; count: nu
   const H = 80;
   const px = (n: number) => (n / top) * H;
   const label = `Papers per year, ${bars[0].year} to ${bars[bars.length - 1].year}`;
+  const lastYear = bars[bars.length - 1].year;
   return (
     <>
       <div className="whitespace-bars" role="img" aria-label={`${label}.${fc.length ? " Dashed bars are forecasts with an 80% interval." : ""}`}>
@@ -69,7 +76,7 @@ function PapersPerYear({ counts, forecast }: { counts: { year: number; count: nu
                 <div className="whitespace-bars__range" style={{ bottom: px(b.lo), height: Math.max(1, px(b.hi - b.lo)) }} />
               )}
             </div>
-            <span className="whitespace-mono whitespace-bars__year">{bars.length > 14 && b.year % 2 ? "" : String(b.year).slice(-2)}</span>
+            <span className="whitespace-mono whitespace-bars__year">{b.year % 2 === lastYear % 2 || bars.length <= 8 ? `’${String(b.year).slice(-2)}` : ""}</span>
           </div>
         ))}
       </div>
@@ -90,14 +97,8 @@ function PapersPerYear({ counts, forecast }: { counts: { year: number; count: nu
   );
 }
 
-export function ConceptPanel({ concept, detail, gaps, placeholder, year, onSelectConcept, area, firstYear, gapRate, gapsHref }: ConceptPanelProps) {
-  if (!concept) {
-    return (
-      <aside className="whitespace-concept ex__right" aria-label="Concept details">
-        <p className="whitespace-note">Select a concept on the map or from search to see its details.</p>
-      </aside>
-    );
-  }
+export function ConceptPanel({ concept, detail, gaps, year, onSelectConcept, area, firstYear, gapRate }: ConceptPanelProps) {
+  if (!concept) return <aside className="whitespace-concept ex__right" aria-label="Concept details" />;
 
   const counts = (detail?.counts_by_year ?? []).filter((c) => c.year <= year);
   const forecast = parseForecast(detail?.forecast);
@@ -109,94 +110,95 @@ export function ConceptPanel({ concept, detail, gaps, placeholder, year, onSelec
   const papers = detail?.top_papers ?? [];
   const problems = detail?.open_problems ?? [];
   const neighbours = detail?.neighbours ?? [];
+  const areaName = area ?? concept.area ?? detail?.area ?? null;
+  const first = firstYear ?? detail?.first_year ?? null;
+  const rate = gapRate ?? detail?.gap_rate ?? null;
+  const growthClass = concept.growth !== null && concept.growth !== undefined && concept.growth < 0 ? "is-down" : "is-up";
 
   return (
     <aside className="whitespace-concept ex__right" aria-label="Concept details" aria-live="polite">
-      {placeholder && <p className="whitespace-note" role="status">Placeholder data: values below are not measured results.</p>}
-      {detail === undefined && <p className="whitespace-note" role="status">Loading details…</p>}
-      {detail === null && <p className="whitespace-note">No detail entry exists for this concept in the export.</p>}
       <header>
-        {area && <span className="whitespace-concept__area">{area}</span>}
+        {areaName && <span className="whitespace-concept__area">{areaName}</span>}
         <h2>{concept.label}</h2>
-        {typeof firstYear === "number" && <span className="whitespace-note">First appears {firstYear}</span>}
+        {typeof first === "number" && <span className="whitespace-concept__first">First appears {first}</span>}
       </header>
 
       <dl className="whitespace-concept__stats">
-        <div><dt>Papers</dt><dd>{typeof concept.paper_count === "number" ? concept.paper_count.toLocaleString() : NA}</dd></div>
-        <div><dt>3-yr growth</dt><dd>{concept.growth === null || concept.growth === undefined ? NA : fmtPct(concept.growth)}</dd></div>
-        <div><dt>Stated-gap rate</dt><dd>{typeof gapRate === "number" ? `${Math.round(gapRate * 100)}%` : NA}</dd></div>
+        <div><dt>Papers</dt><dd>{typeof concept.paper_count === "number" ? concept.paper_count.toLocaleString("en-GB") : DASH}</dd></div>
+        <div><dt>3-yr growth</dt><dd className={growthClass}>{concept.growth === null || concept.growth === undefined ? DASH : fmtPct(concept.growth)}</dd></div>
+        <div><dt>Stated-gap rate</dt><dd>{typeof rate === "number" ? `${Math.round(rate * 100)}%` : DASH}</dd></div>
       </dl>
 
-      <section aria-labelledby="wc-ppy">
-        <div className="whitespace-concept__head">
-          <h3 id="wc-ppy">Papers per year</h3>
-          {forecast.length > 0 && <span className="whitespace-note">dashed = forecast, 80% interval</span>}
-        </div>
-        {counts.length > 0 ? <PapersPerYear counts={counts} forecast={forecast} /> : <p className="whitespace-note">Yearly counts are not available.</p>}
-        {counts.length > 0 && forecast.length === 0 && <p className="whitespace-note">No forecast is available for this concept.</p>}
-      </section>
+      {counts.length > 0 && (
+        <section aria-labelledby="wc-ppy">
+          <div className="whitespace-concept__head">
+            <h3 id="wc-ppy">Papers per year</h3>
+            {forecast.length > 0 && <span className="whitespace-concept__sub">dashed = forecast, 80% interval</span>}
+          </div>
+          <PapersPerYear counts={counts} forecast={forecast} />
+        </section>
+      )}
 
-      <section aria-labelledby="wc-gaps">
-        <div className="whitespace-concept__head">
-          <h3 id="wc-gaps">Predicted gaps</h3>
-          {gapsHref && <a href={gapsHref}>All gaps</a>}
-        </div>
-        {myGaps.length > 0 ? (
+      {myGaps.length > 0 && (
+        <section aria-labelledby="wc-gaps">
+          <div className="whitespace-concept__head">
+            <h3 id="wc-gaps">Predicted gaps</h3>
+            <a href="/gaps" onClick={goToGaps}>All gaps {"→"}</a>
+          </div>
           <ul className="whitespace-concept__gaps">
             {myGaps.map(({ g, otherId, other }) => (
               <li key={otherId}>
                 <svg width="18" height="10" viewBox="0 0 18 10" aria-hidden="true"><line x1="1" y1="5" x2="17" y2="5" stroke="currentColor" strokeWidth="2" strokeDasharray="3 2" /></svg>
-                <button type="button" className="whitespace-linkbtn" onClick={() => onSelectConcept(otherId)}>{other}</button>
-                <span className="whitespace-mono">P {g.p_link.toFixed(2)}</span>
+                <button type="button" className="whitespace-concept__gapname" onClick={() => onSelectConcept(otherId)}>{other}</button>
+                <span className="whitespace-concept__p">P {g.p_link.toFixed(2)}</span>
                 {g.p_lo !== null && g.p_hi !== null && (
-                  <span className="whitespace-mono whitespace-note">[{g.p_lo.toFixed(2)}, {g.p_hi.toFixed(2)}]</span>
+                  <span className="whitespace-concept__ci">[{g.p_lo.toFixed(2)}, {g.p_hi.toFixed(2)}]</span>
                 )}
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="whitespace-note">{gaps === undefined ? "Loading predicted gaps…" : gaps.length ? "No predicted gaps listed for this concept." : "No predicted gaps listed for this concept."}</p>
-        )}
-        <p className="whitespace-note">A gap is a pair not yet linked, with fewer than 3 shared papers.</p>
-      </section>
+        </section>
+      )}
 
-      <section aria-labelledby="wc-papers">
-        <h3 id="wc-papers">Most-cited papers</h3>
-        {papers.length > 0 ? (
+      {papers.length > 0 && (
+        <section aria-labelledby="wc-papers">
+          <h3 id="wc-papers">Most-cited papers</h3>
           <ol className="whitespace-concept__papers">
             {papers.slice(0, 5).map((p) => (
               <li key={p.id}>
                 <a href={p.url} target="_blank" rel="noreferrer">{p.title}</a>
-                <span className="whitespace-mono whitespace-note">{p.year}</span>
+                <span>{p.year}</span>
               </li>
             ))}
           </ol>
-        ) : <p className="whitespace-note">Top papers are not available.</p>}
-      </section>
+        </section>
+      )}
 
-      <section aria-labelledby="wc-probs">
-        <h3 id="wc-probs">Stated open problems</h3>
-        {problems.length > 0 ? (
-          problems.slice(0, 3).map((op, i) => (
-            <blockquote key={`${op.paper.id}-${i}`} className="whitespace-concept__problem">
+      {problems.length > 0 && (
+        <section aria-labelledby="wc-probs">
+          <div className="whitespace-concept__head">
+            <h3 id="wc-probs">Stated open problems</h3>
+            <a href="/open-problems" onClick={(event) => { event.preventDefault(); window.history.pushState({}, "", "/open-problems"); window.dispatchEvent(new PopStateEvent("popstate")); }}>All {"→"}</a>
+          </div>
+          {problems.slice(0, 3).map((op, i) => (
+            <blockquote key={`${op.paper.id}-${i}`} className="whitespace-concept__problem" title={op.paper.title}>
               <span className="whitespace-concept__tag">{TYPE_LABEL[op.type] ?? op.type}</span>
               <span>{op.sentence}</span>
-              <a href={op.paper.url} target="_blank" rel="noreferrer" className="whitespace-note">{op.paper.title}</a>
             </blockquote>
-          ))
-        ) : <p className="whitespace-note">Stated open problems are not available.</p>}
-      </section>
+          ))}
+        </section>
+      )}
 
-      <section aria-labelledby="wc-links">
-        <h3 id="wc-links">Linked concepts</h3>
-        {neighbours.length > 0 ? (
+      {neighbours.length > 0 && (
+        <section aria-labelledby="wc-links">
+          <h3 id="wc-links">Linked concepts</h3>
           <div className="whitespace-concept__chips">
             {neighbours.map((n) => (
               <button key={n.id} type="button" onClick={() => onSelectConcept(n.id)}>{n.label}</button>
             ))}
           </div>
-        ) : <p className="whitespace-note">Linked concepts are not in this export.</p>}
-      </section>
+        </section>
+      )}
     </aside>
   );
 }

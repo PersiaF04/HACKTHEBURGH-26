@@ -6,7 +6,6 @@ import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
 import { MapCanvas } from "../components/MapCanvas";
 import { SearchBar } from "../components/SearchBar";
-import { TimeSlider } from "../components/TimeSlider";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
 import "./explore-page.css";
@@ -23,12 +22,14 @@ type ExploreProps = {
 };
 
 const fmt = (value: number) => Math.round(value).toLocaleString("en-GB");
+const DASH = "—";
 
-export function Explore({ map, selectedYear, loading, yearRange, selectedConceptId, onYearChange, onSelectConcept, onSearch }: ExploreProps) {
+export function Explore({ map, selectedYear, loading, selectedConceptId, onSelectConcept, onSearch }: ExploreProps) {
   const [searchFocus, setSearchFocus] = useState<FocusPoint>(null);
   const [searchFocusSet, setSearchFocusSet] = useState(false);
   const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
   const [detail, setDetail] = useState<ConceptResponse | null | undefined>(undefined);
+  const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
 
   const showMap = map.year === selectedYear && !loading;
@@ -59,59 +60,85 @@ export function Explore({ map, selectedYear, loading, yearRange, selectedConcept
   }, [selectedId]);
 
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
+  const areas = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of map.concepts) if (c.area) counts.set(c.area, (counts.get(c.area) ?? 0) + 1);
+    return [...counts].map(([name, count]) => ({ id: name, name, count }));
+  }, [map.concepts]);
   const visible = useMemo(() => map.concepts.filter((concept) => {
+    if (concept.area && offAreas.has(concept.area)) return false;
     if (filters.minPapers > 0 && (concept.paper_count ?? 0) < filters.minPapers) return false;
-    if (filters.growth === "up") return concept.growth !== null && concept.growth >= 0.25;
+    if (filters.growth === "up") return concept.growth !== null && concept.growth > 0;
     if (filters.growth === "down") return concept.growth !== null && concept.growth < 0;
     return true;
-  }), [map.concepts, filters.minPapers, filters.growth]);
+  }), [map.concepts, filters.minPapers, filters.growth, offAreas]);
   const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
   const edges = useMemo(
-    () => (filters.showPredicted ? map.edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)) : []),
-    [map.edges, visibleIds, filters.showPredicted],
+    () => map.edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
+    [map.edges, visibleIds],
+  );
+  const linkedEdges = useMemo(
+    () => (map.linked_edges ?? []).filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
+    [map.linked_edges, visibleIds],
   );
   const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
   const hasCounts = visible.some((c) => typeof c.paper_count === "number");
   const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
+  const hasLinked = (map.linked_edges?.length ?? 0) > 0;
+
+  // The design always shows a concept: start on the one with the most papers.
+  useEffect(() => {
+    if (!showMap || selectedConceptId || map.concepts.length === 0) return;
+    const top = map.concepts.reduce((best, c) => ((c.paper_count ?? 0) > (best.paper_count ?? 0) ? c : best));
+    useWhitespaceStore.setState({ selectedConcepts: [top.id] });
+  }, [showMap, selectedConceptId, map.concepts]);
+
+  const stats: [string, string, boolean?][] = [
+    ["Concepts shown", fmt(visible.length)],
+    ["Links", hasLinked ? fmt(linkedEdges.length) : DASH],
+    ["Papers covered", hasCounts ? fmt(papers) : DASH],
+    ["Predicted from selection", selectedId ? fmt(fromSelection) : DASH, true],
+  ];
 
   return (
     <div className="ex">
       <aside className="ex__left" aria-label="Search and filters">
         <SearchBar onSearch={onSearch} onResults={(r) => { setSearchFocus(r.focus); setSearchFocusSet(true); }} onSelectConcept={selectConcept} concepts={map.concepts} />
-        <section aria-labelledby="ex-areas" className="ex__section">
-          <h2 id="ex-areas" className="ex__h">Research areas</h2>
-          <p className="ex__muted">Not available: this export does not assign concepts to research areas.</p>
-        </section>
-        <FiltersPanel filters={filters} maxPapers={maxPapers} onChange={setFilters} onReset={() => setFilters(DEFAULT_FILTERS)} />
+        <FiltersPanel
+          filters={filters}
+          maxPapers={maxPapers}
+          onChange={setFilters}
+          onReset={() => { setFilters(DEFAULT_FILTERS); setOffAreas(new Set()); }}
+          areas={areas}
+          selectedAreaIds={areas.filter((a) => !offAreas.has(a.id)).map((a) => a.id)}
+          onToggleArea={(id) => setOffAreas((prev) => { const next = new Set(prev); if (!next.delete(id)) next.add(id); return next; })}
+        />
       </aside>
 
       <section className="ex__centre" aria-label="Research map">
         <div className="ex__title">
-          <h2>Research map</h2>
-          <span className="ex__muted">Click a concept for its details</span>
+          <h1>Research map</h1>
+          <span>Click a concept for its details</span>
         </div>
         <dl className="ex-stats" aria-label="Map summary">
-          <div><dt>Concepts shown</dt><dd>{fmt(visible.length)}</dd></div>
-          <div><dt>Predicted links shown</dt><dd>{fmt(edges.length)}</dd></div>
-          <div><dt>Papers covered</dt><dd>{hasCounts ? fmt(papers) : "not available"}</dd></div>
-          <div><dt>Predicted from selection</dt><dd className="ex-stats__accent">{selectedId ? fmt(fromSelection) : "–"}</dd></div>
+          {stats.map(([label, value, accent]) => (
+            <div key={label}><dt>{label}</dt><dd className={accent ? "ex-stats__accent" : undefined}>{value}</dd></div>
+          ))}
         </dl>
-        <div className="ex-time">
-          <TimeSlider year={selectedYear} minYear={yearRange.min} maxYear={yearRange.max} onChange={onYearChange} />
-        </div>
-        {showMap ? (
+        {showMap && !map.no_data ? (
           <MapCanvas
             concepts={visible}
             edges={edges}
+            linkedEdges={linkedEdges}
             selectedConceptId={selectedId}
             focus={searchFocusSet ? searchFocus : map.focus}
-            placeholder={map.placeholder}
+            showPredicted={filters.showPredicted}
             onSelectConcept={selectConcept}
           />
         ) : (
-          <p className="ex__loading" role="status" aria-live="polite">
-            {loading ? `Loading the ${selectedYear} snapshot…` : `The ${selectedYear} snapshot is not available yet.`}
-          </p>
+          <div className="ex__loading" role="status" aria-live="polite">
+            {loading || !showMap ? `Loading ${selectedYear}…` : `No data for ${selectedYear}`}
+          </div>
         )}
       </section>
 
@@ -119,7 +146,6 @@ export function Explore({ map, selectedYear, loading, yearRange, selectedConcept
         concept={selected}
         detail={detail}
         gaps={gaps}
-        placeholder={map.placeholder}
         year={selectedYear}
         onSelectConcept={selectConcept}
       />

@@ -24,6 +24,8 @@ export type ConceptPoint = ConceptSummary & {
   x: number;
   y: number;
   growth: number | null;
+  /** Optional research-area name; the Explore page shows the area list only when concepts carry it. */
+  area?: string;
 };
 export type PredictedEdge = { source: string; target: string; p_link: number };
 export type FocusPoint = { x: number; y: number } | null;
@@ -33,6 +35,8 @@ export type MapResponse = {
   concepts: ConceptPoint[];
   edges: PredictedEdge[];
   focus: FocusPoint;
+  /** Optional observed links (3+ shared papers), when the export has them. */
+  linked_edges?: { source: string; target: string }[];
   /** Static data only: no file exists for this year (for example, after the corpus ends). */
   no_data?: boolean;
 };
@@ -137,6 +141,10 @@ export type ConceptResponse = {
   top_papers: PaperSummary[];
   open_problems: OpenProblem[];
   neighbours: ConceptSummary[];
+  /** Optional extras shown in the concept panel when present. */
+  first_year?: number | null;
+  gap_rate?: number | null;
+  area?: string | null;
 };
 export type GapQuery = { concepts?: string[]; min_p?: number; sort?: string; limit?: number };
 export type GapDetailResponse = GapDetail | null;
