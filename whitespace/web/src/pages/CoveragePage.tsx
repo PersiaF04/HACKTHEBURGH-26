@@ -29,10 +29,8 @@ export function CoveragePage({
     || 'The archive is incomplete and historical; a paper with no linked code here may still have an implementation elsewhere.';
 
   return (
-    <section className="ws-coverage-page" aria-labelledby="ws-coverage-title">
+    <section className="ws-coverage-page" aria-label="Code coverage">
       <header className="ws-coverage-header">
-        <p className="ws-coverage-eyebrow">Research landscape</p>
-        <h2 id="ws-coverage-title">Code coverage</h2>
         <p>Explore the share of papers with a recorded code link by concept and year.</p>
       </header>
 
@@ -58,12 +56,6 @@ export function CoveragePage({
             : 'Licence information not supplied.'}
         </p>
       </section>
-
-      {placeholder && (
-        <p className="ws-coverage-placeholder" role="status">
-          Placeholder data — these values are examples, not measured research results.
-        </p>
-      )}
 
       <div className="ws-coverage-controls">
         <label htmlFor="ws-coverage-year">Focus year</label>
