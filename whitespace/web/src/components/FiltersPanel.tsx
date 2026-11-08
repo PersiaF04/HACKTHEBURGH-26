@@ -21,6 +21,14 @@ type FiltersPanelProps = {
   onToggleArea?: (id: string) => void;
   /** Skeleton state: controls are shown but cannot be used until data loads. */
   disabled?: boolean;
+  /** Graph controls (depth per branch and gaps), shown as their own cards. */
+  graph?: GraphControls;
+};
+
+export type GraphControls = {
+  perBranch: number; onPerBranch: (n: number) => void;
+  showGaps: boolean; onShowGaps: (on: boolean) => void;
+  gapCount: number; onGapCount: (n: number) => void;
 };
 
 const GROWTH: { id: GrowthFilter; label: string }[] = [
@@ -32,7 +40,7 @@ const GROWTH: { id: GrowthFilter; label: string }[] = [
 export const GROWTH_HELP = "Growth is the change in a concept's yearly paper count over the last 3 years. Growing: more papers than 3 years ago. Shrinking: fewer.";
 export const MIN_PAPERS_HELP = "Hide concepts with fewer papers than this in the corpus. Raise it to see only well-established topics.";
 
-export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, selectedAreaIds, onToggleArea, disabled = false }: FiltersPanelProps) {
+export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, selectedAreaIds, onToggleArea, disabled = false, graph }: FiltersPanelProps) {
   const uid = useId();
   const max = Math.max(10, Math.ceil(maxPapers / 10) * 10);
   const step = Math.max(1, Math.round(max / 30));
@@ -60,47 +68,74 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
         </section>
       )}
 
-      <section aria-labelledby={`${uid}-filters`} className="whitespace-filters__section whitespace-filters__signal">
-        <div className="whitespace-filters__heading">
-          <h2 id={`${uid}-filters`}>Refine the signal</h2>
-          <p>Start broad, then reduce noise by scale or momentum.</p>
+      <section className="whitespace-filters__section" aria-labelledby={`${uid}-min-l`}>
+        <div className="whitespace-filters__label">
+          <label id={`${uid}-min-l`} htmlFor={`${uid}-min`} title={MIN_PAPERS_HELP}>Minimum papers</label>
+          <span className="whitespace-mono">{disabled ? "—" : fmtInt(filters.minPapers)}</span>
         </div>
-        <div className="whitespace-filters__row">
-          <div className="whitespace-filters__label">
-            <label htmlFor={`${uid}-min`} title={MIN_PAPERS_HELP}>Minimum papers</label>
-            <span className="whitespace-mono">{disabled ? "—" : fmtInt(filters.minPapers)}</span>
-          </div>
-          <input
-            id={`${uid}-min`}
-            type="range"
-            min={0}
-            max={max}
-            step={step}
-            disabled={disabled}
-            value={Math.min(filters.minPapers, max)}
-            title={MIN_PAPERS_HELP}
-            aria-describedby={`${uid}-min-help`}
-            onChange={(event) => set({ minPapers: Number(event.currentTarget.value) })}
-          />
-          <p className="whitespace-help" id={`${uid}-min-help`}>Hide concepts with fewer papers than this.</p>
+        <input
+          id={`${uid}-min`}
+          type="range"
+          min={0}
+          max={max}
+          step={step}
+          disabled={disabled}
+          value={Math.min(filters.minPapers, max)}
+          title={MIN_PAPERS_HELP}
+          aria-describedby={`${uid}-min-help`}
+          onChange={(event) => set({ minPapers: Number(event.currentTarget.value) })}
+        />
+        <p className="whitespace-help" id={`${uid}-min-help`}>Hide concepts with fewer papers than this.</p>
+      </section>
+
+      <section className="whitespace-filters__section" aria-labelledby={`${uid}-growth`}>
+        <span id={`${uid}-growth`} className="whitespace-filters__title" title={GROWTH_HELP}>Growth</span>
+        <div className="whitespace-seg" role="group" aria-labelledby={`${uid}-growth`} aria-describedby={`${uid}-growth-help`} title={GROWTH_HELP}>
+          {GROWTH.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              disabled={disabled}
+              aria-pressed={filters.growth === option.id}
+              onClick={() => set({ growth: option.id })}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
-        <div className="whitespace-filters__row">
-          <span id={`${uid}-growth`} title={GROWTH_HELP}>Growth</span>
-          <div className="whitespace-seg" role="group" aria-labelledby={`${uid}-growth`} aria-describedby={`${uid}-growth-help`} title={GROWTH_HELP}>
-            {GROWTH.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                disabled={disabled}
-                aria-pressed={filters.growth === option.id}
-                onClick={() => set({ growth: option.id })}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <p className="whitespace-help" id={`${uid}-growth-help`}>Change in papers over the last 3 years.</p>
-        </div>
+        <p className="whitespace-help" id={`${uid}-growth-help`}>Change in papers over the last 3 years.</p>
+      </section>
+
+      {graph && (
+        <>
+          <section className="whitespace-filters__section" aria-labelledby={`${uid}-per`}>
+            <div className="whitespace-filters__label">
+              <label id={`${uid}-per`} htmlFor={`${uid}-per-in`}>Concepts per branch</label>
+              <span className="whitespace-mono">{fmtInt(graph.perBranch)}</span>
+            </div>
+            <input id={`${uid}-per-in`} type="range" min={10} max={1000} step={10} value={graph.perBranch} onChange={(event) => graph.onPerBranch(Number(event.currentTarget.value))} />
+            <p className="whitespace-help">How many of each branch&rsquo;s largest sub-areas to draw.</p>
+          </section>
+
+          <section className="whitespace-filters__section" aria-labelledby={`${uid}-gaps`}>
+            <label className="whitespace-check whitespace-check--switch">
+              <input type="checkbox" checked={graph.showGaps} onChange={(event) => graph.onShowGaps(event.currentTarget.checked)} />
+              <span><strong id={`${uid}-gaps`}>Show gaps and their links</strong><small>Draw the top ranked gaps as bridges between two topics.</small></span>
+            </label>
+            {graph.showGaps && (
+              <>
+                <div className="whitespace-filters__label">
+                  <label htmlFor={`${uid}-gap-n`}>Gaps shown</label>
+                  <span className="whitespace-mono">{graph.gapCount}</span>
+                </div>
+                <input id={`${uid}-gap-n`} type="range" min={3} max={50} step={1} value={graph.gapCount} onChange={(event) => graph.onGapCount(Number(event.currentTarget.value))} />
+              </>
+            )}
+          </section>
+        </>
+      )}
+
+      <section className="whitespace-filters__section">
         <label className="whitespace-check whitespace-check--switch">
           <input
             type="checkbox"
@@ -110,11 +145,12 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
           />
           <span><strong>Predicted links</strong><small>Show the model's possible next connections.</small></span>
         </label>
-        <button type="button" className="whitespace-filters__reset" disabled={disabled} onClick={onReset}>
-          Reset filters
-        </button>
-        {disabled && <p className="whitespace-help">Filters switch on once the pipeline export is loaded.</p>}
       </section>
+
+      <button type="button" className="whitespace-filters__reset" disabled={disabled} onClick={onReset}>
+        Reset filters
+      </button>
+      {disabled && <p className="whitespace-help">Filters switch on once the pipeline export is loaded.</p>}
     </div>
   );
 }
