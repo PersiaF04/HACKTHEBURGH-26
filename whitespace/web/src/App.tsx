@@ -36,14 +36,20 @@ const pages = [
 ] as const;
 const navTabs = pages.slice(0, 3);
 
+let tourAutoOpened = false;
+
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
 }
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
+  // Auto-open only on the home route, and at most once per page session even if storage throws.
   const [onboardingOpen, setOnboardingOpen] = useState(() => {
-    try { return window.localStorage.getItem("ws-onboarding-seen") !== "true"; } catch { return true; }
+    if (currentPath() !== "/" || tourAutoOpened) return false;
+    try { if (window.localStorage.getItem("ws-onboarding-seen") === "true") return false; } catch { /* storage unavailable */ }
+    tourAutoOpened = true;
+    return true;
   });
   const [retry, setRetry] = useState(0);
   const [problemConcept, setProblemConcept] = useState("");
