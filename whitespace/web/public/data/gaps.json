@@ -1607,7 +1607,7 @@
   }
  ],
  "kind": "production_forecast",
- "label": "Production forecast, not the held-out test. A model trained after the held-out test was scored: fit on origins [2010, 2011, 2012, 2013, 2014, 2017] and Platt-calibrated at [2020], which is the test origin, so its outcomes were used for training. This model was never itself held-out tested, and its probabilities are not shown to be better calibrated than the backtest's ranks pairs that have not yet co-occurred 3+ times at the 2023 snapshot, the last year in this export. Their outcomes (2024 to 2026) are not observed, so nothing in this file was evaluated. The held-out result is in backtest.json and describes the backtest model, not this one.",
+ "label": "Production forecast, not the held-out test. A model trained after the held-out test was scored: fit on origins [2010, 2011, 2012, 2013, 2014, 2017] and Platt-calibrated at [2020], which is the test origin, so its outcomes were used for training. This model was never itself held-out tested, and its probabilities are not shown to be better calibrated than the backtest model's. It ranks pairs that have not yet co-occurred 3+ times at the 2023 snapshot, the last year in this export. Their outcomes (2024 to 2026) are not observed, so nothing in this file was evaluated. The held-out result is in backtest.json and describes the backtest model, not this one.",
  "note": "The combined gap score is a ranking heuristic, not a probability. Read the components (p_link, momentum, novelty, ...) next to it.",
  "omitted_components": [
   "cosine (no embeddings yet)",
