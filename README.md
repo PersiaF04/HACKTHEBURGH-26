@@ -27,7 +27,7 @@ Research moves faster than people can read it. Search finds work that already ex
 
 ## What it does
 
-- **Research map:** explore the latest snapshot as a 3D concept map. Concepts are sized by paper count and coloured by growth; selecting one reveals its trend, predicted gaps and supporting papers. The map has no time slider.
+- **Research map:** explore the latest snapshot as a 3D graph. Branch hubs are clusters found in the map layout and named for the words their concepts share; they are derived in the app, not exported by the pipeline. Each branch links to its largest concepts, coloured from red for the biggest to blue for the smallest. An option draws the top-ranked gaps as bridges between the two concepts they join. Selecting a branch, concept or gap opens its details; a concept shows its papers per year, its growth and the gaps it appears in. The summary counts distinct papers in the corpus. The map has no time slider.
 - **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Summary stats count only concepts with positive growth. Search matches concept names only; paper search and author-stated open problems are not in the current export, so those views say so instead of showing data.
 - **Evidence:** at [`/evidence`](https://whitespace-hacktheburgh-26.vercel.app/evidence), a headline card states the pre-registered verdict (aggregate only) with its caveats and a link to issue #122. A technical-detail section holds ranking tables comparing each method's P@100, AP and ROC AUC against the base rate, calibration, and hits and misses. The paper-to-code hand-check is shown as not yet measured.
 - **Code coverage:** explore the concept-by-year archive coverage and papers without a linked record at [`/coverage`](https://whitespace-hacktheburgh-26.vercel.app/coverage). Coverage uses publication years, so its range can differ from the map's snapshot years.
@@ -40,7 +40,7 @@ The header navigation has three tabs: Research map, Gap finder and Open problems
   <img alt="Code coverage page" src="docs/images/coverage.png" width="32%">
 </p>
 
-*Gap finder, Evidence and Code coverage on the live site, real data (snapshots 2021–2023). The gap list is a production forecast whose outcomes are not yet observed.*
+*Gap finder, Evidence and Code coverage on the live site, real data (snapshots 2021–2023). The gap list is a production forecast whose outcomes are not yet observed; read its likelihoods as a ranking, not as calibrated chances.*
 
 ## Results
 
