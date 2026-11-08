@@ -840,14 +840,35 @@ export function MapCanvas3D({
       const fromO = camera.position.clone().sub(controls.target);
       const isHub = live.current.concepts[index]?.kind === "branch";
       const dist = Math.max(controls.minDistance, Math.min(fromO.length(), isHub ? 70 : 45));
-      // Face the node from the centre side (its cluster fans out in front of the camera), tilted for depth.
-      // The move is always a clear swing: if that view is already close to the current one, turn 80 degrees round the node anyway.
-      const outward = toT.clone().sub(d.center);
-      const want = outward.lengthSq() < 1
-        ? fromO.clone()
-        : new THREE.Vector3(-outward.x, -outward.y, 0).normalize().multiplyScalar(1).add(new THREE.Vector3(0, 0, 0.55)).normalize();
+      // Choose the viewing direction that shows this node best: try many directions round it and keep the one with the
+      // fewest dots between the camera and the node (blocking it) and the fewest right behind it (clutter). A clear
+      // swing is still required, so a direction close to the current one is penalised.
       const fromDir = fromO.clone().normalize();
-      if (fromDir.angleTo(want) < 1.0) want.copy(fromDir).applyAxisAngle(new THREE.Vector3(0, 0, 1), 1.4).add(new THREE.Vector3(0, 0, 0.25 - fromDir.z * 0.5)).normalize();
+      const rel = new THREE.Vector3(), u = new THREE.Vector3();
+      let bestScore = Infinity;
+      let want = fromDir.clone();
+      const selSize = d.size[index];
+      for (let el = 0; el < 4; el += 1) {
+        const elev = [0.3, 0.6, 0.95, 1.25][el];
+        for (let az = 0; az < 24; az += 1) {
+          const ang = (az / 24) * Math.PI * 2;
+          u.set(Math.cos(elev) * Math.cos(ang), Math.cos(elev) * Math.sin(ang), Math.sin(elev));
+          let front = 0, behind = 0;
+          for (let j = 0; j < d.n; j += 1) {
+            if (j === index) continue;
+            rel.set(d.pos[j * 3] - toT.x, d.pos[j * 3 + 1] - toT.y, d.pos[j * 3 + 2] - toT.z);
+            const along = rel.dot(u);
+            if (along > dist * 0.95 || along < -dist) continue;
+            const perp = Math.sqrt(Math.max(0, rel.lengthSq() - along * along));
+            const reach = (selSize + d.size[j]) * 0.5 * 1.25 + 0.5;
+            if (along > 0 && perp < reach) front += 1;
+            else if (along <= 0 && perp < reach * 0.8) behind += 0.2;
+          }
+          const turn = u.angleTo(fromDir);
+          const score = front * 4 + behind + (turn < 0.9 ? 6 : 0) + (turn < 0.5 ? 6 : 0) + (1.25 - elev) * 0.2;
+          if (score < bestScore) { bestScore = score; want = u.clone(); }
+        }
+      }
       const toO = want.setLength(dist);
       lockIdx = index;
       lockPrev.copy(toT);
