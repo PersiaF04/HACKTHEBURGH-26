@@ -49,7 +49,7 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Pr
       <header>
         <span className="whitespace-concept__area">Branch</span>
         <h2>{fmtText(branch.label)}</h2>
-        <span className="whitespace-concept__first">A cluster found in the map layout, named by its largest concept. Not exported by the pipeline.</span>
+        <span className="whitespace-concept__first">A cluster found in the map layout, named for the words its concepts share. Derived in the app, not exported by the pipeline.</span>
       </header>
       <dl className="whitespace-concept__stats">
         <div><dt>Concepts</dt><dd>{fmtInt(branch.total)}</dd></div>

@@ -62,6 +62,7 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
   const byBranch: ConceptPoint[][] = Array.from({ length: K }, () => []);
   concepts.forEach((c, i) => byBranch[assign[i]].push(c));
 
+  const areaNames = nameAreas(byBranch);
   const nodes: HNode[] = [];
   const structure: StructureEdge[] = [];
   const hubs: { id: string; x: number; y: number }[] = [];
@@ -71,7 +72,7 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
   byBranch.forEach((members, b) => {
     if (!members.length) return;
     members.sort((p, q) => (q.paper_count ?? 0) - (p.paper_count ?? 0));
-    const name = `${members[0].label} branch`;
+    const name = areaNames[b];
     const core = members.slice(0, perBranch);
     const x = core.reduce((s, m) => s + m.x, 0) / core.length;
     const y = core.reduce((s, m) => s + m.y, 0) / core.length;
@@ -188,4 +189,32 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
     n.x = (a.x + b.x) / 2;
     n.y = (a.y + b.y) / 2;
   }
+}
+
+const STOP = new Set(["the", "a", "an", "of", "and", "or", "for", "to", "in", "on", "with", "by", "at", "from", "is", "are", "be", "that", "this", "as", "it", "its", "via", "using", "based"]);
+
+/**
+ * Name each branch for the area its concepts share, not for its biggest concept: the words that are
+ * common inside the branch and rare in the other branches (term frequency times inverse branch
+ * frequency), the top two joined. Falls back to the largest concept when no word stands out.
+ */
+function nameAreas(groups: ConceptPoint[][]): string[] {
+  const words = (label: string) => [...new Set(label.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w)))];
+  const tf = groups.map((members) => {
+    const m = new Map<string, number>();
+    for (const c of members) for (const w of words(c.label)) m.set(w, (m.get(w) ?? 0) + Math.sqrt(c.paper_count ?? 1));
+    return m;
+  });
+  const inBranches = new Map<string, number>();
+  for (const m of tf) for (const w of m.keys()) inBranches.set(w, (inBranches.get(w) ?? 0) + 1);
+  const used = new Set<string>();
+  return groups.map((members, b) => {
+    const ranked = [...tf[b]].map(([w, f]) => ({ w, score: f * Math.log(1 + groups.length / (inBranches.get(w) ?? 1)) * (members.length ? 1 : 0) }))
+      .filter((x) => !used.has(x.w)).sort((p, q) => q.score - p.score);
+    const picked = ranked.slice(0, 2).map((x) => x.w);
+    picked.forEach((w) => used.add(w));
+    if (!picked.length) return members.reduce((best, c) => ((c.paper_count ?? 0) > (best?.paper_count ?? -1) ? c : best), members[0])?.label ?? "Area";
+    const text = picked.join(" · ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  });
 }
