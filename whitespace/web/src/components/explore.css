@@ -100,3 +100,7 @@
 .whitespace-concept__preview li { padding: 10px 12px; border: 1px dashed var(--ws-border-strong); border-radius: 8px; display: flex; flex-direction: column; gap: 3px; }
 .whitespace-concept__preview p { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ws-muted); }
 .whitespace-concept__ptitle { font-size: 13px; font-weight: 500; line-height: 1.4; }
+
+.whitespace-try h2 { margin: 0 0 10px; font-size: 16px; }
+.whitespace-try ol { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
+.whitespace-try a { color: var(--ws-accent); }

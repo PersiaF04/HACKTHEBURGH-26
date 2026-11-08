@@ -101,7 +101,7 @@ export function OpenProblemsCard({ subtitle, series, items, filter, onFilter, lo
       {loading && <p className="gx-empty" role="status">Loading open problems…</p>}
       {error && <p className="gx-empty" role="alert">{error}</p>}
       {!loading && !error && shown.length === 0 && (
-        <p className="gx-empty">{items.length === 0 ? "No stated open problems were found for this selection." : "No statements of this type for this selection. Choose All to see the rest."}</p>
+        <p className="gx-empty">{items.length === 0 ? "Open problems are not extracted yet; sentences appear once the pipeline mines them." : "No statements of this type for this selection. Choose All to see the rest."}</p>
       )}
       {!loading && !error && shown.length > 0 && (
         <ul className="gx-sents">

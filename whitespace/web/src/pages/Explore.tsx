@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import type { ConceptResponse, GapSummary, MapResponse, SearchResponse, YearRange } from "../api";
+import type { ConceptResponse, GapSummary, MapResponse, SearchResponse } from "../api";
 import { ConceptPanel, ConceptPanelSkeleton } from "../components/ConceptPanel";
 import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
@@ -19,9 +19,7 @@ type ExploreProps = {
   map: MapResponse;
   selectedYear: number;
   loading: boolean;
-  yearRange: YearRange;
   selectedConceptId: string | null;
-  onYearChange: (year: number) => void;
   onSelectConcept: (id: string) => void;
   onSearch: (query: string) => Promise<SearchResponse>;
 };
@@ -100,13 +98,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const hasCounts = visible.some((c) => typeof c.paper_count === "number");
   const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
   const hasLinked = (map.linked_edges?.length ?? 0) > 0;
-
-  // The design always shows a concept: start on the one with the most papers.
-  useEffect(() => {
-    if (!live || selectedConceptId || map.concepts.length === 0) return;
-    const top = map.concepts.reduce((best, c) => ((c.paper_count ?? 0) > (best.paper_count ?? 0) ? c : best));
-    useWhitespaceStore.setState({ selectedConcepts: [top.id] });
-  }, [live, selectedConceptId, map.concepts]);
 
   // Search result with only a map position: bring the nearest concept into view.
   function focusPoint(point: { x: number; y: number } | null) {

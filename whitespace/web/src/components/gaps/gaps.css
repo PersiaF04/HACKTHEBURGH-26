@@ -138,15 +138,16 @@
 .gx-link { font-size: 12px; font-weight: 500; }
 .gx :focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   .gx-rail { flex-basis: 240px; }
   .gx-detail { flex-basis: 320px; }
 }
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .gx { flex-direction: column; height: auto; }
+  .gx-centre { order: 1; } .gx-detail { order: 2; } .gx-rail { order: 3; }
   .gx > * { width: 100%; min-width: 0; }
   .gx-rail, .gx-detail, .gx-centre { flex: none; overflow: visible; border: 0; }
-  .gx-rail { border-bottom: 1px solid var(--ws-border); }
+  .gx-rail { border-top: 1px solid var(--ws-border); }
   .gx-detail { border-top: 1px solid var(--ws-border); }
   .gx-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gx-summary__c:nth-child(3) { border-left: 0; }

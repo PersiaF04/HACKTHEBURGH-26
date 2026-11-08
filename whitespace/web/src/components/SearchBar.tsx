@@ -17,6 +17,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
   const uid = useId();
   const [query, setQuery] = useState("");
   const [papers, setPapers] = useState<SearchResponse["papers"]>([]);
+  const [searchPlaceholder, setSearchPlaceholder] = useState(false);
 
   const needle = query.trim().toLowerCase();
   const results = useMemo(() => {
@@ -32,7 +33,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
     if (!needle || disabled) { setPapers([]); return undefined; }
     let current = true;
     const timer = window.setTimeout(() => {
-      onSearch(needle).then((r) => { if (current) setPapers((r.papers ?? []).slice(0, 4)); }).catch(() => { if (current) setPapers([]); });
+      onSearch(needle).then((r) => { if (current) { setPapers((r.papers ?? []).slice(0, 4)); setSearchPlaceholder(r.placeholder === true); } }).catch(() => { if (current) setPapers([]); });
     }, 250);
     return () => { current = false; window.clearTimeout(timer); };
   }, [needle, disabled, onSearch]);
@@ -86,7 +87,9 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
             ))}
           </ul>
         )}
-        {none && <p className="whitespace-search__none">No concept or paper matches {"“"}{query.trim()}{"”"}.</p>}
+        {none && <p className="whitespace-search__none" role="status">
+          {searchPlaceholder ? "Search is not available yet." : <>No concept names match {"“"}{query.trim()}{"”"}. This searches concept names only.</>}
+        </p>}
       </form>
     </section>
   );

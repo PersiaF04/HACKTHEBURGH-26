@@ -27,92 +27,6 @@
 .whitespace-map__browse { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .whitespace-map__concept-list { list-style: none; margin: 0; padding: 0; }
 
-.whitespace-time-slider {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--ws-border);
-  border-radius: var(--ws-radius-lg);
-  background: var(--ws-surface);
-}
-
-.whitespace-time-slider__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.whitespace-time-slider__selected { font-weight: 600; }
-.whitespace-time-slider__status { color: var(--ws-muted); font-size: 0.82rem; }
-
-.whitespace-time-slider__row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.35rem;
-}
-
-.whitespace-time-slider__row button {
-  flex: none;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
-  border: 1px solid var(--ws-border-strong);
-  border-radius: var(--ws-radius);
-  background: var(--ws-surface);
-  color: var(--ws-ink);
-  font: inherit;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-.whitespace-time-slider__row button:disabled { color: var(--ws-muted); cursor: not-allowed; }
-.whitespace-time-slider__track { flex: 1; min-width: 0; }
-
-.whitespace-time-slider__labels {
-  display: flex;
-  justify-content: space-between;
-  color: var(--ws-muted);
-  font-family: var(--ws-mono);
-  font-size: 0.75rem;
-}
-
-.whitespace-time-slider__input {
-  display: block;
-  width: 100%;
-  height: 6px;
-  margin: 0.9rem 0 0.4rem;
-  border-radius: 3px;
-  appearance: none;
-  accent-color: var(--ws-ink);
-  cursor: pointer;
-}
-
-.whitespace-time-slider__input::-webkit-slider-thumb {
-  width: 20px;
-  height: 20px;
-  border: 3px solid var(--ws-surface);
-  border-radius: 50%;
-  background: var(--ws-ink);
-  box-shadow: 0 0 0 1px var(--ws-ink);
-  appearance: none;
-}
-
-.whitespace-time-slider__input::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 3px solid var(--ws-surface);
-  border-radius: 50%;
-  background: var(--ws-ink);
-  box-shadow: 0 0 0 1px var(--ws-ink);
-}
-
-.whitespace-time-slider__help {
-  margin: 0.2rem 0 0;
-  color: var(--ws-muted);
-  font-size: 0.82rem;
-}
-
 .whitespace-visually-hidden {
   position: absolute;
   width: 1px;
@@ -132,8 +46,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .whitespace-map *,
-  .whitespace-time-slider * {
+  .whitespace-map * {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
