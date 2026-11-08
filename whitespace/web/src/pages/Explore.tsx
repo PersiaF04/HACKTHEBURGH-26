@@ -77,7 +77,7 @@ export function Explore({ map, selectedYear, loading, yearRange, selectedConcept
   return (
     <div className="ex">
       <aside className="ex__left" aria-label="Search and filters">
-        <SearchBar onSearch={onSearch} onResults={(r) => { setSearchFocus(r.focus); setSearchFocusSet(true); }} onSelectConcept={selectConcept} />
+        <SearchBar onSearch={onSearch} onResults={(r) => { setSearchFocus(r.focus); setSearchFocusSet(true); }} onSelectConcept={selectConcept} concepts={map.concepts} />
         <section aria-labelledby="ex-areas" className="ex__section">
           <h2 id="ex-areas" className="ex__h">Research areas</h2>
           <p className="ex__muted">Not available: this export does not assign concepts to research areas.</p>
