@@ -197,7 +197,7 @@ export function MapCanvas3D({
       const b = growthBucket(c.growth);
       bucket[i] = b;
       if (c.kind === "branch") size[i] = 3.8;
-      else if (c.kind === "hypothesis") size[i] = 1.5;
+      else if (c.kind === "hypothesis") size[i] = 2.4;
       const hue = c.kind === "branch" ? themeHues.ink : c.kind === "hypothesis" ? themeHues.accent : palette[b];
       tmp.set(hue).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;

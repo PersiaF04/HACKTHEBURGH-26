@@ -11,7 +11,11 @@ export type NodeKind = "branch" | "concept" | "hypothesis";
 export type StructureKind = "split" | "member" | "hypothesis";
 export type StructureEdge = { source: string; target: string; kind: StructureKind };
 export type HNode = ConceptPoint & { kind: NodeKind };
-export type Hierarchy = { nodes: HNode[]; structure: StructureEdge[]; branches: number };
+export type BranchInfo = { id: string; label: string; total: number; papers: number; growth: number | null; shown: ConceptPoint[]; hypotheses: GapSummary[] };
+export type Hierarchy = {
+  nodes: HNode[]; structure: StructureEdge[]; branches: number;
+  branchInfo: Map<string, BranchInfo>; hypothesisInfo: Map<string, GapSummary>;
+};
 
 const K = 7;
 const MEMBERS_PER_BRANCH = 24;
@@ -52,7 +56,7 @@ function kmeans(points: ConceptPoint[], k: number): number[] {
 }
 
 export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hierarchy {
-  if (concepts.length < K * 2) return { nodes: concepts.map((c) => ({ ...c, kind: "concept" as const })), structure: [], branches: 0 };
+  if (concepts.length < K * 2) return { nodes: concepts.map((c) => ({ ...c, kind: "concept" as const })), structure: [], branches: 0, branchInfo: new Map(), hypothesisInfo: new Map() };
   const inGap = new Set(gaps.flatMap((g) => [g.a, g.b]));
   const assign = kmeans(concepts, K);
   const byBranch: ConceptPoint[][] = Array.from({ length: K }, () => []);
@@ -61,6 +65,9 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hi
   const nodes: HNode[] = [];
   const structure: StructureEdge[] = [];
   const hubs: { id: string; x: number; y: number }[] = [];
+  const branchInfo = new Map<string, BranchInfo>();
+  const conceptBranch = new Map<string, string>();
+  const hypothesisInfo = new Map<string, GapSummary>();
   byBranch.forEach((members, b) => {
     if (!members.length) return;
     members.sort((p, q) => (q.paper_count ?? 0) - (p.paper_count ?? 0));
@@ -76,7 +83,8 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hi
     hubs.push({ id, x, y });
     // Only each branch's largest concepts (and any concept in a ranked gap) are drawn, so the tree stays readable.
     const drawn = members.filter((m, i) => i < MEMBERS_PER_BRANCH || inGap.has(m.id));
-    for (const m of drawn) nodes.push({ ...m, kind: "concept" });
+    branchInfo.set(id, { id, label: name, total: members.length, papers: total, growth, shown: drawn, hypotheses: [] });
+    for (const m of drawn) { nodes.push({ ...m, kind: "concept" }); conceptBranch.set(m.id, id); }
     for (const m of drawn) structure.push({ source: id, target: m.id, kind: "member" });
   });
 
@@ -108,10 +116,12 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[]): Hi
       id, label: `${a.label} × ${b.label}`, growth: null,
       x: mx, y: my, kind: "hypothesis",
     });
+    hypothesisInfo.set(id, g);
+    for (const end of new Set([conceptBranch.get(g.a), conceptBranch.get(g.b)])) if (end) branchInfo.get(end)?.hypotheses.push(g);
     structure.push({ source: g.a, target: id, kind: "hypothesis" }, { source: g.b, target: id, kind: "hypothesis" });
   }
   layOut(nodes, structure, hubs);
-  return { nodes, structure, branches: hubs.length };
+  return { nodes, structure, branches: hubs.length, branchInfo, hypothesisInfo };
 }
 
 /** Supporting links: predicted edges kept only when both ends are in the graph. */

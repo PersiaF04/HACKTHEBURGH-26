@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { ConceptResponse, GapSummary, MapResponse, SearchResponse } from "../api";
+import { BranchPanel } from "../components/BranchPanel";
 import { ConceptPanel, ConceptPanelSkeleton } from "../components/ConceptPanel";
 import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
@@ -40,6 +41,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [detail, setDetail] = useState<ConceptResponse | null | undefined>(undefined);
   const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
+  const [synth, setSynth] = useState<string | null>(null);
   const [ranked, setRanked] = useState<GapSummary[]>([]);
 
   const showMap = map.year === selectedYear && !loading;
@@ -50,7 +52,9 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
   // Single selection: the store toggles and appends, so set the list directly.
   function pick(id: string) {
-    if (!live || isSynthetic(id)) return;
+    if (!live) return;
+    if (isSynthetic(id)) { setSynth((cur) => (cur === id ? null : id)); return; }
+    setSynth(null);
     const current = useWhitespaceStore.getState().selectedConcepts;
     if (current.length !== 1 || current[0] !== id) useWhitespaceStore.setState({ selectedConcepts: [id] });
     else onSelectConcept(id); // clicking the selected concept again toggles it off
@@ -186,7 +190,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 showAreaLabels={false}
                 linkedEdges={linkedEdges}
                 structure={shownStructure}
-                selectedConceptId={selectedId}
+                selectedConceptId={synth ?? selectedId}
                 focus={map.focus}
                 focusRequest={focusReq}
                 showPredicted={filters.showPredicted}
@@ -210,6 +214,14 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
       {skeleton ? (
         <ConceptPanelSkeleton />
+      ) : synth && hierarchy ? (
+        <BranchPanel
+          branch={hierarchy.branchInfo.get(synth)}
+          hypothesis={hierarchy.hypothesisInfo.get(synth)}
+          onSelectConcept={pickAndFocus}
+          onSelectNode={pick}
+          onClose={() => setSynth(null)}
+        />
       ) : (
         <ConceptPanel
           concept={selected}
