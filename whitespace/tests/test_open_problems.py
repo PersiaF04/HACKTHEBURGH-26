@@ -121,3 +121,28 @@ def test_validator_accepts_short_quotes_and_rejects_long_or_unattributed():
     errs = []
     E.check_contract("open-problems.json", payload, errs)
     assert any("attribution" in e for e in errs)
+
+
+def test_a_one_sentence_abstract_is_never_quoted_whole():
+    whole = "How this synthetic toy method behaves on very large inputs remains an open question for the field."
+    assert op.classify(whole) == ("open_problem", 0.8)  # it would match on its own ...
+    assert op.hits_in(whole) == []  # ... but it is the complete abstract, so it is dropped
+    assert [h[0] for h in op.hits_in("A short synthetic intro sentence here. " + whole)] == [whole]
+
+
+def test_validator_checks_quoted_sentences_on_every_concept_entry_not_only_the_first_200():
+    from whitespace.pipeline import export_all as E
+
+    def entry(sentence=None):
+        e = {"placeholder": False, "synthetic": False, "counts_by_year": [], "forecast": None, "top_papers": [],
+             "neighbours": [], "open_problems": []}
+        if sentence:
+            e["open_problems"] = [{"sentence": sentence, "type": "open_problem", "confidence": 0.8, "concept_ids": [],
+                                   "paper": {"id": "W1", "title": "Toy", "year": 2020, "url": "https://example.org/W1"}}]
+        return e
+
+    entries = {f"c{i}": entry() for i in range(250)}
+    entries["c250"] = entry("x" * 401)  # 401 characters: over the cap, and under the generic 800-character guard
+    errs: list[str] = []
+    E.check_contract("concepts.json", {"entries": entries}, errs)
+    assert any("c250" in e and "sentence" in e for e in errs)

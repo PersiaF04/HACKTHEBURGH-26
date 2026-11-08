@@ -966,10 +966,18 @@ def check_contract(name: str, payload, errs: list[str]) -> None:
                     s = entry["summary"]
                     if key != f"{s.get('a')}|{s.get('b')}":
                         errs.append(f"{name}[{key!r}]: key does not match its summary pair")
+            for key, entry in list(payload["entries"].items())[200:]:  # the quoted sentences are checked on every entry
+                if isinstance(entry, dict):
+                    _check_open_problem_items(entry.get("open_problems", []), f"{name}[{key!r}].open_problems", errs,
+                                              limit=OP.PER_GAP)
     elif name == "concepts.json":
         if _keys(payload, ("entries",), name, errs):
             for key, entry in list(payload["entries"].items())[:200]:
                 _check_concept(entry, f"{name}[{key!r}]", errs)
+            for key, entry in list(payload["entries"].items())[200:]:  # the quoted sentences are checked on every entry
+                if isinstance(entry, dict):
+                    _check_open_problem_items(entry.get("open_problems", []), f"{name}[{key!r}].open_problems", errs,
+                                              limit=OP.PER_CONCEPT)
     elif name.startswith("coverage-"):
         base = contract("coverage.json")
         if _keys(payload, base, name, errs):

@@ -95,7 +95,10 @@ def classify(sentence: str) -> tuple[str, float] | None:
 def hits_in(abstract: str) -> list[tuple[str, str, float]]:
     """``(sentence, type, confidence)`` for each matching sentence of one abstract."""
     found = []
+    whole = " ".join(abstract.split())
     for s in split_sentences(abstract):
+        if s == whole:  # a one-sentence abstract would be the whole abstract: never quote it
+            continue
         c = classify(s)
         if c:
             found.append((s, c[0], c[1]))
