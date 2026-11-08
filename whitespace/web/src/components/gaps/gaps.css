@@ -217,3 +217,15 @@
 .gx-problems__m { display: block; margin-top: 2px; font-size: 12px; color: var(--ws-muted); }
 .gx-problems__m a { color: inherit; }
 .gx-problems__more { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--ws-accent); }
+
+/* Narrow screens: let wide tables scroll inside their card instead of widening the page (#258). */
+@media (max-width: 1100px) {
+  .gx-centre > *, .gx-detail > *, .gx-rail > * { min-width: 0; max-width: 100%; }
+  /* The detail panel is wrapped for the onboarding tour, so order the wrapper: list first, then detail. */
+  .gx > [data-tour="gap-detail"] { order: 2; }
+  .gx-desc, .gx-note, .gx-detail__status { overflow-wrap: anywhere; }
+}
+@media (max-width: 480px) {
+  .gx-centre, .gx-detail, .gx-rail { padding: 16px; }
+  .gx-papers { grid-template-columns: minmax(0, 1fr); }
+}
