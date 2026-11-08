@@ -123,4 +123,6 @@ The team builds with AI coding agents: Claude Code agents implement issues and C
 
 ## Licence
 
-No licence has been chosen yet. Until a `LICENSE` file is added, the code isn't licensed for reuse.
+The code is released under the [MIT License](LICENSE).
+
+The data sources keep their own licences, which the MIT licence does not cover: OpenAlex metadata is CC0, and the coverage data derived from the Papers with Code archive is CC BY-SA 4.0.
