@@ -28,11 +28,11 @@ Research moves faster than people can read it. Search finds work that already ex
 ## What it does
 
 - **Research map:** explore the latest snapshot as a 3D concept map. Concepts are sized by paper count and coloured by growth; selecting one reveals its trend, predicted gaps and supporting papers. The map has no time slider.
-- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Search matches concept names only; paper search and author-stated open problems are not in the current export, so those views say so instead of showing data.
-- **Evidence:** review the one-shot backtest, baselines, calibration, base rate, and hits and misses at [`/evidence`](https://whitespace-hacktheburgh-26.vercel.app/evidence).
-- **Code coverage:** explore the concept-by-year archive coverage and papers without a linked record at [`/coverage`](https://whitespace-hacktheburgh-26.vercel.app/coverage).
+- **Gap finder:** review unlinked concept pairs, their scores and supporting papers. Summary stats count only concepts with positive growth; if an export has no momentum signal, the top stat shows the highest predicted link probability instead of a gap score. Search matches concept names only; paper search and author-stated open problems are not in the current export, so those views say so instead of showing data.
+- **Evidence:** at [`/evidence`](https://whitespace-hacktheburgh-26.vercel.app/evidence), a headline card states the pre-registered verdict (aggregate only) with its caveats and a link to issue #122. Ranking tables compare each method's P@100, AP and ROC AUC against the base rate, followed by calibration and hits and misses. The paper-to-code hand-check is shown as not yet measured.
+- **Code coverage:** explore the concept-by-year archive coverage and papers without a linked record at [`/coverage`](https://whitespace-hacktheburgh-26.vercel.app/coverage). Coverage uses publication years, so its range can differ from the map's snapshot years.
 
-The header navigation has three tabs: Research map, Gap finder and Open problems. Evidence and Code coverage are available through footer links and the direct URLs above.
+The header navigation has three tabs: Research map, Gap finder and Open problems. Evidence and Code coverage are available through footer links and the direct URLs above. The header badge shows the data source and the snapshot year range.
 
 ## Results
 
