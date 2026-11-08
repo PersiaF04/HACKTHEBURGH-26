@@ -249,7 +249,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
             <span>Gaps involving</span>
             <span className="gx-focus__pill">{fmtText(focusLabel)}
               <button type="button" aria-label="Clear concept filter" onClick={() => setFocus(null)}>
-                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" style={{ stroke: "var(--ws-on-ink)" }} strokeWidth="1.6" strokeLinecap="round" /></svg>
               </button>
             </span>
           </div>

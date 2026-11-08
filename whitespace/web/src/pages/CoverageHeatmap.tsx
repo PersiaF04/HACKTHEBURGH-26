@@ -50,7 +50,7 @@ function cellUnavailable(cell: CoverageCell | undefined): boolean {
 function rateColor(rate: number | null | undefined): string | undefined {
   if (rate === null || rate === undefined) return undefined;
   const normalized = Math.max(0, Math.min(1, rate));
-  return `rgba(35, 75, 125, ${0.08 + (1 - normalized) * 0.38})`;
+  return `color-mix(in srgb, var(--ws-heat) ${Math.round((0.08 + (1 - normalized) * 0.38) * 100)}%, transparent)`;
 }
 
 function selectLabel(concept: CoverageConcept, year: number, cell: CoverageCell | undefined): string {

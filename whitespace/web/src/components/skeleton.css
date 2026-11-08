@@ -1,12 +1,12 @@
-.ws-skel { display: block; border-radius: 4px; background: #E4E4DF; }
+.ws-skel { display: block; border-radius: 4px; background: var(--ws-skel); }
 .ws-skel-text { display: grid; gap: 8px; }
-.ws-skel--bar { height: 10px; background: #DCDCD6; }
+.ws-skel--bar { height: 10px; background: var(--ws-skel-bar); }
 .ws-empty-note { margin: 0; padding: 10px 12px; border: 1px dashed var(--ws-border-strong); border-radius: var(--ws-radius); background: var(--ws-track); color: var(--ws-muted); font-size: 14px; line-height: 1.5; }
 .ws-skel-caption { margin: 16px 0 0; color: var(--ws-muted); font-size: 14px; line-height: 1.5; }
 .ws-skel-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
 .ws-skel-card { padding: 14px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: var(--ws-surface); }
 .ws-skel-card h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ws-ink-2); }
-.ws-skel-card .ws-skel-value { margin: 0 0 8px; font: 600 26px/1.1 var(--ws-mono); color: #A7A7A0; }
+.ws-skel-card .ws-skel-value { margin: 0 0 8px; font: 600 26px/1.1 var(--ws-mono); color: var(--ws-idle); }
 .ws-skel-card p { margin: 0; color: var(--ws-muted); font-size: 12.5px; line-height: 1.45; }
 .ws-skel-panel { margin: 16px 0; padding: 16px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: var(--ws-surface); }
 .ws-skel-panel h2 { margin: 0 0 12px; font-size: 16px; }
@@ -23,6 +23,6 @@
 .ws-skel-heat .ws-skel-axis { font-size: 12px; color: var(--ws-muted); }
 .ws-skel-axis-title { margin: 8px 0 0; font-size: 12px; color: var(--ws-muted); text-align: center; }
 .ws-skel-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--ws-muted); }
-.ws-skel-legend .ws-skel-gradient { width: 120px; height: 10px; border-radius: 4px; background: linear-gradient(90deg, #EFEFEA, #BDBDB6); }
+.ws-skel-legend .ws-skel-gradient { width: 120px; height: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--ws-soft), var(--ws-rule)); }
 @media (max-width: 760px) { .ws-skel-pair { grid-template-columns: 1fr; } .ws-skel-heat { grid-template-columns: 70px repeat(8, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: no-preference) { .ws-skel--pulse { animation: ws-skel-pulse 1.6s ease-in-out infinite; } @keyframes ws-skel-pulse { 50% { opacity: .55; } } }

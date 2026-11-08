@@ -2,11 +2,11 @@ import { fmtText } from "../lib/format";
 import "./map.css";
 
 export const GROWTH_STEPS = [
-  { color: "#C3C7CF", label: "Shrinking" },
-  { color: "#F0C9A0", label: "0 to 15%" },
-  { color: "#EDA060", label: "15 to 30%" },
-  { color: "#E07432", label: "30 to 45%" },
-  { color: "#BF4A0E", label: "45% or more" },
+  { color: "var(--ws-growth-0)", label: "Shrinking" },
+  { color: "var(--ws-growth-1)", label: "0 to 15%" },
+  { color: "var(--ws-growth-2)", label: "15 to 30%" },
+  { color: "var(--ws-growth-3)", label: "30 to 45%" },
+  { color: "var(--ws-growth-4)", label: "45% or more" },
 ] as const;
 
 type MapLegendProps = {

@@ -6,6 +6,8 @@ import { GapsPage } from "./pages/Gaps";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
 import { SkeletonBlock, SkeletonText } from "./components/Skeleton";
 import { fmtYear } from "./lib/format";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { DemoToggle, DEMO_BADGE, DEMO_BADGE_TIP, useDemoMode } from "./demo"; // TEMPORARY demo data
 
 const PLACEHOLDER_TIP = "Placeholder data: this build shows fixtures, not results";
 const REAL_TIP = "Real export: OpenAlex AI subfield 1702";
@@ -38,6 +40,7 @@ function currentPath() {
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
+  const [demo] = useDemoMode();
   const year = useWhitespaceStore((state) => state.year);
   const selectedConcepts = useWhitespaceStore((state) => state.selectedConcepts);
   const setYear = useWhitespaceStore((state) => state.setYear);
@@ -48,6 +51,14 @@ export default function App() {
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [error, setError] = useState<string>();
   const active = sections.find(([route]) => route === path) ?? sections[0];
+
+  // Switching demo data on or off drops everything loaded so far; pages remount below via key.
+  useEffect(() => {
+    setMap(null);
+    setGaps(null);
+    setMeta(MOCK_META);
+    useWhitespaceStore.setState({ selectedConcepts: [], focus: null, openGap: null });
+  }, [demo]);
 
   useEffect(() => { document.title = `${active[1]} · Whitespace`; }, [active]);
 
@@ -87,7 +98,7 @@ export default function App() {
     };
     void load();
     return () => { current = false; };
-  }, [path, year]);
+  }, [path, year, demo]);
 
   const selectedConceptId = selectedConcepts[0] ?? null;
   const isPlaceholder = path === "/" ? map?.placeholder ?? true : gaps?.placeholder ?? true;
@@ -100,8 +111,8 @@ export default function App() {
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
 
-  const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
-  const badgeTip = isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
+  const badge = demo ? DEMO_BADGE : isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
+  const badgeTip = demo ? DEMO_BADGE_TIP : isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
   const tabActive = (route: string) => route === path;
 
   return (
@@ -109,7 +120,7 @@ export default function App() {
       <a className="skip-link" href="#main-content">Skip to content</a>
       <header className="topbar">
         <a className="brand" href="/" onClick={(event) => navigate(event, "/")} aria-label="Whitespace home">
-          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" fill="#15171C" /><circle cx="21" cy="8" r="4" fill="none" stroke="#15171C" strokeWidth="2" /><line x1="10.5" y1="17" x2="17.5" y2="11" stroke="#2952E3" strokeWidth="2" strokeDasharray="2.5 2.5" /></svg>
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="20" r="4.5" style={{ fill: "var(--ws-ink)" }} /><circle cx="21" cy="8" r="4" style={{ fill: "none", stroke: "var(--ws-ink)" }} strokeWidth="2" /><line x1="10.5" y1="17" x2="17.5" y2="11" style={{ stroke: "var(--ws-accent)" }} strokeWidth="2" strokeDasharray="2.5 2.5" /></svg>
           <span className="brand-name">Whitespace</span>
         </a>
         <div className="topbar-spacer" />
@@ -118,9 +129,13 @@ export default function App() {
             <a key={route} href={route} aria-current={tabActive(route) ? "page" : undefined} onClick={(event) => navigate(event, route)}>{label}</a>
           ))}
         </nav>
-        <span className="data-badge" tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
+        <div className="topbar-tools">
+          <DemoToggle />
+          <ThemeToggle />
+        </div>
+        <span className={demo ? "data-badge data-badge--demo" : "data-badge"} tabIndex={0} data-tip={badgeTip} title={badgeTip} aria-label={`${badge}. ${badgeTip}`}>{badge}</span>
       </header>
-      <main id="main-content" className="main-content">
+      <main id="main-content" className="main-content" key={demo ? "demo" : "real"}>
           {path === "/" && map && <Explore map={map} selectedYear={year} loading={status === "loading"} selectedConceptId={selectedConceptId} onSelectConcept={selectConcept} onSearch={search} />}
           {path === "/" && status === "loading" && !map && <PageSkeleton label="Loading research map…" />}
           {path === "/gaps" && status === "loading" && !gaps && <PageSkeleton label="Loading gap finder…" />}
