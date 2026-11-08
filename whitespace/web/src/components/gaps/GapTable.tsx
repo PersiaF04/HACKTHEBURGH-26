@@ -25,6 +25,11 @@ const clamp = (v: number) => Math.max(0, Math.min(100, v * 100));
 const fmtScore = (v: number | null | undefined) => isNum(v) ? new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(v) : NA;
 
 /** Stated-gaps multiplier: 1 + both concepts' stated-gap rates, only when both are in the data. */
+/** Display-only stated-gap rates for the two concepts, e.g. "3.4% · 5.1%"; null unless both are in the data. */
+export function ratePair(g: GapSummary): string | null {
+  return isNum(g.gap_rate_a) && isNum(g.gap_rate_b) ? `${(g.gap_rate_a * 100).toFixed(1)}% · ${(g.gap_rate_b * 100).toFixed(1)}%` : null;
+}
+
 export function statedGapsFactor(g: GapSummary): number | null {
   return isNum(g.gap_rate_a) && isNum(g.gap_rate_b) ? 1 + g.gap_rate_a + g.gap_rate_b : null;
 }
@@ -40,8 +45,8 @@ const COLUMNS: Array<{ label: string; cls: string; help: string; align?: "right"
   { label: "Likelihood", cls: "gx-th--p", help: "The model's estimate that these two topics will share 3+ papers within three years. Calibration is imperfect, so read it as a ranking rather than an exact chance." },
   { label: "Momentum", cls: "gx-th--r", align: "right", help: "How quickly paper counts for the two concepts are growing. Faster growth scores higher." },
   { label: "Novelty", cls: "gx-th--r", align: "right", help: "How little the two concepts' neighbourhoods already overlap. Higher means a fresher combination." },
-  { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "A boost when authors writing about either concept say problems remain open." },
-  { label: "Strength", cls: "gx-th--score", align: "right", help: "Strong, moderate or weak compared with the top gap in this list. It combines the four factors and is not a probability. Hover a value to see the exact score." },
+  { label: "Stated gaps", cls: "gx-th--r", align: "right", help: "Display only, not part of the gap score. The share of each concept's papers whose abstract states an open problem, future work or limitation (concept A, then B)." },
+  { label: "Strength", cls: "gx-th--score", align: "right", help: "Strong, moderate or weak compared with the top gap in this list. It combines likelihood, momentum and novelty and is not a probability. Hover a value to see the exact score." },
 ];
 
 /** Header row with real column names and a (?) explanation on each. */
@@ -142,7 +147,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
                 </td>
                 <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.momentum)}</td>
                 <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.novelty)}</td>
-                <td className="gx-td gx-td--r gx-mono">{statedGapsFactor(gap) === null ? <span className="gx-pending" title="Author-stated open problems have not been extracted into this export yet, so no boost is applied.">Not yet</span> : fmtFactor(statedGapsFactor(gap))}</td>
+                <td className="gx-td gx-td--r gx-mono">{ratePair(gap) === null ? <span className="gx-pending" title="Author-stated open problems are not available for this pair in the export yet.">Not yet</span> : <span title="Share of each concept's papers with a stated open problem. Display only, not in the gap score.">{ratePair(gap)}</span>}</td>
                 <td className="gx-td gx-td--score">
                   <div className="gx-score">
                     <span className="gx-score__v" title={`Gap score ${fmtScore(gap.gap_score)}`}>{strength(gap.gap_score, maxScore)}</span>

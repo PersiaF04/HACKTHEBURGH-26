@@ -1,6 +1,6 @@
 import type { GapDetail, GapSummary, PaperSummary } from "../../api";
 import { NA, fmtDec, fmtInt, fmtPct, fmtText, fmtYear, isNum } from "../../lib/format";
-import { fmtFactor, statedGapsFactor } from "./GapTable";
+import { ratePair } from "./GapTable";
 
 export function safeExternalUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -39,12 +39,12 @@ function Papers({ label, papers }: { label: string; papers: PaperSummary[] }) {
 }
 
 const SECTIONS: Array<[string, string]> = [
-  ["How the score is made", "The four numbers multiplied together to rank this pair."],
+  ["How the score is made", "Likelihood, momentum and novelty multiplied together to rank this pair."],
   ["Closest papers on each side", "The papers that best represent each concept, so you can judge the pair yourself."],
   ["Shared neighbouring concepts", "Concepts both sides already connect to, which hint at a bridge."],
 ];
 
-const FORMULA_NAMES: Array<[string, string?]> = [["Likelihood"], ["Momentum", "×"], ["Novelty", "×"], ["Stated gaps", "×"], ["Gap score", "="]];
+const FORMULA_NAMES: Array<[string, string?]> = [["Likelihood"], ["Momentum", "×"], ["Novelty", "×"], ["Gap score", "="]];
 
 /** Neutral explainer shown until a gap is selected. Invents no data. */
 function DetailSkeleton({ empty }: { empty: boolean }) {
@@ -65,7 +65,7 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
       </section>
       <section className="gx-sec">
         <h3 className="gx-h3">How the score is made</h3>
-        <div className="gx-formula gx-formula--idle" role="img" aria-label="Gap score equals likelihood times momentum times novelty times stated gaps. Values appear when a gap is selected.">
+        <div className="gx-formula gx-formula--idle" role="img" aria-label="Gap score equals likelihood times momentum times novelty. Values appear when a gap is selected.">
           {FORMULA_NAMES.map(([name, op]) => (
             <div key={name} className="gx-formula__item">
               {op && <span aria-hidden="true" className={op === "=" ? "gx-formula__op is-strong" : "gx-formula__op"}>{op}</span>}
@@ -84,13 +84,12 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
 export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty = false }: GapDetailPanelProps) {
   if (!gap) return <DetailSkeleton empty={empty} />;
   const g = gap;
-  const sg = statedGapsFactor(g);
+  const rates = ratePair(g);
   const validated = g.interval_validation?.validated === true && isNum(g.p_lo) && isNum(g.p_hi);
   const factors: Array<{ name: string; v: string; why: string; op?: string; strong?: boolean; blue?: boolean }> = [
     { name: "Likelihood", v: fmtPct(g.p_link), why: "model estimate it connects", blue: true },
     { name: "Momentum", v: fmtDec(g.momentum), why: isNum(g.growth_a) && isNum(g.growth_b) ? `weaker topic growth ${fmtDec(Math.min(g.growth_a, g.growth_b))}` : "", op: "×" },
     { name: "Novelty", v: fmtDec(g.novelty), why: isNum(g.neighbour_overlap) ? `1 − ${fmtDec(g.neighbour_overlap)} overlap` : "", op: "×" },
-    { name: "Stated gaps", v: isNum(sg) ? fmtDec(sg) : "Not yet", why: isNum(sg) ? `1 + ${fmtDec(g.gap_rate_a)} + ${fmtDec(g.gap_rate_b)}` : "not extracted into this export", op: "×" },
     { name: "Gap score", v: fmtDec(g.gap_score), why: rank != null ? `rank ${fmtInt(rank)} of ${fmtInt(total)}` : "", op: "=", strong: true },
   ];
   const papersA = detail?.closest_a ?? [];
@@ -114,7 +113,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
 
       <section className="gx-sec">
         <h3 className="gx-h3">How the score is made</h3>
-        <div className="gx-formula" role="group" aria-label={`Gap score ${fmtDec(g.gap_score)} equals likelihood ${fmtPct(g.p_link)} times momentum ${fmtDec(g.momentum)} times novelty ${fmtDec(g.novelty)} times stated gaps ${fmtFactor(sg).replace("×", "")}`}>
+        <div className="gx-formula" role="group" aria-label={`Gap score ${fmtDec(g.gap_score)} equals likelihood ${fmtPct(g.p_link)} times momentum ${fmtDec(g.momentum)} times novelty ${fmtDec(g.novelty)}`}>
           {factors.map((f) => (
             <div key={f.name} className="gx-formula__item">
               {f.op && <span aria-hidden="true" className={f.strong ? "gx-formula__op is-strong" : "gx-formula__op"}>{f.op}</span>}
@@ -126,6 +125,18 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="gx-sec">
+        <h3 className="gx-h3">Stated gaps <span className="gx-tag">display only, not in the score</span></h3>
+        {rates ? (
+          <>
+            <p className="gx-desc gx-mono gx-ink">{labelA}: {isNum(g.gap_rate_a) ? `${(g.gap_rate_a * 100).toFixed(1)}%` : NA} · {labelB}: {isNum(g.gap_rate_b) ? `${(g.gap_rate_b * 100).toFixed(1)}%` : NA}</p>
+            <p className="gx-desc">Share of each concept's papers whose abstract states an open problem, future work or limitation. Shown for context; it does not change the gap score or the ranking.</p>
+          </>
+        ) : (
+          <p className="gx-desc">Not yet: author-stated open problems are not available for this pair in the export. When they are, they appear here as context only, never in the score.</p>
+        )}
       </section>
 
       {loading && <p className="gx-note" role="status">Loading gap evidence…</p>}
