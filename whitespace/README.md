@@ -140,6 +140,16 @@ python -m whitespace.pipeline.code_layer --links path/to/links.parquet --revisio
 
 It draws 125 distinct new-style arXiv ids per year band (<=2017, 2018-2020, 2021-2023, 2024-2025), resolves them and prints resolved counts by band. Spike #122 measured 493/500 (98.6%) with its own draw; this command re-runs the procedure, and exact ids may differ if the sampling code differs. The figure is resolution only, not join correctness.
 
+## Local code join (`pipeline/code_join_local.py`, issue #173)
+
+Joins the ingest `corpus.jsonl` to the pinned Papers with Code links file by versionless arXiv id, with **no API calls**. The corpus is streamed; the links file is read from a local `.parquet` (needs `pyarrow`) or `.csv`. Papers with no usable arXiv id get join method `unmatchable_by_construction`.
+
+```sh
+python -m whitespace.pipeline.code_join_local --corpus corpus.jsonl --links links.parquet --revision <dataset-sha> --out <dir outside Git>
+```
+
+Writes `papers.csv` (per work: `has_linked_code`, `has_official_code`, `match_key`, `join_method`, `date_source`, topic), `coverage.json` (`code_layer.coverage_table`), `report.json` (counts: works with an arXiv id by year, archive ids present or absent in the corpus, linked papers by year) and `handcheck_frame.csv` (seeded 100 matched pairs, stratified by year band, official or not, own or merged record; title and the arXiv abstract link; no abstracts). Archive ids missing from the corpus are expected: the corpus is one OpenAlex subfield. `join_method` comes from the corpus field `arxiv_id_source` (`doi`/`both` = own arXiv-DOI record, `location` = merged record found through a location URL); an older corpus without the field gives `unknown_source`. **First author is not in the frame** (the download did not select authorships and re-fetching is out of budget); the column `arxiv_abs_url` replaces it so the checker reads authors on the arXiv abstract page.
+
 ## Coverage export (`pipeline/export_coverage.py`, issue #163)
 
 `to_coverage_response(year, coverage_table, archive_info)` returns the frontend's `CoverageResponse` (`web/src/api.ts`): concepts, per-year cells (`paper_count`, `linked_paper_count`, `code_rate`, `state`), caveat and archive info (revision, snapshot 2025-07-28, `cc-by-sa-4.0`, row count, attribution, low-coverage cutoff year). Grey years keep their counts but have `code_rate` null (`thin` before the cutoff, `outside_archive_vintage` after 2025). Cells carry "no linked code in this archive"; non-arXiv papers stay in the denominator and are flagged `unmatchable_by_construction`. Extra keys beyond the frontend type (`row_count`, `attribution`, `low_coverage_cutoff_year`, `min_linked`, per-cell flags) are additive.
