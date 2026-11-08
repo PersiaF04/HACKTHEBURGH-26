@@ -142,10 +142,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
       </aside>
 
       <section className="ex__centre" aria-label="Research map">
-        <div className="ex__title">
-          <h1>Research map</h1>
-          <span>{skeleton ? "Waiting for data from the pipeline export" : "Click a concept for its details"}</span>
-        </div>
         <dl className="ex-stats" aria-label="Map summary">
           {stats.map(({ label, value, help, caption, accent }) => (
             <div key={label} title={help}>

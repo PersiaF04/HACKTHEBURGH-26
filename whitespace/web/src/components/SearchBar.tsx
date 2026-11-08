@@ -63,6 +63,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
             autoComplete="off"
           />
         </div>
+        {(results.length > 0 || papers.length > 0 || none) && <div className="whitespace-search__dropdown">
         {results.length > 0 && (
           <ul className="whitespace-search__results" aria-label="Matching concepts">
             {results.map((c) => (
@@ -90,6 +91,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
         {none && <p className="whitespace-search__none" role="status">
           {searchPlaceholder ? "Search is not available yet." : <>No concept names match {"“"}{query.trim()}{"”"}. This searches concept names only.</>}
         </p>}
+        </div>}
       </form>
     </section>
   );
