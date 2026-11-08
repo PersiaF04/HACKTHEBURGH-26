@@ -156,7 +156,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
                 </td>
                 <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.momentum)}</td>
                 <td className="gx-td gx-td--r gx-mono">{fmtDec(gap.novelty)}</td>
-                <td className="gx-td gx-td--r gx-mono">{ratePair(gap) === null ? <span className="gx-pending" title="Author-stated open problems are not available for this pair in the export yet.">Not yet</span> : <span title="Share of each concept's papers with a stated open problem. Display only, not in the gap score.">{ratePair(gap)}</span>}</td>
+                <td className="gx-td gx-td--r gx-mono gx-rates">{ratePair(gap) === null ? <span className="gx-pending" title="Author-stated open problems are not available for this pair in the export yet.">Not yet</span> : <span title="Share of each concept's papers with a stated open problem. Display only, not in the gap score.">{ratePair(gap)}</span>}</td>
                 <td className="gx-td gx-td--score">
                   <div className="gx-score">
                     <span className="gx-score__v" title={`Gap score ${fmtScore(gap.gap_score)}`}>{strength(gap.gap_score, maxScore)}</span>

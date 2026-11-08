@@ -1,6 +1,7 @@
 import type { GapDetail, GapSummary, PaperSummary } from "../../api";
 import { NA, fmtDec, fmtInt, fmtPct, fmtText, fmtYear, isNum } from "../../lib/format";
 import { ratePair } from "./GapTable";
+import { LinkedProblems } from "./LinkedProblems";
 
 export function safeExternalUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -95,7 +96,6 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
   const papersA = detail?.closest_a ?? [];
   const papersB = detail?.closest_b ?? [];
   const shared = detail?.shared_neighbours ?? [];
-  const problems = detail?.open_problems ?? [];
   const labelA = fmtText(g.a_label);
   const labelB = fmtText(g.b_label);
   return (
@@ -152,41 +152,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
         </section>
       )}
 
-      {detail && (
-        <section className="gx-sec gx-sec--tight">
-          <details className="gx-problems">
-            <summary>
-              <span className="gx-h3">Author-stated open problems</span>
-              <span className="gx-mono gx-problems__n">{problems.length > 0 ? fmtInt(problems.length) : NA}</span>
-            </summary>
-            {problems.length > 0 ? (
-              <ul className="gx-problems__list">
-                {problems.slice(0, 5).map((o, i) => {
-                  const href = safeExternalUrl(o.paper?.url);
-                  return (
-                    <li key={`${o.paper?.id ?? i}-${i}`}>
-                      <span className="gx-problems__s">{fmtText(o.sentence)}</span>
-                      <span className="gx-problems__m">{href ? <a href={href} target="_blank" rel="noreferrer">{fmtText(o.paper?.title)}</a> : fmtText(o.paper?.title)} · {fmtYear(o.paper?.year)}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="gx-note">Author-stated open problems are not available in this export yet.</p>
-            )}
-            <a
-              className="gx-problems__more"
-              href="/open-problems"
-              onClick={(event) => {
-                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                event.preventDefault();
-                window.history.pushState({}, "", "/open-problems");
-                window.dispatchEvent(new PopStateEvent("popstate"));
-              }}
-            >Browse all open problems</a>
-          </details>
-        </section>
-      )}
+      <LinkedProblems gap={g} attached={detail?.open_problems} loadingGap={loading} />
 
       <section className="gx-sec gx-sec--tight">
         {shared.length > 0 && (

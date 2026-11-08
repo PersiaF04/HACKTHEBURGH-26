@@ -167,3 +167,7 @@
 .whitespace-hyp__buttons button:hover { background: var(--ws-selected); }
 
 .whitespace-concept__stats dd.whitespace-concept__pending { font-size: 14px; font-weight: 500; color: var(--ws-muted); font-family: inherit; letter-spacing: 0; }
+
+.whitespace-hyp__linked ul { list-style: none; margin: 0; padding: 0; }
+.whitespace-hyp__linked h3 { margin: 0 0 8px; font-size: 13px; }
+.whitespace-hyp__linked p { margin: 0; }
