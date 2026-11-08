@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
-import type { GapDetailResponse, GapListResponse, GapSummary, OpenProblemResponse } from "../api";
-import { GapDrawer } from "../components/gaps/GapDrawer";
-import { GapTable } from "../components/gaps/GapTable";
-import type { GapSortKey } from "../components/gaps/GapTable";
-import { OpenProblemsList } from "../components/gaps/OpenProblemsList";
+import type { ConceptSummary, GapDetailResponse, GapListResponse, GapSummary, OpenProblemResponse } from "../api";
+import { GapDetailPanel, GapTable, OpenProblemsCard, gapKey } from "../components/gaps";
+import type { CardItem, ConceptSeries, GapRow, ProblemFilter } from "../components/gaps";
+import { SERIES_COLORS } from "../components/gaps/OpenProblemsCard";
+import { f2, isNum, pct } from "../components/gaps/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -15,33 +15,18 @@ export interface GapsPageProps {
   error?: string | null;
 }
 
-const sorters: Record<GapSortKey, (gap: GapSummary) => number | null> = {
-  p_link: (gap) => gap.p_link,
-  momentum: (gap) => gap.momentum,
-  novelty: (gap) => gap.novelty,
-  gap_rate: (gap) => gap.gap_rate,
-  gap_score: (gap) => gap.gap_score,
-};
+type SortKey = "gap_score" | "p_link" | "momentum" | "novelty" | "gap_rate";
 
-const sortOptions: Array<[GapSortKey, string]> = [
+const sortOptions: Array<[SortKey, string]> = [
   ["gap_score", "Gap score"], ["p_link", "P(link)"], ["momentum", "Momentum"], ["novelty", "Novelty"], ["gap_rate", "Stated-gap rate"],
 ];
 
-function id(gap: GapSummary): string {
-  return `${gap.a}::${gap.b}`;
+function sortValue(g: GapSummary, key: SortKey): number | null {
+  if (key === "gap_rate") return isNum(g.gap_rate_a) && isNum(g.gap_rate_b) ? g.gap_rate_a + g.gap_rate_b : g.gap_rate;
+  return g[key];
 }
 
-interface ConceptRate { id: string; label: string; rate: number }
-
-/** Per-concept stated-gap rate, taken from the gap rows that carry it. Absent rates are skipped, not zeroed. */
-function conceptRates(items: GapSummary[]): ConceptRate[] {
-  const map = new Map<string, ConceptRate>();
-  for (const g of items) {
-    if (g.gap_rate_a != null && Number.isFinite(g.gap_rate_a)) map.set(g.a, { id: g.a, label: g.a_label, rate: g.gap_rate_a });
-    if (g.gap_rate_b != null && Number.isFinite(g.gap_rate_b)) map.set(g.b, { id: g.b, label: g.b_label, rate: g.gap_rate_b });
-  }
-  return [...map.values()].sort((x, y) => y.rate - x.rate);
-}
+interface ConceptInfo { id: string; label: string; rate: number | null; growth: number | null }
 
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
@@ -50,217 +35,226 @@ function median(values: number[]): number | null {
   return s.length % 2 ? s[(s.length - 1) / 2] : (s[m - 1] + s[m]) / 2;
 }
 
+const EMPTY: OpenProblemResponse = { placeholder: false, concept_options: [], items: [] };
+
 export function GapsPage({ response, loadDetail, loading = false, error }: GapsPageProps) {
-  const [query, setQuery] = useState("");
   const [minimumProbability, setMinimumProbability] = useState(0);
-  const [sort, setSort] = useState<GapSortKey>("gap_score");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [sort, setSort] = useState<SortKey>("gap_score");
   const [focus, setFocus] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [selected, setSelected] = useState<GapSummary | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<GapDetailResponse>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const requestId = useRef(0);
+  const [filter, setFilter] = useState<ProblemFilter>("all");
+  const [options, setOptions] = useState<ConceptSummary[]>([]);
 
-  const [problems, setProblems] = useState<OpenProblemResponse | null>(null);
-  const [problemStatus, setProblemStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
-  const [problemError, setProblemError] = useState<string>();
-  const [problemType, setProblemType] = useState<"all" | "future_work" | "limitation" | "open_problem">("all");
-  const [problemConcept, setProblemConcept] = useState("");
-  const [problemRetry, setProblemRetry] = useState(0);
+  // Rank is over the whole list by gap score, independent of the sort and filters.
+  const ranks = useMemo(() => {
+    const map = new Map<string, number>();
+    [...response.items]
+      .sort((a, b) => (b.gap_score ?? -Infinity) - (a.gap_score ?? -Infinity))
+      .forEach((g, i) => map.set(gapKey(g), i + 1));
+    return map;
+  }, [response.items]);
+
+  const rows: GapRow[] = useMemo(() => response.items
+    .filter((g) => g.p_link >= minimumProbability - 1e-9)
+    .filter((g) => !focus || g.a === focus || g.b === focus)
+    .sort((l, r) => {
+      const a = sortValue(l, sort);
+      const b = sortValue(r, sort);
+      if (a == null && b == null) return 0;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      return b - a;
+    })
+    .map((gap) => ({ gap, rank: ranks.get(gapKey(gap)) ?? 0 })), [response.items, minimumProbability, focus, sort, ranks]);
+
+  const concepts = useMemo(() => {
+    const map = new Map<string, ConceptInfo>();
+    const touch = (id: string, label: string, rate: number | null | undefined, growth: number | null | undefined) => {
+      const cur = map.get(id) ?? { id, label, rate: null, growth: null };
+      if (isNum(rate)) cur.rate = rate;
+      if (isNum(growth)) cur.growth = growth;
+      map.set(id, cur);
+    };
+    for (const g of response.items) {
+      touch(g.a, g.a_label, g.gap_rate_a, g.growth_a);
+      touch(g.b, g.b_label, g.gap_rate_b, g.growth_b);
+    }
+    return [...map.values()];
+  }, [response.items]);
+  const rated = useMemo(() => concepts.filter((c) => c.rate != null).sort((x, y) => (y.rate as number) - (x.rate as number)), [concepts]);
+  const maxRate = rated[0]?.rate || 1;
+  const shownRated = showAll ? rated : rated.slice(0, 8);
+  const fastest = concepts.filter((c) => c.growth != null).sort((x, y) => (y.growth as number) - (x.growth as number))[0];
+  const avgRate = rated.length ? rated.reduce((s, c) => s + (c.rate as number), 0) / rated.length : null;
 
   useEffect(() => {
     let current = true;
-    setProblemStatus("loading");
-    api.openProblems(problemConcept, problemType === "all" ? "" : problemType)
-      .then((value) => { if (current) { setProblems(value); setProblemStatus("ready"); } })
-      .catch((reason: unknown) => {
-        if (current) {
-          setProblemStatus("error");
-          setProblemError(reason instanceof Error ? reason.message : "Statements could not be loaded.");
-        }
-      });
+    api.openProblems("", "").then((v) => { if (current) setOptions(v.concept_options); }).catch(() => undefined);
     return () => { current = false; };
-  }, [problemConcept, problemType, problemRetry]);
+  }, []);
+  const papers = useMemo(() => {
+    const ids = new Set(concepts.map((c) => c.id));
+    const counted = options.filter((o) => ids.has(o.id) && isNum(o.paper_count));
+    return counted.length ? counted.reduce((s, o) => s + (o.paper_count as number), 0) : null;
+  }, [options, concepts]);
 
-  const items = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase();
-    return response.items
-      .filter((gap) => gap.p_link >= minimumProbability)
-      .filter((gap) => !q || `${gap.a_label} ${gap.b_label}`.toLocaleLowerCase().includes(q))
-      .filter((gap) => !focus || gap.a === focus || gap.b === focus)
-      .sort((left, right) => {
-        const a = sorters[sort](left);
-        const b = sorters[sort](right);
-        if (a == null && b == null) return 0;
-        if (a == null) return 1;
-        if (b == null) return -1;
-        return (a - b) * (sortDirection === "asc" ? 1 : -1);
-      })
-      .slice(0, 50);
-  }, [response.items, query, minimumProbability, focus, sort, sortDirection]);
-
-  const rates = useMemo(() => conceptRates(response.items), [response.items]);
-  const maxRate = rates[0]?.rate || 1;
-  const shownRates = showAll ? rates : rates.slice(0, 8);
-  const focusLabel = focus
-    ? response.items.find((g) => g.a === focus)?.a_label ?? response.items.find((g) => g.b === focus)?.b_label ?? focus
-    : null;
-
-  const conceptCount = useMemo(() => new Set(response.items.flatMap((g) => [g.a, g.b])).size, [response.items]);
-  const medianP = median(items.map((g) => g.p_link));
-  const topScore = items.reduce<number | null>((m, g) => g.gap_score != null && (m == null || g.gap_score > m) ? g.gap_score : m, null);
-  const bothSides = items.filter((g) => (g.gap_rate_a ?? 0) >= 0.1 && (g.gap_rate_b ?? 0) >= 0.1).length;
-  const fmt = (v: number | null) => v == null ? "not available" : v.toFixed(2);
+  // The selected gap defaults to the top of the current list and follows the filters.
+  const selected = rows.find((r) => gapKey(r.gap) === selectedId) ?? rows[0] ?? null;
+  const selGap = selected?.gap ?? null;
+  const selKey = selGap ? gapKey(selGap) : null;
 
   useEffect(() => {
-    if (!selected) return;
-    const currentRequest = ++requestId.current;
+    if (!selGap) { setDetail(null); return; }
+    const current = ++requestId.current;
     setDetail(null);
     setDetailError(null);
     setDetailLoading(true);
-    loadDetail(selected)
-      .then((result) => { if (currentRequest === requestId.current) setDetail(result); })
-      .catch((reason: unknown) => {
-        if (currentRequest === requestId.current) setDetailError(reason instanceof Error ? reason.message : "The detail could not be loaded.");
-      })
-      .finally(() => { if (currentRequest === requestId.current) setDetailLoading(false); });
+    loadDetail(selGap)
+      .then((result) => { if (current === requestId.current) setDetail(result); })
+      .catch((reason: unknown) => { if (current === requestId.current) setDetailError(reason instanceof Error ? reason.message : "The detail could not be loaded."); })
+      .finally(() => { if (current === requestId.current) setDetailLoading(false); });
     return () => { requestId.current += 1; };
-  }, [selected, loadDetail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selKey, loadDetail]);
 
-  const handleSort = useCallback((key: GapSortKey) => {
-    if (sort === key) setSortDirection((d) => d === "asc" ? "desc" : "asc");
-    else { setSort(key); setSortDirection("desc"); }
-  }, [sort]);
+  // Open-problem sentences and rate series for the focused concept, or the selected pair.
+  const target: Array<{ id: string; label: string }> = focus
+    ? [{ id: focus, label: concepts.find((c) => c.id === focus)?.label ?? focus }]
+    : selGap ? [{ id: selGap.a, label: selGap.a_label }, { id: selGap.b, label: selGap.b_label }] : [];
+  const targetKey = target.map((t) => t.id).join("|");
+  const [problems, setProblems] = useState<Array<{ id: string; label: string; data: OpenProblemResponse }>>([]);
+  const [problemsLoading, setProblemsLoading] = useState(false);
+  const [problemsError, setProblemsError] = useState<string | null>(null);
+  useEffect(() => {
+    if (target.length === 0) { setProblems([]); return; }
+    let current = true;
+    setProblemsLoading(true);
+    setProblemsError(null);
+    Promise.all(target.map((t) => api.openProblems(t.id, "").then((data) => ({ ...t, data }))))
+      .then((v) => { if (current) setProblems(v); })
+      .catch((reason: unknown) => { if (current) setProblemsError(reason instanceof Error ? reason.message : "Statements could not be loaded."); })
+      .finally(() => { if (current) setProblemsLoading(false); });
+    return () => { current = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetKey]);
+  useEffect(() => setFilter("all"), [targetKey]);
 
-  function closeDetail() {
-    requestId.current += 1;
-    setSelected(null);
-    setDetail(null);
-    setDetailError(null);
-    setDetailLoading(false);
-  }
+  const series: ConceptSeries[] = problems.map((p) => ({ id: p.id, label: p.label, rates: (p.data ?? EMPTY).rates_by_year ?? [] }));
+  const cardItems: CardItem[] = problems
+    .flatMap((p, i) => (p.data ?? EMPTY).items.map((it) => ({ ...it, conceptLabel: p.label, dot: SERIES_COLORS[i % 2] })))
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+  const subtitle = focus ? `Stated in abstracts about ${target[0]?.label ?? ""}` : selGap ? `For the selected gap: ${selGap.a_label} and ${selGap.b_label}` : "";
 
-  const summary: Array<[string, string]> = [
-    ["Gaps shown", String(items.length)],
-    ["Median P(link)", fmt(medianP)],
-    ["Top gap score", fmt(topScore)],
-    ["Open problems on both sides", String(bothSides)],
+  const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
+  const topScore = rows.reduce<number | null>((m, r) => isNum(r.gap.gap_score) && (m == null || r.gap.gap_score > m) ? r.gap.gap_score : m, null);
+  const bothSides = rows.filter((r) => (r.gap.gap_rate_a ?? 0) >= 0.1 && (r.gap.gap_rate_b ?? 0) >= 0.1).length;
+  const maxScore = Math.max(0, ...response.items.map((g) => g.gap_score ?? 0));
+  const summary: Array<[string, string, boolean]> = [
+    ["Gaps shown", String(rows.length), false],
+    ["Median P(link)", f2(medianP), true],
+    ["Top gap score", f2(topScore), false],
+    ["Open problems on both sides", String(bothSides), false],
+  ];
+  const stats: Array<[string, string]> = [
+    ["Concepts", String(concepts.length)],
+    ["Papers", papers == null ? "—" : papers.toLocaleString("en-GB")],
+    ["Predicted gaps", String(response.items.length)],
+    ["Avg stated-gap rate", pct(avgRate)],
   ];
 
+  function pick(c: ConceptInfo) {
+    if (focus === c.id) { setFocus(null); return; }
+    setFocus(c.id);
+    const first = response.items.filter((g) => g.a === c.id || g.b === c.id).sort((x, y) => (y.gap_score ?? 0) - (x.gap_score ?? 0))[0];
+    if (first) setSelectedId(gapKey(first));
+  }
+
+  const focusLabel = focus ? concepts.find((c) => c.id === focus)?.label ?? focus : null;
+
   return (
-    <div className="gaps-layout">
-      <aside className="gaps-rail" aria-label="Filters and overview">
-        <label className="gaps-field">
-          <span>Concept</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.currentTarget.value)} placeholder="Search concept labels" />
-        </label>
-        <p className="gaps-field__note">Research-area grouping is not available in the data yet, so filtering is by concept name.</p>
-        <label className="gaps-field">
-          <span className="gaps-field__row">Minimum P(link)<span className="gap-mono">{minimumProbability.toFixed(2)}</span></span>
-          <input type="range" min="0" max="0.8" step="0.05" value={minimumProbability} onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
-        </label>
-        <label className="gaps-field">
-          <span>Sort gaps by</span>
-          <select value={sort} onChange={(e) => { setSort(e.currentTarget.value as GapSortKey); setSortDirection("desc"); }}>
+    <div className="gx">
+      <aside className="gx-rail" aria-label="Filters and overview">
+        <div className="gx-field">
+          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum P(link)</label><span className="gx-mono">{minimumProbability.toFixed(2)}</span></div>
+          <input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value={minimumProbability} onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
+        </div>
+        <div className="gx-field">
+          <label htmlFor="gf-sort">Sort gaps by</label>
+          <select id="gf-sort" value={sort} onChange={(e) => setSort(e.currentTarget.value as SortKey)}>
             {sortOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
-        </label>
+        </div>
 
-        <section aria-labelledby="gf-ov" className="gaps-rail__section">
-          <h2 id="gf-ov">At a glance</h2>
-          <dl className="gaps-ov">
-            <div><dt>Concepts</dt><dd className="gap-mono">{conceptCount}</dd></div>
-            <div><dt>Predicted gaps</dt><dd className="gap-mono">{response.items.length}</dd></div>
-          </dl>
-        </section>
-
-        <section aria-labelledby="gf-conc" className="gaps-rail__section">
-          <h2 id="gf-conc">Concepts by stated-gap rate</h2>
-          {rates.length === 0 ? <p className="gaps-field__note">Not available: no concept in the data carries a stated-gap rate.</p> : (
-            <>
-              <p className="gaps-field__note">Share of a concept's papers that name an open problem. Pick one to see its gaps.</p>
-              <ul className="gaps-concepts">
-                {shownRates.map((c) => (
-                  <li key={c.id}>
-                    <button type="button" aria-pressed={focus === c.id} onClick={() => setFocus((cur) => cur === c.id ? null : c.id)}>
-                      <span className="gaps-concepts__row"><span>{c.label}</span><span className="gap-mono">{Math.round(c.rate * 100)}%</span></span>
-                      <span className="gaps-concepts__bar"><span style={{ width: `${Math.round((c.rate / maxRate) * 100)}%` }} /></span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {rates.length > 8 && <button type="button" className="gaps-link" onClick={() => setShowAll((v) => !v)}>{showAll ? "Show fewer" : `Show all ${rates.length}`}</button>}
-            </>
+        <section className="gx-sec" aria-labelledby="gf-ov">
+          <h2 id="gf-ov" className="gx-label">All areas at a glance</h2>
+          <div className="gx-stats">
+            {stats.map(([label, v]) => (
+              <div key={label} className="gx-stat"><span className="gx-stat__l">{label}</span><span className="gx-stat__v">{v}</span></div>
+            ))}
+          </div>
+          {(fastest || rated[0]) && (
+            <p className="gx-fast">
+              {fastest && <>Fastest growing: <strong>{fastest.label}</strong>. </>}
+              {rated[0] && <>Most stated gaps: <strong>{rated[0].label}</strong>.</>}
+            </p>
           )}
         </section>
+
+        {rated.length > 0 && (
+          <section className="gx-sec gx-sec--6" aria-labelledby="gf-conc">
+            <h2 id="gf-conc" className="gx-label">Concepts by stated-gap rate</h2>
+            <p className="gx-help">Share of a concept’s papers that name an open problem. Pick one to see its gaps and sentences.</p>
+            <ul className="gx-concepts">
+              {shownRated.map((c) => (
+                <li key={c.id}>
+                  <button type="button" aria-pressed={focus === c.id} className="gx-concept" onClick={() => pick(c)}>
+                    <span className="gx-concept__row"><span>{c.label}</span><span className="gx-mono">{pct(c.rate)}</span></span>
+                    <span className="gx-concept__bar"><span style={{ width: `${Math.round(((c.rate as number) / maxRate) * 100)}%` }} /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {rated.length > 8 && <button type="button" className="gx-more" onClick={() => setShowAll((v) => !v)}>{showAll ? "Show fewer" : `Show all ${rated.length} concepts`}</button>}
+          </section>
+        )}
       </aside>
 
-      <div className="gaps-centre">
-        <div className="gaps-head">
-          <p className="gaps-page__intro">Concept pairs not yet linked (fewer than 3 shared papers), ranked, with what authors themselves say is unsolved. P(link) is the model's predicted probability; the gap score is a separate ranking score, not a probability.</p>
-          {response.placeholder && <span className="gaps-badge">Placeholder data, not results</span>}
+      <section className="gx-centre" aria-labelledby="gf-h">
+        <div className="gx-titles">
+          <h1 id="gf-h" className="gx-h1">Gaps &amp; open problems</h1>
+          <p className="gx-desc">Concept pairs not yet linked (fewer than 3 shared papers), ranked, with what authors themselves say is unsolved. <span className="gx-mono gx-ink">{rows.length}</span> gaps shown.</p>
         </div>
-        <dl className="gaps-summary">
-          {summary.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className="gap-mono">{value}</dd></div>)}
-        </dl>
-        {focus && (
-          <p className="gaps-focus" aria-live="polite">Gaps involving <strong>{focusLabel}</strong>
-            <button type="button" onClick={() => setFocus(null)} aria-label="Clear concept filter">Clear</button></p>
-        )}
-        <GapTable
-          items={items}
-          selectedId={selected ? id(selected) : null}
-          sort={sort}
-          sortDirection={sortDirection}
-          loading={loading}
-          error={error}
-          placeholder={response.placeholder && items.length === 0}
-          onSort={handleSort}
-          onSelect={setSelected}
-        />
-        <section id="open-problems" className="gaps-open" aria-labelledby="gaps-open-h">
-          <h2 id="gaps-open-h">What authors say is still open</h2>
-          <label className="gaps-open__filter">
-            <span>Concept</span>
-            <select value={problemConcept} onChange={(e) => setProblemConcept(e.currentTarget.value)}>
-              <option value="">All concepts</option>
-              {(problems?.concept_options ?? []).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-          </label>
-          <label className="gaps-open__filter">
-            <span>Type</span>
-            <select value={problemType} onChange={(e) => setProblemType(e.currentTarget.value as typeof problemType)}>
-              <option value="all">All types</option>
-              <option value="open_problem">Open problem</option>
-              <option value="limitation">Limitation</option>
-              <option value="future_work">Future work</option>
-            </select>
-          </label>
-          {problemStatus === "error" ? (
-            <p role="alert" className="ws-error">{problemError ?? "Could not load open problems."}
-              <button type="button" onClick={() => setProblemRetry((n) => n + 1)}>Retry</button></p>
-          ) : problemStatus === "loading" ? (
-            <p role="status" className="ws-muted">Loading open problems…</p>
-          ) : (
-            <OpenProblemsList
-              items={problems?.items ?? []}
-              rates={problems?.rates_by_year ?? null}
-              conceptLabel={(problems?.concept_options ?? []).find((c) => c.id === problemConcept)?.label ?? null}
-            />
-          )}
-        </section>
-      </div>
 
-      <GapDrawer
-        open={selected !== null}
-        detail={detail}
-        loading={detailLoading}
-        error={detailError}
-        placeholder={response.placeholder}
-        onClose={closeDetail}
-      />
+        <div className="gx-summary">
+          {summary.map(([label, v, blue]) => (
+            <div key={label} className="gx-summary__c"><span className="gx-summary__l">{label}</span><span className="gx-summary__v" style={blue ? { color: "var(--ws-accent)" } : undefined}>{v}</span></div>
+          ))}
+        </div>
+
+        {focus && (
+          <div className="gx-focus">
+            <span>Gaps involving</span>
+            <span className="gx-focus__pill">{focusLabel}
+              <button type="button" aria-label="Clear concept filter" onClick={() => setFocus(null)}>
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" /></svg>
+              </button>
+            </span>
+          </div>
+        )}
+
+        <GapTable rows={rows} maxScore={maxScore} selectedId={selKey} loading={loading} error={error} onSelect={(g) => setSelectedId(gapKey(g))} />
+
+        {selGap && (
+          <OpenProblemsCard subtitle={subtitle} series={series} items={cardItems} filter={filter} onFilter={setFilter} loading={problemsLoading} error={problemsError} />
+        )}
+      </section>
+
+      <GapDetailPanel gap={selGap} rank={selected?.rank ?? null} total={response.items.length} detail={detail} loading={detailLoading} error={detailError} />
     </div>
   );
 }

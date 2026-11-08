@@ -1,18 +1,31 @@
-/* Page-level layout for Explore (columns). Component styles live in components/*.css. */
-.ex { display: flex; flex-wrap: wrap; align-items: stretch; margin: 0 calc(-1 * clamp(16px, 3vw, 32px)); border-top: 1px solid var(--ws-border); background: var(--ws-surface); min-height: 720px; }
-.ex__left { flex: 1 1 280px; max-width: 340px; padding: 20px; border-right: 1px solid var(--ws-border); background: var(--ws-surface); display: flex; flex-direction: column; gap: 28px; }
-.ex__centre { flex: 999 1 560px; min-width: 0; padding: 16px; background: var(--ws-page); display: flex; flex-direction: column; gap: 12px; }
-.ex__right { flex: 1 1 380px; max-width: 460px; padding: 20px; border-left: 1px solid var(--ws-border); background: var(--ws-surface); display: flex; flex-direction: column; gap: 22px; }
-.ex__title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
-.ex__title h2 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
-.ex__muted { margin: 0; font-size: 13px; color: var(--ws-muted); line-height: 1.45; }
-.ex-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--ws-surface); border: 1px solid var(--ws-border); border-radius: 8px; margin: 0; }
+/* Page layout for Explore: three full-height columns that fill the frame. */
+.ex { display: flex; align-items: stretch; width: 100%; height: 100%; min-height: 0; background: var(--ws-surface); overflow: hidden; }
+.ex__left { flex: 0 0 280px; width: 280px; min-height: 0; overflow-y: auto; padding: 20px; border-right: 1px solid var(--ws-border); background: var(--ws-surface); display: flex; flex-direction: column; gap: 28px; }
+.ex__centre { flex: 1 1 0; min-width: 0; min-height: 0; padding: 16px; background: var(--ws-page); display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.ex__right { flex: 0 0 380px; width: 380px; min-height: 0; overflow-y: auto; padding: 20px; border-left: 1px solid var(--ws-border); background: var(--ws-surface); }
+.ex__title { flex: none; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ex__title h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
+.ex__title span { font-size: 13px; color: var(--ws-muted); }
+.ex-stats { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--ws-surface); border: 1px solid var(--ws-border); border-radius: 8px; margin: 0; }
 .ex-stats > div { padding: 10px 16px; border-left: 1px solid var(--ws-border); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ex-stats > div:first-child { border-left: 0; }
 .ex-stats dt { font-size: 12px; color: var(--ws-muted); }
 .ex-stats dd { margin: 0; font-family: var(--ws-mono); font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .ex-stats dd.ex-stats__accent { color: var(--ws-accent); }
-.ex-time { padding: 10px 16px; background: var(--ws-surface); border: 1px solid var(--ws-border); border-radius: 8px; }
-.ex__loading { margin: 0; padding: 2rem 1rem; border: 1px solid var(--ws-border); border-radius: 8px; color: var(--ws-muted); background: var(--ws-surface); text-align: center; }
-@media (max-width: 1100px) { .ex__left, .ex__right { max-width: none; } .ex__left { border-right: 0; } .ex__right { border-left: 0; border-top: 1px solid var(--ws-border); } }
-@media (max-width: 640px) { .ex-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ex-stats > div:nth-child(3) { border-left: 0; } }
+.ex__loading { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--ws-border); border-radius: 8px; color: var(--ws-muted); background: var(--ws-surface); font-size: 13px; }
+@media (max-width: 1100px) {
+  .ex { flex-direction: column; height: auto; overflow: visible; }
+  .ex__left, .ex__right { flex: none; width: auto; overflow: visible; border: 0; }
+  .ex__left { border-bottom: 1px solid var(--ws-border); }
+  .ex__right { border-top: 1px solid var(--ws-border); }
+  .ex__centre { flex: none; overflow: visible; }
+  .ex__loading { min-height: 240px; }
+}
+@media (max-width: 640px) { .ex-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ex-stats > div:nth-child(3) { border-left: 0; } .ex-stats > div:nth-child(n+3) { border-top: 1px solid var(--ws-border); } }
+
+.ex__mapwrap { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.ex__mapwrap > :not(.ex__viewtoggle) { flex: 1 1 0; min-height: 0; }
+.ex__viewtoggle { position: absolute; top: 12px; left: 12px; z-index: 5; display: inline-flex; background: var(--ws-surface); border: 1px solid var(--ws-border); border-radius: 8px; padding: 2px; gap: 2px; }
+.ex__viewtoggle button { font: 500 12px/1 var(--ws-sans, "IBM Plex Sans", system-ui, sans-serif); color: var(--ws-muted); background: transparent; border: 0; border-radius: 6px; padding: 7px 10px; min-width: 40px; cursor: pointer; }
+.ex__viewtoggle button[aria-pressed="true"] { background: #ECECE7; color: var(--ws-ink, #15171C); }
+.ex__viewtoggle button:focus-visible { outline: 2px solid #2952E3; outline-offset: 1px; }
