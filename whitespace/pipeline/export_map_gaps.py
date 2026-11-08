@@ -54,6 +54,30 @@ HEADLINE_KEYS = (
     "precision_at_100_difference", "precision_at_100_ci_low", "precision_at_100_ci_high",
 )
 
+# Display-level stoplist for the PRODUCTION GAP LIST ONLY (issue #255). Generic filler phrases that
+# the title/abstract phrase extractor keeps as "concepts" and that otherwise crowd the top gaps. Exact,
+# whole-phrase, lowercase match on the concept string. The vocabulary, features, model, backtest and
+# map are NOT filtered. Conservative on purpose: fillers only, no domain terms.
+GENERIC_PHRASES = frozenset({
+    # owner's list
+    "vice versa", "located", "many area", "already", "today", "achieving", "un", "abc", "able to achieve",
+    # participles and light verbs
+    "met", "prepared", "projected", "contributing", "discussing", "delayed", "formalized", "compromising",
+    "executing", "merge", "elaborate", "indirect", "thing", "something",
+    # discourse phrases and fillers
+    "taking into account", "freely available", "difficult problem",
+    # adverbs
+    "formally", "autonomously", "actually", "basically", "currently", "generally", "firstly", "secondly",
+    "lastly", "ultimately", "eventually", "previously", "obviously", "essentially", "indeed", "really",
+    "simply", "merely", "truly", "unfortunately", "interestingly", "surprisingly", "importantly",
+    "consequently", "accordingly", "subsequently", "briefly", "clearly",
+    # determiner and quantity bigrams
+    "many field", "many problem", "many case", "many study", "small number", "large amount",
+    # extraction fragments and non-English remnants
+    "ing", "penting", "sering", "aforementioned", "regarding", "concerning",
+})
+STOPLIST_NOTE = ("{n} generic phrases hidden from this list; vocabulary and backtest unchanged")
+
 Predictor = Callable[[Sequence[Work], int], "tuple[PairSet, np.ndarray]"]
 
 
@@ -253,8 +277,12 @@ def gap_score_parts(
 def build_gaps(
     works: Sequence[Work], year: int, predictor: Predictor, *, n_min: int, pool: int, limit: int,
     labels: dict[str, str] | None = None, gap_rates: dict[str, float] | None = None,
+    stoplist: frozenset[str] | None = None,
 ) -> tuple[dict, dict]:
     """Ranked gaps at ``year`` (``GapListResponse``) and the context needed for gap details.
+
+    ``stoplist`` (default None: off) drops pool candidates where either concept is in it, BEFORE the
+    top-``limit`` cut, so the list is still filled from the pool. gaps then carry a ``stoplist`` record.
 
     The ranking is over the ``pool`` eligible pairs with the highest p_link (the full universe
     can be ~12M pairs), sorted by gap score then p_link then pair order.
@@ -267,9 +295,13 @@ def build_gaps(
     adj = _linked_adjacency(snap, names)
     top = np.argsort(-prob, kind="stable")[:pool]
     items = []
+    hidden = 0
     for k in top:
         i, j = int(pairs.i[k]), int(pairs.j[k])
         a, b = names[i], names[j]
+        if stoplist and (a in stoplist or b in stoplist):
+            hidden += 1
+            continue
         ga, gb = growth(series.get(a, {}), year), growth(series.get(b, {}), year)
         union = int((adj[i] | adj[j]).sum())
         overlap = int((adj[i] & adj[j]).sum()) / union if union else 0.0
@@ -299,7 +331,14 @@ def build_gaps(
         "formula_used": gap_formula(bool(gap_rates)), "omitted_components": omitted,
         "ranking_pool": f"top {pool} eligible pairs by p_link",
     }
+    if stoplist:
+        gaps["stoplist"] = stoplist_record(stoplist, hidden)
     return gaps, {"visible": visible, "adj": adj, "names": names}
+
+
+def stoplist_record(stoplist: frozenset[str], hidden: int) -> dict:
+    return {"applied": True, "phrases": sorted(stoplist), "hidden_candidates": hidden,
+            "note": STOPLIST_NOTE.format(n=len(stoplist))}
 
 
 def gap_formula(has_gap_rates: bool) -> str:
