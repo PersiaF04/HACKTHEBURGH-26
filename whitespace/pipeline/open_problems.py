@@ -92,6 +92,18 @@ def classify(sentence: str) -> tuple[str, float] | None:
     return None
 
 
+_TRIGGER_WORDS = frozenset({"unclear", "unknown", "unresolved", "unexplored", "limitation", "limitations", "challenge"})
+
+
+def is_trigger_phrase(concept: str) -> bool:
+    """True for a concept that is itself an extraction trigger ("future work", "open problem", "unclear" ...).
+
+    Its rate would be close to 1 by construction, not a research gap, so it is exported without a rate (null).
+    """
+    return any(pat.search(concept) for _, _, pat in _RULES) or bool(_TRIGGER_WORDS & set(concept.lower().split())) \
+        or concept in ("research direction", "future direction")
+
+
 def hits_in(abstract: str) -> list[tuple[str, str, float]]:
     """``(sentence, type, confidence)`` for each matching sentence of one abstract."""
     found = []
@@ -269,6 +281,7 @@ def label_stats(frame: list[dict], labels: dict, who: str = "AI") -> dict:
 # ------------------------------------------------------------------ export (reduced version)
 
 TOP_CONCEPTS, PER_CONCEPT, PER_GAP, MAX_ITEMS = 200, 5, 5, 1200
+RATE_MIN_PAPERS = 30  # a concept with fewer papers up to the snapshot has no stated-gap rate (null, not 0)
 QUALITY_NOTE = ("Extraction quality is unmeasured: sentences were picked by a regex prefilter and have not been "
                 "hand-labelled, so some are not real author-stated open problems.")
 ATTRIBUTION = ("Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the "
@@ -320,21 +333,32 @@ def build_export(hits: list[dict], counts: dict, gap_pairs: list[tuple[str, str]
                     seen.add(key)
                     items.append(it)
     rate_years = sorted({y for (c, y) in counts if c == "" and y <= final_year})
-    rates_by_year = [{"year": y, "concept_rate": None,
-                      "ai_ml_rate": round(counts[("", y)][1] / counts[("", y)][0], 6)} for y in rate_years]
-    rates_by_concept = {c: [{"year": y, "papers": counts[(c, y)][0], "with_open_problem": counts[(c, y)][1],
-                             "rate": round(counts[(c, y)][1] / counts[(c, y)][0], 6)}
+    overall = {y: round(counts[("", y)][1] / counts[("", y)][0], 6) for y in rate_years}
+    rates_by_year = [{"year": y, "concept_rate": None, "ai_ml_rate": overall[y]} for y in rate_years]
+    # the frontend's OpenProblemRatePoint per concept: only years up to the snapshot, so no later knowledge
+    rates_by_concept = {c: [{"year": y, "concept_rate": round(counts[(c, y)][1] / counts[(c, y)][0], 6),
+                             "ai_ml_rate": overall[y], "papers": counts[(c, y)][0],
+                             "with_open_problem": counts[(c, y)][1]}
                             for y in rate_years if (c, y) in counts and counts[(c, y)][0]]
                         for c in sorted(chosen)}
+    cum: dict[str, list[int]] = {}
+    for (c, y), (n, w) in counts.items():
+        if c and y <= final_year:
+            t = cum.setdefault(c, [0, 0])
+            t[0] += n
+            t[1] += w
+    # share of a concept's papers (all years up to the snapshot year) with a stated open problem; DISPLAY ONLY
+    gap_rate = {c: round(w / n, 6) for c, (n, w) in sorted(cum.items())
+                if n >= RATE_MIN_PAPERS and not is_trigger_phrase(c)}
     return {
-        "gap_details": gap_details, "concepts": concepts, "gap_rates": rates_by_concept,
+        "gap_details": gap_details, "concepts": concepts, "gap_rates": gap_rate,
         "file": {"placeholder": False, "synthetic": False, "items": items,
                  "concept_options": [{"id": c, "label": c} for c in sorted(chosen) if c in per],
                  "rates_by_year": rates_by_year, "rates_by_concept": rates_by_concept,
                  "quality": "unmeasured", "note": QUALITY_NOTE, "attribution": ATTRIBUTION,
-                 "rate_note": "ai_ml_rate is the share of all corpus papers with a stated open problem; "
-                              "concept_rate is not exported (see rates_by_concept). Display only: not used in any "
-                              "gap score or backtest."},
+                 "rate_note": "ai_ml_rate is the share of all corpus papers with a stated open problem; per-concept "
+                              "series are in rates_by_concept (concept_rate). Rates only count papers up to the snapshot "
+                              "year. Display only: not used in any gap score or backtest."},
     }
 
 
@@ -411,12 +435,12 @@ def attach(export_dir: Path, cache_dir: Path, out_dir: Path | None = None, *, fr
     files["open-problems.json"]["quality"] = quality
     files["open-problems.json"]["note"] = note
     files["meta.json"]["open_problems"] = {"quality": quality, "items": info["items"], "attribution": ATTRIBUTION,
-                                           "note": note}
+                                           "note": note, "rates": "display only: not used in gap_score or the backtest"}
     for r in files["routes.json"]["routes"]:
         if r["file"] == "open-problems.json":
             r["status"] = "real"
             r["note"] = "query ignored here; the client filters. Reduced first version (top gaps and concepts)."
-    changed = ("concepts.json", "gap-details.json", "open-problems.json", "meta.json", "routes.json")
+    changed = ("gaps.json", "concepts.json", "gap-details.json", "open-problems.json", "meta.json", "routes.json")
     for n in changed:
         E.write_payload(export_dir, n, files[n], synthetic=False)
     man = files["manifest.json"]

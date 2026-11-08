@@ -691,7 +691,28 @@ def attach_open_problems(files: dict[str, dict], cache_dir: Path, final: int) ->
         if cid in files["concepts.json"]["entries"]:
             files["concepts.json"]["entries"][cid]["open_problems"] = items
     files["open-problems.json"] = built["file"]
-    return {"cache_hits": len(hits), "items": len(built["file"]["items"]), "quality": "unmeasured",
+    rc = built["gap_rates"]  # DISPLAY ONLY: gap_score, factors.gap_factor and formula_used are left exactly as they were
+
+    def set_rates(rec: dict) -> None:
+        ra, rb = rc.get(rec["a"]), rc.get(rec["b"])
+        rec["gap_rate_a"], rec["gap_rate_b"] = ra, rb
+        rec["gap_rate"] = round(ra + rb, 6) if ra is not None and rb is not None else None
+
+    for it in files["gaps.json"]["items"]:
+        set_rates(it)
+    for e in files["gap-details.json"]["entries"].values():
+        if isinstance(e.get("summary"), dict):
+            set_rates(e["summary"])
+    for cid, e in files["concepts.json"]["entries"].items():
+        e["gap_rate"] = rc.get(cid)
+    gaps = files["gaps.json"]
+    gaps["omitted_components"] = [x for x in gaps.get("omitted_components", []) if not x.startswith("gap_rate")] + [
+        "gap_rate (shown for display only; not part of gap_score)"]
+    gaps["gap_rate_note"] = ("gap_rate_a/b: share of the concept's papers up to the snapshot year with an author-stated open "
+                             "problem (regex extraction, quality as in meta.open_problems); gap_rate = a + b. Display only: "
+                             "gap_score, the factors and the backtest do not use it.")
+    return {"cache_hits": len(hits), "gap_rates": sum(1 for v in rc.values() if v is not None),
+            "gaps_with_rates": sum(1 for g in gaps["items"] if g["gap_rate"] is not None), "items": len(built["file"]["items"]), "quality": "unmeasured",
             "gaps_with_sentences": sum(1 for v in built["gap_details"].values() if v),
             "concepts_with_sentences": len(built["concepts"]), "attribution": OP.ATTRIBUTION,
             "display_only": "rates are not used in any gap score or backtest"}
