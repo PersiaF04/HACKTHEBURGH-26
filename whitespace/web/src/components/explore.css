@@ -8,13 +8,13 @@
 
 
 /* segmented control (growth filter) */
-.whitespace-seg { display: flex; gap: 2px; padding: 3px; border-radius: 6px; background: var(--ws-track); }
+.whitespace-seg { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--ws-border); border-radius: 8px; background: var(--ws-surface); }
 .whitespace-seg button { flex: 1; min-height: 32px; border: 0; border-radius: 4px; background: transparent; color: var(--ws-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .whitespace-seg button[aria-pressed="true"] { background: var(--ws-surface); color: var(--ws-ink); box-shadow: 0 1px 2px var(--ws-shadow); }
 .whitespace-seg button:disabled { cursor: not-allowed; opacity: .55; }
 
 /* search */
-.whitespace-search { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: linear-gradient(145deg, var(--ws-surface), var(--ws-hover)); box-shadow: 0 8px 20px color-mix(in srgb, var(--ws-shadow) 35%, transparent); }
+.whitespace-search { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: var(--ws-hover); }
 .whitespace-search__form { position: relative; display: flex; flex-direction: column; gap: 7px; }
 .whitespace-search__form label { font-size: 12px; font-weight: 650; color: var(--ws-ink); letter-spacing: .01em; }
 .whitespace-search__field { position: relative; }
@@ -35,17 +35,18 @@
 .whitespace-search__none { margin: 4px 6px; font-size: 13px; color: var(--ws-muted); }
 
 /* filters */
-.whitespace-filters { display: flex; flex-direction: column; gap: 20px; }
+.whitespace-filters { display: flex; flex-direction: column; gap: 16px; }
 .whitespace-filters__section { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--ws-border); border-radius: var(--ws-radius-lg); background: var(--ws-hover); }
-.whitespace-filters__areas { gap: 4px; }
+.whitespace-filters__areas { gap: 6px; }
 .whitespace-filters h2 { margin: 0; font-size: 13px; font-weight: 650; color: var(--ws-ink); letter-spacing: 0; }
 .whitespace-filters__heading { display: grid; gap: 3px; }
 .whitespace-filters__heading p { margin: 0; color: var(--ws-muted); font-size: 12px; line-height: 1.35; }
 .whitespace-filters__areas h2 { margin-bottom: 6px; }
-.whitespace-filters__row { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.whitespace-filters__row { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
 .whitespace-filters__label { display: flex; justify-content: space-between; }
 .whitespace-filters input[type="range"] { width: 100%; margin: 0; accent-color: var(--ws-ink); }
-.whitespace-check { display: flex; align-items: center; gap: 10px; min-height: 34px; font-size: 13px; cursor: pointer; }
+.whitespace-check { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 8px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.whitespace-check:hover { background: var(--ws-selected); }
 .whitespace-filters__section:not(.whitespace-filters__areas) .whitespace-check { min-height: 32px; }
 .whitespace-check > span:nth-child(2) { flex: 1; }
 .whitespace-check .whitespace-mono { color: var(--ws-muted); }
@@ -54,7 +55,8 @@
 .whitespace-check--switch > span { display: grid; gap: 2px; }
 .whitespace-check--switch strong { font-size: 13px; font-weight: 600; }
 .whitespace-check--switch small { color: var(--ws-muted); font-size: 12px; line-height: 1.35; }
-.whitespace-filters__reset { align-self: flex-start; min-height: 32px; padding: 0 2px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; color: var(--ws-ink); text-decoration: underline; text-decoration-color: var(--ws-rule); text-underline-offset: 3px; cursor: pointer; }
+.whitespace-filters__reset { align-self: flex-start; min-height: 36px; padding: 0 10px; border: 1px solid var(--ws-border-strong); border-radius: 6px; background: var(--ws-surface); font: inherit; font-size: 13px; font-weight: 600; color: var(--ws-ink); cursor: pointer; }
+.whitespace-filters__reset:hover { background: var(--ws-selected); }
 
 /* concept panel */
 .whitespace-concept { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
