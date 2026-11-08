@@ -26,14 +26,14 @@ function PageSkeleton({ label }: { label: string }) {
   );
 }
 
-const sections = [
+const pages = [
   ["/", "Research map"],
   ["/gaps", "Gap finder"],
   ["/open-problems", "Open problems"],
   ["/evidence", "Evidence"],
   ["/coverage", "Code coverage"],
 ] as const;
-const navTabs = sections;
+const navTabs = pages.slice(0, 3);
 
 function currentPath() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
@@ -58,7 +58,7 @@ export default function App() {
   const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
   const [error, setError] = useState<string>();
-  const active = sections.find(([route]) => route === path) ?? sections[0];
+  const active = pages.find(([route]) => route === path) ?? pages[0];
 
   // Switching demo data on or off drops everything loaded so far; pages remount below via key.
   useEffect(() => {
