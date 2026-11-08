@@ -50,7 +50,9 @@ def test_dry_run_writes_every_file_as_a_synthetic_placeholder(exported):
         assert payload["data_label"] == "synthetic"
     manifest = read(out / "manifest.json")
     assert manifest["synthetic"] is True and manifest["export"]["path_check"]["ran"] is True
-    assert manifest["export"]["production_model_equals_backtest_model"] is True
+    # default production model is trained through 2020, so it is not the backtest model
+    assert manifest["export"]["production_model"] == "through-2020"
+    assert manifest["export"]["production_model_equals_backtest_model"] is False
 
 
 def test_dry_run_files_carry_no_numbers_but_years(exported):
@@ -81,8 +83,8 @@ def test_real_shaped_path_validates(dry, tmp_path):
     if real, without going through the synthetic gate, to exercise the validator on populated files."""
     run = E.load_run(dry)
     years = list(range(2015, 2021))
-    trained, same = E.train_frozen(run)
-    assert same
+    trained, same = E.train_production(run, "through-2020")
+    assert not same
     built = E.build_real_files(run, trained, years, **{k: v for k, v in KW.items()})
     files = dict(built)
     files["backtest.json"] = E.build_backtest(run, False, None)  # placeholder: the run is synthetic
@@ -99,7 +101,7 @@ def test_real_shaped_path_validates(dry, tmp_path):
             assert errs == [], (name, errs)
     gaps = files["gaps.json"]
     assert gaps["kind"] == "production_forecast" and gaps["held_out_test"] is False
-    assert "not the held-out test" in gaps["label"] and gaps["trained_on"]["test_origins_used"] == []
+    assert "not the held-out test" in gaps["label"] and gaps["trained_on"]["held_out_tested"] is False
     assert gaps["snapshot_year"] == 2020 and gaps["items"]
     assert files["concepts.json"]["entries"] and files["gap-details.json"]["entries"]
     meta = files["meta.json"]
@@ -344,3 +346,52 @@ def test_open_problems_placeholder_documents_concept_ids(exported):
     op = read(out / "open-problems.json")
     assert op["placeholder"] is True and op["items"] == []
     assert "concept_ids" in op["item_shape"] and "concept_ids" in op["item_shape"]["fields"]
+
+
+def test_production_config_purges_and_names_the_origins(dry):
+    run = E.load_run(dry)
+    pc = E.production_config(run, "through-2020")
+    cfg = run.config
+    assert pc.fit_origins == tuple(sorted({*cfg.fit_origins, *cfg.calibration_origins}))
+    assert pc.calibration_origins == (min(cfg.test_origins),)
+    assert max(pc.fit_origins) + pc.horizon <= min(pc.calibration_origins)
+    assert E.production_config(run, "frozen") == run.config.backtest_config()
+    with pytest.raises(E.ExportError):
+        E.production_config(run, "nope")
+
+
+def test_through_2020_model_is_labelled_and_differs_from_backtest(dry):
+    run = E.load_run(dry)
+    trained, same = E.train_production(run, "through-2020")
+    assert same is False
+    frozen, same_frozen = E.train_production(run, "frozen")
+    assert same_frozen is True and frozen.info["coefficients"] != trained.info["coefficients"]
+    label = E.production_label(run, 2020, "through-2020")
+    assert "never itself held-out tested" in label and "not shown to be better calibrated" in label
+    on = E.production_trained_on(run, "through-2020")
+    assert on["calibration_origins"] == [min(run.config.test_origins)] and on["held_out_tested"] is False
+    assert "Platt" in on["calibration_method"]
+    assert E.production_trained_on(run, "frozen")["test_origins_used"] == []
+
+
+def test_frozen_fallback_exports_backtest_model(dry, tmp_path):
+    result = E.export_run(dry, tmp_path / "o", production_model="frozen", **KW)
+    assert result["problems"] == [] and result["same_model"] is True
+    manifest = read(tmp_path / "o" / "manifest.json")
+    assert manifest["export"]["production_model_equals_backtest_model"] is True
+    assert manifest["export"]["production_model"] == "frozen"
+
+
+def test_cli_production_model_flag(dry, tmp_path, capsys):
+    assert E.main([str(dry), "--out", str(tmp_path / "o"), "--production-model", "frozen"]) == 0
+    with pytest.raises(SystemExit):
+        E.main([str(dry), "--out", str(tmp_path / "p"), "--production-model", "bogus"])
+
+
+def test_real_shaped_files_state_the_production_model(dry):
+    run = E.load_run(dry)
+    trained, _ = E.train_production(run, "through-2020")
+    built = E.build_real_files(run, trained, [2019, 2020], **KW)
+    assert built["gaps.json"]["trained_on"]["model"] == "through-2020"
+    assert "trained after the held-out test" in built["gaps.json"]["label"]
+    assert built["meta.json"]["production_forecast"]["model"]["calibration_origins"] == [min(run.config.test_origins)]

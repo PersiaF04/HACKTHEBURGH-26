@@ -30,8 +30,10 @@ Honesty rules (enforced by the writer and re-checked by ``validate_export``):
   with ``synthetic: true`` and no numbers (the full path still runs; only counts are kept in
   ``manifest.json`` under ``path_check``). The writer raises rather than write a non-placeholder file
   for a synthetic run.
-* ``backtest.json`` is the held-out test only. ``gaps.json`` is a PRODUCTION forecast: the model frozen for
-  the backtest (fit and calibration origins only, never a test origin) scored at the last corpus year.
+* ``backtest.json`` is the held-out test only. ``gaps.json`` is a PRODUCTION forecast scored at the last
+  corpus year. With ``--production-model through-2020`` (default) the model is re-trained after the test was
+  scored: fit on the run's fit and calibration origins, Platt-calibrated at the test origin 2020. That model
+  was never itself held-out tested; with ``frozen`` it is the backtest model (no test origin used).
   Its outcomes are unknown, nothing in it was evaluated, and the file says so.
 * Each ``map-<Y>.json`` is built from the origin-Y cache (vocabulary from works dated up to 31 Dec Y)
   and works dated up to 31 Dec Y, so the slider never shows later knowledge. Positions come from a
@@ -190,17 +192,42 @@ def ensure_caches(run: Run, years: list[int], corpus: Path | None) -> None:
         raise ExportError(f"cannot build origin caches: {exc}") from None
 
 
-def train_frozen(run: Run) -> tuple[backtest.Trained, bool]:
-    """The model frozen for the backtest, re-trained on its fit and calibration origins only.
+PRODUCTION_MODELS = ("frozen", "through-2020")
 
-    ``train`` reads no test origin. The second value says whether the coefficients equal the run's
-    recorded ones (the same model is being scored on the production snapshot).
-    """
-    trained = backtest.train(lambda t: R.load_works(run.dir, t), run.config.backtest_config())
+
+def production_config(run: Run, mode: str) -> backtest.BacktestConfig:
+    """Training config of the production model. ``frozen`` is the backtest's; ``through-2020`` adds the
+    backtest's calibration origins to the fit origins (2010-14 and 2017) and calibrates at the first test
+    origin (2020). The purge rule holds: 2017 + 3 <= 2020."""
+    cfg = run.config
+    if mode == "frozen":
+        return cfg.backtest_config()
+    if mode != "through-2020":
+        raise ExportError(f"unknown production model {mode!r}; use one of {PRODUCTION_MODELS}")
+    fit = tuple(sorted({*cfg.fit_origins, *cfg.calibration_origins}))
+    cal = (min(cfg.test_origins),)
+    if fit[-1] + cfg.horizon > cal[0]:
+        raise ExportError(f"fit origin {fit[-1]} + {cfg.horizon} reaches calibration origin {cal[0]}")
+    return backtest.BacktestConfig(fit, cal, cfg.test_origins, seed=cfg.seed, n_min=cfg.n_min,
+                                   horizon=cfg.horizon, n_boot=cfg.n_boot)
+
+
+def train_production(run: Run, mode: str = "through-2020") -> tuple[backtest.Trained, bool]:
+    """Train the model behind ``gaps.json``. Second value: its coefficients equal the backtest model's
+    recorded ones (always False in practice for ``through-2020``, which has more fit data).
+
+    ``train`` never reads a test-origin score. In ``through-2020`` it does read the 2020 outcome labels to
+    calibrate, which is why that model is labelled as trained after the test and not held-out tested."""
+    trained = backtest.train(lambda t: R.load_works(run.dir, t), production_config(run, mode))
     recorded = (run.metrics.get("training") or {}).get("coefficients") or {}
     same = bool(recorded) and set(recorded) == set(trained.info["coefficients"]) and all(
         math.isclose(recorded[k], v, rel_tol=1e-6, abs_tol=1e-9) for k, v in trained.info["coefficients"].items())
     return trained, same
+
+
+def train_frozen(run: Run) -> tuple[backtest.Trained, bool]:
+    """The backtest model re-trained (fit and calibration origins only); see ``train_production``."""
+    return train_production(run, "frozen")
 
 
 # ------------------------------------------------------------------ placeholders
@@ -260,19 +287,39 @@ def build_concepts(visible: list[Work], year: int, names, snap, top_papers: int 
     return entries
 
 
-def production_label(run: Run, year: int) -> str:
-    cfg = run.config
+def production_trained_on(run: Run, mode: str) -> dict:
+    """Origins the production model was fit and calibrated on, and how its probabilities were calibrated."""
+    pc = production_config(run, mode)
+    return {
+        "model": mode, "fit_origins": list(pc.fit_origins), "calibration_origins": list(pc.calibration_origins),
+        "test_origins_used": [] if mode == "frozen" else list(pc.calibration_origins),
+        "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of "
+                              "the calibration origin",
+        "held_out_tested": mode == "frozen",
+    }
+
+
+def production_label(run: Run, year: int, mode: str = "through-2020") -> str:
+    pc = production_config(run, mode)
+    if mode == "frozen":
+        model = (f"The model frozen for the backtest (fit on origins {list(pc.fit_origins)}, calibrated at "
+                 f"{list(pc.calibration_origins)}; no test origin used)")
+    else:
+        model = (f"A model trained after the held-out test was scored: fit on origins {list(pc.fit_origins)} "
+                 f"and Platt-calibrated at {list(pc.calibration_origins)}, which is the test origin, so its "
+                 f"outcomes were used for training. This model was never itself held-out tested, and its "
+                 f"probabilities are not shown to be better calibrated than the backtest's")
     return (
-        f"Production forecast, not the held-out test. The model frozen for the backtest (fit on origins "
-        f"{list(cfg.fit_origins)}, calibrated at {list(cfg.calibration_origins)}; no test origin used) ranks "
-        f"pairs that have not yet co-occurred {LINK_THRESHOLD}+ times at the {year} snapshot, the last year in "
-        f"the corpus. Their outcomes ({year + 1} to {year + cfg.horizon}) are not observed, so nothing in this "
-        f"file was evaluated. The held-out result is in backtest.json."
+        f"Production forecast, not the held-out test. {model} ranks pairs that have not yet co-occurred "
+        f"{LINK_THRESHOLD}+ times at the {year} snapshot, the last year in the corpus. Their outcomes "
+        f"({year + 1} to {year + pc.horizon}) are not observed, so nothing in this file was evaluated. "
+        f"The held-out result is in backtest.json and describes the backtest model, not this one."
     )
 
 
 def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, edge_threshold: float,
-                     max_edges: int, gap_pool: int, gap_limit: int, detail_limit: int) -> dict[str, dict]:
+                     max_edges: int, gap_pool: int, gap_limit: int, detail_limit: int,
+                     production_model: str = "through-2020") -> dict[str, dict]:
     """map-<Y>, gaps, gap-details, concepts and meta from the caches. Real-shaped; the caller decides
     whether they may be written (never for a synthetic run)."""
     n_min, final = run.config.n_min, years[-1]
@@ -292,10 +339,8 @@ def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, e
             gaps, ctx = build_gaps(visible, final, predict, n_min=n_min, pool=gap_pool, limit=gap_limit)
             gaps.update(
                 synthetic=False, kind="production_forecast", held_out_test=False, snapshot_year=final,
-                label=production_label(run, final), backtest_file="backtest.json",
-                trained_on={"fit_origins": list(run.config.fit_origins),
-                            "calibration_origins": list(run.config.calibration_origins),
-                            "test_origins_used": []},
+                label=production_label(run, final, production_model), backtest_file="backtest.json",
+                trained_on=production_trained_on(run, production_model),
                 gap_note=GAP_NOTE)
             files["gaps.json"] = gaps
             files["gap-details.json"] = {
@@ -310,24 +355,27 @@ def build_real_files(run: Run, trained: backtest.Trained, years: list[int], *, e
             final_counts = {"works": len(visible), "concepts": len(names), "ranked_gaps": len(gaps["items"])}
     final_counts["map_years"] = len(years)
     final_counts["predicted_edges_final_year"] = len(files[f"map-{final}.json"]["edges"])
-    files["meta.json"] = build_meta(run, years, final_counts)
+    files["meta.json"] = build_meta(run, years, final_counts, production_model)
     return files
 
 
-def build_meta(run: Run, years: list[int], counts: dict) -> dict:
+def build_meta(run: Run, years: list[int], counts: dict, production_model: str = "through-2020") -> dict:
     final = years[-1]
     return {
         "placeholder": False, "synthetic": False,
         "year_range": {"min": years[0], "max": final},
         "counts": counts,
         "headline_metrics": headline_from_backtest(runner_metrics(run, False)),
-        "headline_source": "held-out backtest (backtest.json); the production forecast has no result",
+        "headline_source": "held-out backtest (backtest.json), which scores the backtest model; the production "
+                           "forecast (gaps.json) has no result and its model may differ (see production_forecast)",
         "corpus": {
             "last_year": final,
             "note": f"The corpus ends in {final}. Snapshot years after {final} are absent, not zero: no map, "
                     f"gap or coverage file exists for them.",
         },
-        "production_forecast": {"file": "gaps.json", "snapshot_year": final, "label": production_label(run, final)},
+        "production_forecast": {"file": "gaps.json", "snapshot_year": final,
+                                "label": production_label(run, final, production_model),
+                                "model": production_trained_on(run, production_model)},
         "layout": {"method": "truncated SVD of positive-PMI co-occurrence matrix, per year", "note": LAYOUT_NOTE_YEAR},
         "concepts_note": "Concepts are 1 to 3 word phrases from titles and abstracts (a vocabulary chosen "
                          "from works up to each year), not OpenAlex topic ids. Coverage uses topic ids.",
@@ -599,7 +647,8 @@ def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
 
 def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int = FIRST_YEAR,
                edge_threshold: float = EDGE_THRESHOLD, max_edges: int = MAX_EDGES, gap_pool: int = GAP_POOL,
-               gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP) -> dict:
+               gap_limit: int = GAP_LIMIT, detail_limit: int = DETAIL_LIMIT, coverage_top: int = COVERAGE_TOP,
+               production_model: str = "through-2020") -> dict:
     """Export every frontend file and validate the result. Returns ``{synthetic, files, problems, ...}``."""
     run = load_run(run_dir)
     reasons = synthetic_reasons(run)
@@ -615,8 +664,8 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
     table, info, hand_rows = read_join(Path(join_dir) if join_dir else None)
 
     ensure_caches(run, years, Path(corpus) if corpus else None)
-    trained, same_model = train_frozen(run)
-    built = build_real_files(run, trained, years, edge_threshold=edge_threshold, max_edges=max_edges,
+    trained, same_model = train_production(run, production_model)
+    built = build_real_files(run, trained, years, production_model=production_model, edge_threshold=edge_threshold, max_edges=max_edges,
                              gap_pool=gap_pool, gap_limit=gap_limit, detail_limit=detail_limit)
     path_check = None
     if synthetic:
@@ -655,9 +704,8 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
         "synthetic": synthetic, "synthetic_reasons": reasons, "corpus_last_year": final, "map_years": years,
         "run_dir_config_hash": run.manifest.get("config_hash"), "corpus_sha256": run.manifest["corpus"]["sha256"],
         "production_model_equals_backtest_model": same_model,
-        "production_trained_on": {"fit_origins": list(run.config.fit_origins),
-                                  "calibration_origins": list(run.config.calibration_origins),
-                                  "test_origins_used": []},
+        "production_model": production_model,
+        "production_trained_on": production_trained_on(run, production_model),
         "coverage_source": "code join output (papers.csv, coverage.json)" if table is not None else None,
         "titles_available": titles_available,
         "path_check": path_check,
@@ -964,6 +1012,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--corpus", type=Path, help="corpus.jsonl: paper titles and links for the papers in the outputs, and the source for "
                                                   "origin caches the run did not build (caches fall back to the run's path)")
     ap.add_argument("--coverage-top", type=int, default=COVERAGE_TOP, help="phrase concepts per coverage file")
+    ap.add_argument("--production-model", choices=PRODUCTION_MODELS, default="through-2020",
+                    help="model behind gaps.json: through-2020 (fit 2010-14 and 2017, calibrated at the 2020 test "
+                         "origin, trained after the test was scored) or frozen (the backtest model, the fallback)")
     ap.add_argument("--first-year", type=int, default=FIRST_YEAR)
     ap.add_argument("--edge-threshold", type=float, default=EDGE_THRESHOLD)
     ap.add_argument("--max-edges", type=int, default=MAX_EDGES)
@@ -975,13 +1026,13 @@ def main(argv: list[str] | None = None) -> int:
         result = export_run(args.run_dir, args.out, corpus=args.corpus, join_dir=args.join_dir,
                             first_year=args.first_year, edge_threshold=args.edge_threshold, max_edges=args.max_edges,
                             gap_pool=args.gap_pool, gap_limit=args.gap_limit, detail_limit=args.detail_limit,
-                            coverage_top=args.coverage_top)
+                            coverage_top=args.coverage_top, production_model=args.production_model)
     except (ExportError, R.RunError, ValueError, backtest.OneShotError) as exc:
         print(f"export failed: {exc}", file=sys.stderr)
         return 2
     print(f"{'SYNTHETIC (all placeholders)' if result['synthetic'] else 'real'} export to {result['out']}: "
           f"{len(result['files'])} files, map years {result['years'][0]}..{result['years'][-1]}")
-    if not result["same_model"]:
+    if args.production_model == "frozen" and not result["same_model"]:
         print("warning: the re-trained model's coefficients differ from the run's recorded ones", file=sys.stderr)
     if result["problems"]:
         print(f"validation FAILED ({len(result['problems'])} problems):", file=sys.stderr)
