@@ -1,6 +1,6 @@
 ﻿# Whitespace pipeline
 
-Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data and no results: nothing here is a measured forecast, and no claim of accuracy is made until a purged backtest has been run once, after the code freeze.
+Python code for the Whitespace research-discovery pipeline (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](../PRD.md)). This folder holds **code and tests only**. It contains no data and no results: nothing here is a measured forecast, and the only real result is one purged backtest on the 2020 test origin (see Backtest runner below).
 
 ## Layout
 
@@ -50,7 +50,9 @@ Not implemented here: the PRD's embedding-based near-duplicate merge (cosine abo
 
 ## Backtest runner and `metrics.json` (issue #151)
 
-**No real result exists.** The model and runner have only ever seen synthetic corpora from `pipeline/synthetic.py` (a planted latent-topic signal, and a null version without it). The tests show the harness behaves; they say nothing about real literature or forecast quality.
+**Unit tests use synthetic corpora only** (`pipeline/synthetic.py`: a planted latent-topic signal, and a null version without it). They show the harness behaves; they say nothing about real literature or forecast quality.
+
+**One real run exists.** The 2020 test origin was scored once at frozen commit SHA 93448d2; the result is recorded on spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122). The production model (trained through 2020 by default, see the export section) has no held-out test of its own. `p_link` is Platt-scaled and its calibration is imperfect: on the 2020 test ECE was 0.143, and the top decile was predicted at 0.53 against 0.78 observed, so read `p_link` as a ranking score first and a probability only roughly. The topic filter uses OpenAlex topic assignments made after October 2026, so topics are not as they were known at each origin year.
 
 `backtest.run_backtest(works, BacktestConfig(fit_origins, calibration_origins, test_origins, ...))`:
 

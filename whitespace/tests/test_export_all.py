@@ -290,6 +290,28 @@ def test_real_shaped_gap_details_get_titles_from_the_dry_corpus(dry):
     assert any(p["title"] != p["id"] for p in E.paper_dicts(files))
 
 
+def test_add_titles_refuses_a_different_corpus(dry, tmp_path):
+    run = E.load_run(dry)
+    src = Path(run.manifest["corpus"]["path"])
+    other = tmp_path / "other.jsonl"
+    extra = b'\n{"id": "https://openalex.org/Wx", "date": "2019-01-01"}\n'
+    other.write_bytes(src.read_bytes() + extra)
+    with pytest.raises(E.ExportError, match="sha256"):
+        E.add_titles({"gap-details.json": {"entries": {}}}, run, other)
+    bad = tmp_path / "bad.jsonl"
+    bad.write_text("not json\n", encoding="utf-8")
+    with pytest.raises(E.ExportError):
+        E.add_titles({"gap-details.json": {"entries": {}}}, run, bad)
+
+
+def test_long_titles_are_cut_so_validation_cannot_fail(tmp_path):
+    corpus = tmp_path / "c.jsonl"
+    rec = {"id": "https://openalex.org/W1", "title": "t" * 2000, "year": 2019, "arxiv_id": None}
+    corpus.write_text(json.dumps(rec), encoding="utf-8")
+    lookup = E.load_titles(corpus, {"https://openalex.org/W1"})
+    assert len(lookup["https://openalex.org/W1"]["title"]) == E.MAX_TITLE <= 300
+
+
 def make_join(tmp_path, dry, year_counts):
     run = E.load_run(dry)
     ids = [w[0] for w in E.iter_cached_works(dry, 2020)]

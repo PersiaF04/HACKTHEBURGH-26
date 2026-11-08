@@ -74,6 +74,7 @@ FIRST_YEAR = 2015
 EDGE_THRESHOLD, MAX_EDGES = 0.0, 300  # a display choice: the top predicted pairs, not a validated cut-off
 GAP_POOL, GAP_LIMIT, DETAIL_LIMIT, MAX_NEIGHBOURS = 2000, 50, 20, 25
 FORBIDDEN_KEYS = {"abstract", "abstract_excerpt", "abstract_inverted_index"}
+MAX_TITLE = 300  # titles are cut to this when written, well under MAX_STRING, so validation cannot fail on one
 MAX_STRING = 800  # longer strings are treated as possible pasted text
 SYNTHETIC_NUMBER_KEYS = {"year", "years", "min", "max", "layout_year", "snapshot_year"}
 COVERAGE_TOP = 200  # phrase concepts per coverage file (most papers up to the last corpus year)
@@ -579,7 +580,7 @@ def load_titles(corpus: Path, ids: set[str]) -> dict[str, dict]:
             arxiv = normalise_arxiv_id(rec.get("arxiv_id"))
             url = (f"https://arxiv.org/abs/{arxiv}" if arxiv and arxiv_id_kind(arxiv) != "none"
                    else default_url(wid))
-            out[wid] = {"title": rec.get("title") or wid, "year": rec.get("year"), "url": url}
+            out[wid] = {"title": (rec.get("title") or wid)[:MAX_TITLE], "year": rec.get("year"), "url": url}
             if len(out) == len(ids):
                 break
     return out
@@ -647,8 +648,13 @@ def write_payload(out: Path, name: str, payload: dict, synthetic: bool) -> Path:
 
 def add_titles(files: dict[str, dict], run: Run, corpus: Path) -> bool:
     """Title and link lookup for the papers that appear in the outputs only (one pass over the corpus)."""
-    if corpus.stat().st_size != run.manifest["corpus"].get("bytes", corpus.stat().st_size):
-        raise ExportError("corpus file size differs from the one the run used; refusing to take titles from it")
+    try:
+        sha = R.scan_corpus(corpus)["sha256"]
+    except R.RunError as exc:
+        raise ExportError(f"cannot read the corpus to check it: {exc}") from None
+    if sha != run.manifest["corpus"]["sha256"]:
+        raise ExportError("corpus file differs from the one the run used (sha256 mismatch); "
+                          "refusing to take titles from it")
     ids = {p["id"] for payload in files.values() for p in paper_dicts(payload)}
     lookup = load_titles(corpus, ids)
     apply_titles(files, lookup)
