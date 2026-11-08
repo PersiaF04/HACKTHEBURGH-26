@@ -21,13 +21,6 @@ confirm scope with the product owner before starting any of them.
   separate source is approved, precomputed and validated. Source: PRD.md, F12.
   Deferred because no such source has been approved.
 
-## Design items needing a decision
-
-- [ ] **Research epics and threads home screen.** Present in the design and
-  deferred. It would be stored in `localStorage` only, which conflicts with the
-  PRD non-goal of no saved state. Needs a product-owner decision before any
-  work. Source: `docs/design/` and the PRD non-goals.
-
 ## Removed from scope
 
 - [ ] **Time slider (F2).** Removed at Varshil's request because the approved

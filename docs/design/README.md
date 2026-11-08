@@ -5,6 +5,7 @@ Unpacked from the Claude Design export "Whitespace — web app" (2026-11-08). Ea
 spacing, copy and structure; do not ship them.
 
 - `Epics.dc.html`: Research epics (the home/workspace screen: epics, threads, suggested threads, activity)
+  (Out of scope: `Epics.dc.html` is not implemented and is not a requirement.)
 - `Explore.dc.html`: search / "from my paper", research areas, filters, map, concept panel
 - `Gaps.dc.html`: gaps and open problems on one screen, with the gap drawer
 
