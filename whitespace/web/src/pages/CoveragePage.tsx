@@ -57,7 +57,8 @@ export function CoveragePage({
   return (
     <section className="ws-coverage-page" aria-label="Code coverage">
       <header className="ws-coverage-header">
-        <p>Explore the share of papers with a recorded code link by concept and year.</p>
+        <p className="ws-coverage-question"><strong>Which topics have code linked in the Papers with Code archive?</strong></p>
+        <p>The share of papers with a recorded code link, by concept and year.</p>
       </header>
 
       <aside className="ws-coverage-caveat" aria-label="Important limitation">
@@ -93,7 +94,10 @@ export function CoveragePage({
         >
           {years.map((year) => <option key={year} value={year}>{fmtYear(year)}</option>)}
         </select>
-        <span>The full matrix remains visible; the focus year is highlighted.</span>
+        <span>
+          The full matrix remains visible; the focus year is highlighted.
+          {years.length > 0 && ` Columns are publication years ${fmtYear(Math.min(...years))}–${fmtYear(Math.max(...years))}, which can differ from the map's snapshot years.`}
+        </span>
       </div>
 
       {status === 'error' && (

@@ -44,7 +44,7 @@ const SECTIONS: Array<[string, string]> = [
   ["Shared neighbouring concepts", "Concepts both sides already connect to, which hint at a bridge."],
 ];
 
-const FORMULA_NAMES: Array<[string, string?]> = [["P(link)"], ["Momentum", "×"], ["Novelty", "×"], ["Stated gaps", "×"], ["Gap score", "="]];
+const FORMULA_NAMES: Array<[string, string?]> = [["Likelihood"], ["Momentum", "×"], ["Novelty", "×"], ["Stated gaps", "×"], ["Gap score", "="]];
 
 /** Neutral explainer shown until a gap is selected. Invents no data. */
 function DetailSkeleton({ empty }: { empty: boolean }) {
@@ -65,7 +65,7 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
       </section>
       <section className="gx-sec">
         <h3 className="gx-h3">How the score is made</h3>
-        <div className="gx-formula gx-formula--idle" role="img" aria-label="Gap score equals P(link) times momentum times novelty times stated gaps. Values appear when a gap is selected.">
+        <div className="gx-formula gx-formula--idle" role="img" aria-label="Gap score equals likelihood times momentum times novelty times stated gaps. Values appear when a gap is selected.">
           {FORMULA_NAMES.map(([name, op]) => (
             <div key={name} className="gx-formula__item">
               {op && <span aria-hidden="true" className={op === "=" ? "gx-formula__op is-strong" : "gx-formula__op"}>{op}</span>}
@@ -87,7 +87,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
   const sg = statedGapsFactor(g);
   const validated = g.interval_validation?.validated === true && isNum(g.p_lo) && isNum(g.p_hi);
   const factors: Array<{ name: string; v: string; why: string; op?: string; strong?: boolean; blue?: boolean }> = [
-    { name: "P(link)", v: fmtDec(g.p_link), why: "model probability", blue: true },
+    { name: "Likelihood", v: fmtPct(g.p_link), why: "model estimate it connects", blue: true },
     { name: "Momentum", v: fmtDec(g.momentum), why: isNum(g.growth_a) && isNum(g.growth_b) ? `growth ${fmtDec(g.growth_a)} + ${fmtDec(g.growth_b)}` : "", op: "×" },
     { name: "Novelty", v: fmtDec(g.novelty), why: isNum(g.neighbour_overlap) ? `1 − ${fmtDec(g.neighbour_overlap)} overlap` : "", op: "×" },
     { name: "Stated gaps", v: isNum(sg) ? fmtDec(sg) : NA, why: isNum(sg) ? `1 + ${fmtDec(g.gap_rate_a)} + ${fmtDec(g.gap_rate_b)}` : "", op: "×" },
@@ -114,7 +114,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
 
       <section className="gx-sec">
         <h3 className="gx-h3">How the score is made</h3>
-        <div className="gx-formula" role="group" aria-label={`Gap score ${fmtDec(g.gap_score)} equals P(link) ${fmtDec(g.p_link)} times momentum ${fmtDec(g.momentum)} times novelty ${fmtDec(g.novelty)} times stated gaps ${fmtFactor(sg).replace("×", "")}`}>
+        <div className="gx-formula" role="group" aria-label={`Gap score ${fmtDec(g.gap_score)} equals likelihood ${fmtPct(g.p_link)} times momentum ${fmtDec(g.momentum)} times novelty ${fmtDec(g.novelty)} times stated gaps ${fmtFactor(sg).replace("×", "")}`}>
           {factors.map((f) => (
             <div key={f.name} className="gx-formula__item">
               {f.op && <span aria-hidden="true" className={f.strong ? "gx-formula__op is-strong" : "gx-formula__op"}>{f.op}</span>}

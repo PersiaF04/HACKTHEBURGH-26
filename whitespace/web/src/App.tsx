@@ -143,8 +143,15 @@ export default function App() {
   const loadGap = useCallback((gap: GapListResponse["items"][number]): Promise<GapDetailResponse> => api.gap(gap.a, gap.b), []);
   const search = useCallback((query: string): Promise<SearchResponse> => api.search(query), []);
 
-  const badge = isPlaceholder ? "Placeholder data" : `OpenAlex · AI subfield 1702${meta.year_range ? ` · ${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}` : ""}`;
-  const badgeTip = isPlaceholder ? PLACEHOLDER_TIP : REAL_TIP;
+  // The range is the exported map snapshot years, not the publication years (coverage spans its own range).
+  const snapshotRange = meta.year_range
+    ? meta.year_range.min === meta.year_range.max ? fmtYear(meta.year_range.max) : `${fmtYear(meta.year_range.min)}–${fmtYear(meta.year_range.max)}`
+    : "";
+  const works = meta.counts?.works;
+  const worksLabel = typeof works === "number" ? `${works >= 1000 ? `${Math.round(works / 1000)}k` : works} papers` : "";
+  const badge = isPlaceholder ? "Placeholder data" : ["Real data", worksLabel, snapshotRange].filter(Boolean).join(" · ");
+  const badgeTip = isPlaceholder ? PLACEHOLDER_TIP
+    : `${REAL_TIP}${snapshotRange ? `. Map and gap snapshots: ${snapshotRange}. Code coverage uses each paper's publication year, so its range can differ.` : ""}`;
   const tabActive = (route: string) => route === path;
 
   const fullBleed = path === "/" || path === "/gaps";

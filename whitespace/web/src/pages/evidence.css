@@ -1,6 +1,10 @@
 .evidence-page { width: 100%; margin: 0; padding: 0 0 3rem; color: var(--ws-ink); }
 .evidence-header { max-width: 52rem; margin-bottom: 1.5rem; }
 .evidence-header h1 { margin: .25rem 0 .5rem; font-size: clamp(2rem, 4vw, 2.7rem); }
+.evidence-headline { max-width: 64rem; margin-bottom: 1.5rem; padding: 1.25rem; border: 1px solid var(--ws-border); border-radius: .9rem; background: var(--ws-surface); }
+.evidence-headline h2 { margin: 0 0 .75rem; font-size: 1.3rem; }
+.evidence-headline p { margin: .5rem 0; line-height: 1.6; }
+.evidence-caveats { margin: .8rem 0 0; padding-left: 1.25rem; line-height: 1.6; }
 .evidence-header p:last-child, .evidence-muted { color: var(--ws-muted); line-height: 1.6; }
 .evidence-eyebrow { color: var(--ws-accent); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .evidence-notice { padding: .8rem 1rem; border: 1px solid var(--ws-growth-1); border-radius: .75rem; background: var(--ws-warn-bg); color: var(--ws-warn-ink); }
@@ -30,3 +34,18 @@
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 42rem) { .evidence-page { width: min(100% - 1.25rem, 76rem); padding-top: 1.5rem; } .evidence-tables { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .evidence-page *, .evidence-page *::before, .evidence-page *::after { scroll-behavior: auto !important; } }
+
+/* Narrow screens: keep cards inside the viewport; tables scroll within their wrapper (#258). */
+.evidence-page, .evidence-page > *, .evidence-section > *, .evidence-headline > * { min-width: 0; max-width: 100%; }
+.evidence-headline p, .evidence-caveats li { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .evidence-section, .evidence-headline { padding: 1rem .85rem; }
+  .evidence-table-scroll th, .evidence-table-scroll td { padding: .45rem .4rem; }
+}
+
+/* Plain-language framing (#259) */
+.evidence-question { color: var(--ws-ink) !important; font-weight: 600; font-size: 1.1rem; }
+.evidence-tech { margin-top: 1.5rem; }
+.evidence-tech > summary { cursor: pointer; padding: .75rem 0; font-weight: 600; }
+.model-note__more { display: inline; }
+.model-note__more summary { display: inline; cursor: pointer; text-decoration: underline; }

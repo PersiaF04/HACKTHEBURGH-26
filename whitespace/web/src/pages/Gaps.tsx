@@ -3,7 +3,7 @@ import type { GapDetailResponse, GapListResponse, GapSummary } from "../api";
 import { GapDetailPanel, GapTable, GapTableSkeleton, gapKey } from "../components/gaps";
 import type { GapRow } from "../components/gaps";
 import { ModelNote } from "../components/ModelNote";
-import { NA, fmtDec, fmtInt, fmtP, fmtText, isNum } from "../lib/format";
+import { NA, fmtGrowth, fmtInt, fmtPct, fmtText, isNum } from "../lib/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -17,7 +17,7 @@ export interface GapsPageProps {
 type SortKey = "gap_score" | "p_link" | "momentum" | "novelty";
 
 const sortOptions: Array<[SortKey, string]> = [
-  ["gap_score", "Gap score"], ["p_link", "P(link)"], ["momentum", "Momentum"], ["novelty", "Novelty"],
+  ["gap_score", "Gap score"], ["p_link", "Likelihood"], ["momentum", "Momentum"], ["novelty", "Novelty"],
 ];
 
 function sortValue(g: GapSummary, key: SortKey): number | null {
@@ -79,7 +79,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     }
     return [...map.values()];
   }, [response.items]);
-  const growing = useMemo(() => concepts.filter((c) => c.growth != null).sort((x, y) => (y.growth as number) - (x.growth as number)), [concepts]);
+  const growing = useMemo(() => concepts.filter((c) => c.growth != null && c.growth > 0).sort((x, y) => (y.growth as number) - (x.growth as number)), [concepts]);
   const maxGrowth = growing[0]?.growth || 1;
   const shownGrowing = showAll ? growing : growing.slice(0, 8);
   const fastest = growing[0];
@@ -108,12 +108,12 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   const focusLabel = focus ? concepts.find((c) => c.id === focus)?.label ?? focus : null;
 
   const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
-  const topScore = rows.reduce<number | null>((m, r) => isNum(r.gap.gap_score) && (m == null || r.gap.gap_score > m) ? r.gap.gap_score : m, null);
+  const topProbability = rows.reduce<number | null>((m, r) => isNum(r.gap.p_link) && (m == null || r.gap.p_link > m) ? r.gap.p_link : m, null);
   const maxScore = Math.max(0, ...response.items.map((g) => g.gap_score ?? 0));
   const summary: Array<[string, string, boolean, string]> = [
     ["Gaps shown", empty ? NA : fmtInt(rows.length), false, "Pairs that pass the filters"],
-    ["Median P(link)", empty ? NA : fmtP(medianP), true, "Typical chance of linking among them"],
-    ["Top gap score", empty ? NA : fmtDec(topScore), false, "Highest score among them"],
+    ["Typical likelihood", empty ? NA : fmtPct(medianP), true, "Median model estimate among them"],
+    ["Top likelihood", empty ? NA : fmtPct(topProbability), false, "Highest model estimate among them"],
     ["Focused area", focusLabel ? fmtText(focusLabel) : "All concepts", false, "Use the left rail to narrow the list"],
   ];
   const stats: Array<[string, string]> = [
@@ -133,9 +133,9 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     <div className="gx">
       <aside className="gx-rail" aria-label="Filters and overview" data-tour="gap-filters">
         <div className="gx-field">
-          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum P(link)</label><span className="gx-mono">{empty ? NA : fmtDec(minimumProbability)}</span></div>
+          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum likelihood</label><span className="gx-mono">{empty ? NA : fmtPct(minimumProbability)}</span></div>
           <input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value={minimumProbability} disabled={empty} aria-describedby="gf-minp-h" onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
-          <p id="gf-minp-h" className="gx-help">Hide pairs the model rates below this chance of linking</p>
+          <p id="gf-minp-h" className="gx-help">Hide pairs the model rates as less likely than this to connect</p>
         </div>
         <div className="gx-field">
           <label htmlFor="gf-sort">Sort gaps by</label>
@@ -168,7 +168,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
               {shownGrowing.map((c) => (
                 <li key={c.id}>
                   <button type="button" aria-pressed={focus === c.id} className="gx-concept" onClick={() => pick(c)}>
-                    <span className="gx-concept__row"><span>{fmtText(c.label)}</span><span className="gx-mono">{fmtDec(c.growth)}</span></span>
+                    <span className="gx-concept__row"><span>{fmtText(c.label)}</span><span className="gx-mono">{fmtGrowth(c.growth)}</span></span>
                     <span className="gx-concept__bar"><span style={{ width: `${Math.round(((c.growth as number) / maxGrowth) * 100)}%` }} /></span>
                   </button>
                 </li>
@@ -182,10 +182,22 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
       <section className="gx-centre" aria-labelledby="gf-h">
         <div className="gx-titles" data-tour="gap-list">
           <h1 id="gf-h" className="gx-h1">Gap Finder</h1>
-          <p className="gx-desc">Concept pairs not yet linked (fewer than 3 shared papers), ranked by model probability, momentum and novelty.{!empty && <> <span className="gx-mono gx-ink">{fmtInt(rows.length)}</span> gaps shown.</>}</p>
+          <p className="gx-desc gx-question">Which pairs of AI topics aren't studied together yet, but probably will be?</p>
+          <p className="gx-desc">Each row is two topics with fewer than 3 shared papers so far.{!empty && <> <span className="gx-mono gx-ink">{fmtInt(rows.length)}</span> gaps shown.</>}</p>
         </div>
 
-        <ModelNote />
+        <ul className="gx-factors" aria-label="What the ranking combines">
+          <li><strong>Likelihood</strong>: will the two topics connect?</li>
+          <li><strong>Momentum</strong>: are both topics growing?</li>
+          <li><strong>Novelty</strong>: is the combination still uncrowded?</li>
+          <li><strong>Stated gaps</strong>: do authors writing on either topic say problems remain open?</li>
+        </ul>
+
+        <details className="gx-how">
+          <summary>How this is measured</summary>
+          <ModelNote />
+          {response.held_out_test === false && response.label && <p className="gx-note" role="note">{response.label}</p>}
+        </details>
 
         <div className="gx-summary">
           {summary.map(([label, v, blue, cap]) => (
@@ -214,3 +226,4 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     </div>
   );
 }
+

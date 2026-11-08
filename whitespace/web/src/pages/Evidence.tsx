@@ -15,6 +15,18 @@ const METRIC_CARDS: [string, string][] = [
   ["vs each baseline", "The model's result next to each simple rule, on the same pairs."],
 ];
 const BASELINE_NAMES = ["Current weight", "Degree product", "Preferential attachment", "Adamic-Adar", "Cosine"];
+const FROZEN_VERDICT = {
+  verdict: "Beats the pre-registered baseline (aggregate only)",
+  modelAP: 0.6876,
+  baselineAP: 0.5984,
+  difference: 0.0892,
+  low: 0.0845,
+  high: 0.0945,
+  commit: "93448d2",
+  testOrigin: 2020,
+  outcomes: "2021–2023",
+  baselineOrigin: 2017,
+};
 
 function hasMetric(value: unknown): boolean {
   return isNum(value as number) || (typeof value === "string" && value.trim() !== "");
@@ -81,12 +93,32 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
   const misses = response?.misses ?? [];
   const codeLink = response?.code_link_evaluation;
   const hasData = !!aggregate && [aggregate.average_precision, aggregate.precision_at_100, aggregate.pr_auc, aggregate.roc_auc].some(hasMetric);
+  // The headline is the frozen #122 result. Show it only when this export's aggregate AP values are that run's,
+  // so the verdict and interval are never paired with numbers they were not measured with.
+  const isFrozenRun = !placeholder && hasData
+    && near(aggregate?.average_precision, FROZEN_VERDICT.modelAP)
+    && near(aggregate?.baselines.current_weight?.average_precision, FROZEN_VERDICT.baselineAP);
 
   return (
     <section className="evidence-page" aria-label="Evidence">
       <header className="evidence-header">
-        <p>See what was measured, which baselines were compared, and where evidence is still missing.</p>
+        <h1>Evidence</h1>
+        <p className="evidence-question">Does the model really find future links, or is it luck?</p>
+        <p>Held-out backtest results and limits.</p>
       </header>
+
+      {/* The frozen one-shot result (issue #122). Shown only with the real export, never over placeholder fixtures. */}
+      {isFrozenRun && <section className="evidence-headline" aria-labelledby="evidence-verdict">
+        <h2 id="evidence-verdict">{FROZEN_VERDICT.verdict}</h2>
+        <p>Average precision: <strong>{FROZEN_VERDICT.modelAP.toFixed(4)}</strong> model vs <strong>{FROZEN_VERDICT.baselineAP.toFixed(4)}</strong> current weight; paired difference <strong>+{FROZEN_VERDICT.difference.toFixed(4)}</strong> (95% concept-block bootstrap interval {FROZEN_VERDICT.low.toFixed(4)} to {FROZEN_VERDICT.high.toFixed(4)}).</p>
+        <p>Scored once at frozen commit {FROZEN_VERDICT.commit}. Test origin {FROZEN_VERDICT.testOrigin}, outcomes {FROZEN_VERDICT.outcomes}; baseline chosen on {FROZEN_VERDICT.baselineOrigin}.</p>
+        <ul className="evidence-caveats">
+          <li>Aggregate only: within each starting-weight stratum the model is below the structural baselines on AP and AUC.</li>
+          <li>Calibration is imperfect: ECE {formatMetric(eceFromNote(response?.calibration.note) ?? 0.143)}, and the model under-predicts at the top end.</li>
+          <li>P@100 is indicative only: the model's 1.00 beats current weight's 0.66, but the other structural baselines also reach 0.91–1.00, so it does not distinguish the model.</li>
+        </ul>
+        <p className="evidence-muted">Pre-registered rule and full result: <a href="https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122" target="_blank" rel="noreferrer">issue #122</a>.</p>
+      </section>}
 
       <ModelNote />
 
@@ -95,13 +127,14 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
           Placeholder data - evaluation artifacts have not been loaded. No forecast performance is claimed.
         </p>
       )}
-            {status === "error" && <EmptyNote role="alert">{errorMessage || "Evidence could not be loaded."}</EmptyNote>}
+      {status === "error" && <EmptyNote role="alert">{errorMessage || "Evidence could not be loaded."}</EmptyNote>}
 
       {!hasData && status !== "error" && <EvidenceSkeleton loading={status === "loading"} />}
-      {hasData && <>
+      {hasData && <details className="evidence-tech">
+        <summary>Technical detail: ranking metrics by stratum, calibration, hits and misses</summary>
       <section aria-labelledby="ranking-title" className="evidence-section">
         <h2 id="ranking-title">Ranking quality</h2>
-        <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight. Each ranking value is shown beside its own base rate.</p>
+        <p className="evidence-muted">Metrics are reported for the full eligible pair set and separately by starting pair weight, with each table's base rate in its caption. PR-AUC is not exported; average precision (AP) is shown instead.</p>
         <div className="evidence-strata">
           {strata.map((stratum) => <RankingTable key={stratum.key} label={stratum.label} metrics={stratum.metrics} />)}
         </div>
@@ -126,10 +159,11 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
         <EvidenceTable title="Misses" rows={misses} empty="No measured misses are available yet." error={status === "error"} />
       </section>
 
-      </>}
+      </details>}
 
       <section className="evidence-section">
         <h2>Paper-to-code matching</h2>
+        {codeLink?.sample_size != null || codeLink?.correct_matches != null ? <>
         <p>Code-link precision: <strong>{formatMetric(codeLink?.precision)}</strong></p>
         <p>Binomial precision interval: <strong>{codeLink?.interval_method === "binomial" ? `${formatMetric(codeLink.lower)} to ${formatMetric(codeLink.upper)}` : NA}</strong></p>
         <p>Hand-checked sample size: <strong>{fmtInt(codeLink?.sample_size)}</strong></p>
@@ -141,6 +175,7 @@ export default function EvidencePage({ response, status, errorMessage }: Evidenc
             ? <ul>{Object.entries(codeLink.sample_composition).map(([kind, count]) => <li key={kind}>{kind}: {count}</li>)}</ul>
             : <p>{NA}</p>}
         </div>
+        </> : <p>Hand-check not measured yet.</p>}
         <p className="evidence-muted">Coverage is a lower bound from an incomplete historical archive. "No linked code in this archive" does not mean no implementation exists.</p>
       </section>
     </section>
@@ -151,10 +186,13 @@ function CalibrationPlot({ bins }: { bins: CalibrationBin[] }) {
   const points = bins.map((bin) => `${12 + Math.max(0, Math.min(1, bin.predicted)) * 176},${188 - Math.max(0, Math.min(1, bin.observed)) * 176}`).join(" ");
   return (
     <figure className="evidence-plot">
-      <svg viewBox="0 0 200 210" role="img" aria-label="Calibration plot comparing predicted and observed probabilities">
+      <svg viewBox="0 0 200 232" role="img" aria-label="Calibration plot comparing predicted and observed probabilities">
+        {[0, 0.5, 1].map((tick) => <g key={tick}><text x={12 + tick * 176} y="202" textAnchor="middle">{tick}</text><text x="8" y={191 - tick * 176} textAnchor="end">{tick}</text></g>)}
         <line x1="12" y1="188" x2="188" y2="12" style={{ stroke: "var(--ws-rule)" }} strokeDasharray="4 4" />
         <line x1="12" y1="188" x2="188" y2="188" style={{ stroke: "var(--ws-muted)" }} />
         <line x1="12" y1="12" x2="12" y2="188" style={{ stroke: "var(--ws-muted)" }} />
+        <text x="100" y="228" textAnchor="middle">Predicted probability</text>
+        <text x="2" y="100" textAnchor="middle" transform="rotate(-90 2 100)">Observed rate</text>
         {bins.map((bin, index) => {
           const cx = 12 + Math.max(0, Math.min(1, bin.predicted)) * 176;
           const cy = 188 - Math.max(0, Math.min(1, bin.observed)) * 176;
@@ -178,23 +216,20 @@ function CalibrationTable({ bins }: { bins: CalibrationBin[] }) {
 }
 
 function RankingTable({ label, metrics }: { label: string; metrics: RankingMetrics | null }) {
-  const metricRows: [string, unknown][] = metrics ? [
-    ["Model Precision@100", metrics.precision_at_100],
-    ["Model PR-AUC", metrics.pr_auc],
-    ["Model ROC-AUC", metrics.roc_auc],
-    ["Model average precision", metrics.average_precision],
-    ["Current co-occurrence weight Precision@100", metrics.baselines.current_weight?.precision_at_100],
-    ["Degree product Precision@100", metrics.baselines.degree_product?.precision_at_100],
-    ["Preferential attachment Precision@100", metrics.baselines.preferential_attachment?.precision_at_100],
-    ["Adamic-Adar Precision@100", metrics.baselines.adamic_adar?.precision_at_100],
-    ["Cosine Precision@100", metrics.baselines.cosine?.precision_at_100],
-  ] : [];
+  const methods = metrics ? [
+    { name: "Model", values: [metrics.precision_at_100, metrics.average_precision, metrics.roc_auc] },
+    ...Object.entries({ current_weight: "Current weight", degree_product: "Degree product", preferential_attachment: "Preferential attachment", adamic_adar: "Adamic-Adar", cosine: "Cosine" }).map(([key, name]) => {
+      const b = metrics.baselines[key as keyof typeof metrics.baselines];
+      return { name, values: [b?.precision_at_100, b?.average_precision, b?.roc_auc] };
+    }),
+  ].filter((method) => method.values.some(hasMetric)) : [];
+  const best = [0, 1, 2].map((i) => Math.max(...methods.map((m) => typeof m.values[i] === "number" ? m.values[i] as number : -Infinity)));
   return (
     <section className="evidence-stratum" aria-label={label}>
       <h3>{label}</h3>
       {metrics ? <div className="evidence-table-scroll" tabIndex={0} aria-label={`Scrollable ranking metrics for ${label}`}>
-        <table><caption>Ranking metrics and corresponding base rate</caption><thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Base rate</th></tr></thead>
-          <tbody>{metricRows.map(([name, value]) => <tr key={name}><th scope="row">{name}</th><td>{formatMetric(value)}</td><td>{formatMetric(metrics.base_rate)}</td></tr>)}</tbody>
+        <table><caption>Ranking metrics; base rate {formatMetric(metrics.base_rate)}</caption><thead><tr><th scope="col">Method</th><th scope="col">P@100</th><th scope="col">AP</th><th scope="col">ROC-AUC</th></tr></thead>
+          <tbody>{methods.map((method) => <tr key={method.name}><th scope="row">{method.name}</th>{method.values.map((value, i) => <td key={i}>{typeof value === "number" && value === best[i] ? <strong>{formatMetric(value)}</strong> : formatMetric(value)}</td>)}</tr>)}</tbody>
         </table>
       </div> : <p className="evidence-empty">{NA} for this starting weight.</p>}
     </section>
@@ -219,4 +254,13 @@ function EvidenceTable({ title, rows, empty, error }: { title: string; rows: Bac
 function formatMetric(value: unknown): string {
   if (typeof value === "number") return fmtDec(value, 3);
   return fmtText(typeof value === "string" ? value : null);
+}
+
+function near(value: unknown, target: number): boolean {
+  return typeof value === "number" && Math.abs(value - target) < 5e-5;
+}
+
+function eceFromNote(note?: string | null): number | null {
+  const match = note?.match(/ECE\s+([0-9.]+)/i);
+  return match ? Number(match[1]) : null;
 }
