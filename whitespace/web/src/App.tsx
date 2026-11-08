@@ -7,6 +7,7 @@ import { OpenProblemsPage } from "./pages/OpenProblemsPage";
 import EvidencePage from "./pages/Evidence";
 import { CoveragePage } from "./pages/CoveragePage";
 import { useWhitespaceStore } from "./store/useWhitespaceStore";
+import { PaperLink } from "./components/PaperLink";
 
 const sections = [
   ["/", "Explore"],
@@ -125,6 +126,7 @@ export default function App() {
             <div>
               <p className="eyebrow">AI research landscape{meta.placeholder ? " - placeholder data" : meta.year_range?.min && meta.year_range?.max ? ` - ${meta.year_range.min} to ${meta.year_range.max}` : ""}</p>
               <h1>{active[1]}</h1>
+              {meta.titles_available === false && meta.titles_note && <p className="topbar-note">Note: {meta.titles_note}.</p>}
             </div>
             <span className="offline-pill">Offline demo</span>
           </div>
@@ -146,7 +148,7 @@ export default function App() {
               return <section className="coverage-selection" aria-live="polite" aria-labelledby="coverage-selection-title">
                 <h2 id="coverage-selection-title">Papers without a linked code record</h2>
                 <p>{concept?.label || "Selected concept"} - {selectedCoverageCell.year}. A missing archive link does not mean an implementation does not exist.</p>
-                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><a href={paper.url} target="_blank" rel="noreferrer">{paper.title} ({paper.year})</a></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
+                {cell?.papers_without_linked_code?.length ? <ul>{cell.papers_without_linked_code.map((paper) => <li key={paper.id}><PaperLink paper={paper} /></li>)}</ul> : <p>No paper examples were supplied for this cell.</p>}
               </section>;
             })()}
           </>}
