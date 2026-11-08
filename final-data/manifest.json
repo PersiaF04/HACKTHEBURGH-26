@@ -1,0 +1,151 @@
+{
+  "synthetic": false,
+  "real_run": true,
+  "data_label": "real",
+  "corpus": {
+    "query": null,
+    "counts": {
+      "2007": 18,
+      "2008": 50,
+      "2009": 200,
+      "2010": 34615,
+      "2011": 33166,
+      "2012": 35149,
+      "2013": 37302,
+      "2014": 37646,
+      "2015": 37720,
+      "2016": 38411,
+      "2017": 41249,
+      "2018": 50448,
+      "2019": 59537,
+      "2020": 68644,
+      "2021": 77899,
+      "2022": 82957,
+      "2023": 95660,
+      "2024": 639,
+      "2025": 139,
+      "2026": 62
+    },
+    "retrieved_at": null,
+    "topic_assignment_vintage": null,
+    "n_works": {
+      "2010": 140500,
+      "2011": 178146,
+      "2012": 215866,
+      "2013": 254277,
+      "2014": 295526,
+      "2017": 474155,
+      "2020": 730671
+    }
+  },
+  "origins": {
+    "fit": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014
+    ],
+    "calibration": [
+      2017
+    ],
+    "test": [
+      2020
+    ]
+  },
+  "seed": 0,
+  "config": {
+    "fit_origins": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014
+    ],
+    "calibration_origins": [
+      2017
+    ],
+    "test_origins": [
+      2020
+    ],
+    "seed": 0,
+    "l2": 1.0,
+    "neg_ratio": 10,
+    "n_min": 30,
+    "horizon": 3,
+    "ks": [
+      100,
+      1000
+    ],
+    "n_boot": 200
+  },
+  "config_hash": "f88c67dc1135341539a63fe47daa10f73ccd527d688ec4340d46c2d23177042b",
+  "link_threshold": 3,
+  "code_commit": "93448d23a063b88ee056ac1a86bd1cb88e8e60da",
+  "library_versions": {
+    "python": "3.13.14",
+    "numpy": "2.5.4",
+    "pytest": "9.2.0"
+  },
+  "files": {
+    "backtest.json": "171fe67e1f9bab79273c90d6345f060548c68933cc1e278fe8dec0e9e523b74c",
+    "concepts.json": "598014cc131a79c567aa55e43acfda9dba898c4bfbc6f33802a4f7175469c721",
+    "coverage-2023.json": "41d168f978b9dcb171dc62a9006748fc19102993626d1a4461166a322ea07cc3",
+    "gap-details.json": "fcee9ebab7da8655c77908bac2cbe81027d57f27ce00d27a74588f5b30bc4d85",
+    "gaps.json": "51c33905c2c4425ba23179a8ea845fe0d2f67989a0751d0a640de56042f4509e",
+    "map-2023.json": "34496090cd1b39b812ac56c41375a52e6d84545b253329154575c35c812b8520",
+    "meta.json": "1dc68705c98815016189addc0d236dbf3867a7f01b39ce0d11d8c8c2b1420aa0",
+    "open-problems.json": "5c19f4b9f85133c93d4daa554e06ed84ea5840c5026be76c77bc241b1b5133c7",
+    "search.json": "9a476d3f0dec809d786be6edcc10f062e2bad43190eaa1556124a450423a13fb",
+    "routes.json": "d53b721d940d0d9a9cb7e33100296dc7dfe53cb8d3258bf85fcba20cf1461a1f"
+  },
+  "export": {
+    "synthetic": false,
+    "synthetic_reasons": [],
+    "corpus_last_year": 2023,
+    "map_years": [
+      2023
+    ],
+    "run_dir_config_hash": "811f8e0c657789080ed754c02ed747a1b9b94efdbf14eae4bcdf9ab55e195fd0",
+    "corpus_sha256": "d0d42526e68159f9e81884e850ec0e42445b494185d74011f5384ec4d5efa6ad",
+    "production_model_equals_backtest_model": false,
+    "production_model": "through-2020",
+    "production_trained_on": {
+      "model": "through-2020",
+      "fit_origins": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2017
+      ],
+      "calibration_origins": [
+        2020
+      ],
+      "test_origins_used": [
+        2020
+      ],
+      "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of the calibration origin",
+      "held_out_tested": false
+    },
+    "coverage_source": "code join output (papers.csv, coverage.json)",
+    "titles_available": true,
+    "path_check": null,
+    "open_problems": {
+      "cache_hits": 22913,
+      "items": 923,
+      "quality": "unmeasured",
+      "gaps_with_sentences": 50,
+      "concepts_with_sentences": 246,
+      "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
+      "display_only": "rates are not used in any gap score or backtest",
+      "post_process": "open_problems attach",
+      "tool_commit": "6600716643e91b15b4e927e04d0febe445499851",
+      "cache_sha256": {
+        "hits.jsonl": "16a344765fb1e43f885dd56dcdb80cf36f70dd4d8bd6f7b0fa7b424304addf79",
+        "counts.json": "4b407530f97f97bee401e4e0824e264aa24772972e2255c74253358fb6eed5c7"
+      }
+    }
+  }
+}
