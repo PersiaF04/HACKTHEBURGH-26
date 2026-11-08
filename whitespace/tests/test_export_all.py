@@ -147,10 +147,10 @@ def test_only_is_real_run_decides(dry):
         r = E.Run(run.dir, run.manifest, {**run.metrics, "manifest": {"data_label": label}}, {}, run.config)
         assert E.synthetic_reasons(r)
     real = {**run.metrics, "manifest": {"data_label": "real"}}
-    assert E.synthetic_reasons(E.Run(run.dir, {**run.manifest, "dry_run": False}, real, {}, run.config)) == []
-    assert E.synthetic_reasons(E.Run(run.dir, {**run.manifest, "dry_run": True}, real, {}, run.config))
+    assert E.synthetic_reasons(E.Run(run.dir, {**run.manifest, "dry_run": False, "data_label": "real", "generator": None}, real, {}, run.config)) == []
+    assert E.synthetic_reasons(E.Run(run.dir, {**run.manifest, "dry_run": True, "data_label": "real", "generator": None}, real, {}, run.config))
     gen = {**run.metrics, "manifest": {"data_label": "real", "generator": {"n_works": 1}}}
-    assert E.synthetic_reasons(E.Run(run.dir, {**run.manifest, "dry_run": False}, gen, {}, run.config))
+    assert E.synthetic_reasons(E.Run(run.dir, {**run.manifest, "dry_run": False, "data_label": "real", "generator": None}, gen, {}, run.config))
 
 
 # ------------------------------------------------------------------ validator failures

@@ -175,3 +175,19 @@ One flat directory: `routes.json` (every frontend route to its file, key, and `r
 
 `pipeline/export_backtest.py` turns the runner's `metrics` dict into the frontend's `BacktestResponse` (`web/src/api.ts`) and a `manifest.json`. `to_backtest_response(metrics, hits, misses, code_link_evaluation=None, meta=None)` copies numbers from the latest test origin and invents none: `pr_auc` and the `cosine` baseline are `null` (the runner has neither), and common neighbours and Jaccard are omitted because the frontend type does not list them. NaN and infinity become `null`; no abstract text is written. Only a run with `data_label == "real"` and no synthetic generator produces `placeholder: false`; a synthetic, unlabelled or empty run returns the placeholder shape with `synthetic` set and no numbers, hits or misses. `select_hits_misses` returns the top 20 hits and top 10 misses on a test origin; the hit year comes from work dates when works are supplied, otherwise it is `null` and `hits_note` says only annual counts exist. `write_manifest` records corpus, split, seeds, config hash, code commit, library versions and file hashes. Extra top-level keys beyond the frontend type: `synthetic`, `hits_note`, `meta`. The real-run check is `backtest.is_real_run`; a non-real response carries `data_label` in `meta` (`synthetic` or `unlabelled`).
 
+
+**`routes.json` shape.** `{layout_version, synthetic, data_label, corpus_last_year, map_years: [..], note, routes: [...]}`. `map_years` lists the years that have a `map-<Y>.json` and a `coverage-<Y>.json`; any year outside it (for the real corpus, everything after 2023) has no file and the frontend should show "no data for this year" (absent, not zero). Each route is `{route, file, kind, status, [year], [key], [note]}`:
+
+| route pattern | file | selection | status |
+| --- | --- | --- | --- |
+| `/api/meta` | `meta.json` | none | real or placeholder |
+| `/api/backtest` | `backtest.json` | none | real or placeholder |
+| `/api/map?year=Y` | `map-Y.json` | `year` selects the file (`kind: by_year`) | real or placeholder |
+| `/api/coverage?year=Y` | `coverage-Y.json` | `year` selects the file | real or placeholder |
+| `/api/gaps` | `gaps.json` | none; `concepts`, `min_p`, `sort`, `limit` are filtered client-side | real or placeholder |
+| `/api/gap/{a}/{b}` | `gap-details.json` | `entries["a\|b"]` (`kind: keyed`, `key` template); missing key means no detail | real or placeholder |
+| `/api/concept/{id}` | `concepts.json` | `entries[id]` (`kind: keyed`) | real or placeholder |
+| `/api/search?q=&k=` | `search.json` | none; query ignored | always placeholder |
+| `/api/open-problems` | `open-problems.json` | none; query ignored | always placeholder |
+
+**Sample export.** `whitespace/tests/fixtures/export_sample/` is a small export of the SYNTHETIC dry run (made-up words) for the frontend to copy into `whitespace/web/public/data/` and test against. Every file is `placeholder: true` and `synthetic: true`. It contains NO real results.

@@ -139,12 +139,14 @@ def data_label(run: Run) -> str:
 def synthetic_reasons(run: Run) -> list[str]:
     """Why a run must stay a placeholder (empty list: it is a real run).
 
-    The only test of "real" is ``backtest.is_real_run`` on the metrics manifest (label ``real`` and no
-    generator). A run the run script marked ``dry_run`` is also never real.
+    The only test of "real" is ``backtest.is_real_run`` (label ``real`` and no generator), applied to the
+    metrics manifest and to ``run_manifest.json``; both must pass. A run the run script marked ``dry_run`` is also never real.
     """
     reasons = []
     if not is_real_run(run.metrics.get("manifest") or {}):
         reasons.append(f"data_label is {data_label(run)!r}, not 'real' (or a generator is recorded)")
+    if not is_real_run(run.manifest):
+        reasons.append("run_manifest.json is not a real run (label or generator)")
     if run.manifest.get("dry_run"):
         reasons.append("run_manifest.json says dry_run")
     return reasons
