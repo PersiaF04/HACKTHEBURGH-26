@@ -9,7 +9,7 @@ import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
-type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number };
+type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number; strength?: number; gapEnd?: boolean };
 type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
@@ -199,7 +199,8 @@ export function MapCanvas3D({
       bucket[i] = b;
       if (c.scale) size[i] *= c.scale;
       if (c.kind === "branch") size[i] = 3.8;
-      else if (c.kind === "hypothesis") size[i] = 2.4;
+      else if (c.kind === "hypothesis") size[i] = 1.8 + 2.4 * (c.strength ?? 0.5);
+      else if (c.gapEnd) size[i] = Math.max(size[i] * 1.8, 1.6);
       const hue = c.kind === "branch" ? themeHues.ink : c.kind === "hypothesis" ? themeHues.accent : palette[b];
       tmp.set(hue).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
@@ -211,7 +212,8 @@ export function MapCanvas3D({
     const group = Int16Array.from(concepts, (c) => (c.branch ? groupOf.get(c.branch) ?? -1 : -1));
     const ends = Int16Array.from(concepts.flatMap((c) => (c.ends ? c.ends.map((e) => groupOf.get(e) ?? -1) : [-1, -1])));
     const base = pos.slice();
-    const labelOrder = concepts.map((_, i) => i).sort((a, b) => (concepts[b].paper_count ?? 0) - (concepts[a].paper_count ?? 0));
+    const rank = (c: MapConcept) => (c.gapEnd || c.kind === "hypothesis" ? 1e12 : c.kind === "branch" ? 1e11 : c.paper_count ?? 0);
+    const labelOrder = concepts.map((_, i) => i).sort((a, b) => rank(concepts[b]) - rank(concepts[a]));
     const sums = new Map<string, { x: number; y: number; z: number; n: number }>();
     concepts.forEach((c, i) => {
       if (!c.area) return;

@@ -10,7 +10,7 @@ import type { ConceptPoint, GapSummary, PredictedEdge } from "../api";
 export type NodeKind = "branch" | "concept" | "hypothesis";
 export type StructureKind = "split" | "member" | "hypothesis";
 export type StructureEdge = { source: string; target: string; kind: StructureKind };
-export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number };
+export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number; strength?: number; gapEnd?: boolean };
 export type BranchInfo = { id: string; label: string; total: number; papers: number; growth: number | null; shown: ConceptPoint[]; hypotheses: GapSummary[] };
 export type Hierarchy = {
   nodes: HNode[]; structure: StructureEdge[]; branches: number;
@@ -115,9 +115,10 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     nodes.push({
       id, label: `${a.label} × ${b.label}`, growth: null,
-      x: mx, y: my, kind: "hypothesis", heat: 0.5, ends: [conceptBranch.get(g.a) ?? "", conceptBranch.get(g.b) ?? ""],
+      x: mx, y: my, kind: "hypothesis", heat: 0.5, strength: g.p_link, ends: [conceptBranch.get(g.a) ?? "", conceptBranch.get(g.b) ?? ""],
     });
     hypothesisInfo.set(id, g);
+    a.gapEnd = true; b.gapEnd = true;
     for (const end of new Set([conceptBranch.get(g.a), conceptBranch.get(g.b)])) if (end) branchInfo.get(end)?.hypotheses.push(g);
     structure.push({ source: g.a, target: id, kind: "hypothesis" }, { source: g.b, target: id, kind: "hypothesis" });
   }
@@ -161,7 +162,7 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
   const K = order.length;
   const Rring = (Rmax * (1 + G)) / Math.sin(Math.PI / Math.max(3, K));
 
-  const clusters = order.map((h, k) => {
+  order.forEach((h, k) => {
     const angle = (Math.PI * 2 * k) / K - Math.PI / 2;
     const hub = byId.get(h.id)!;
     hub.x = Math.cos(angle) * Rring; hub.y = Math.sin(angle) * Rring;
@@ -172,7 +173,6 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
       n.x = hub.x + Math.cos(i * GOLDEN + angle) * rho;
       n.y = hub.y + Math.sin(i * GOLDEN + angle) * rho;
     });
-    return { hub, radius: radius(ids.length) };
   });
 
   // Dot size follows the room each concept gets in the fixed world span.
@@ -180,21 +180,12 @@ function layOut(nodes: HNode[], structure: StructureEdge[], hubs: { id: string; 
   const scale = Math.max(0.3, Math.min(1, (D0 * worldPerUnit) / DOT_WORLD));
   for (const n of nodes) if (n.kind === "concept") n.scale = scale;
 
-  // A hypothesis sits just outside the ring, beyond the midpoint of its two concepts, and clear of other branches.
+  // A gap is a bridge: its dot sits at the midpoint of the line joining its two concepts.
   for (const n of nodes) {
     if (n.kind !== "hypothesis") continue;
     const [a, b] = n.id.slice(HYPOTHESIS_PREFIX.length).split("|").map((id) => byId.get(id));
     if (!a || !b) continue;
-    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    const len = Math.hypot(mx, my) || 1;
-    n.x = mx + (mx / len) * D0 * 2;
-    n.y = my + (my / len) * D0 * 2;
-    for (const c of clusters) {
-      if (n.ends?.includes(c.hub.id)) continue;
-      const dx = n.x - c.hub.x, dy = n.y - c.hub.y;
-      const d = Math.hypot(dx, dy) || 0.001;
-      const need = c.radius + D0;
-      if (d < need) { n.x = c.hub.x + (dx / d) * need; n.y = c.hub.y + (dy / d) * need; }
-    }
+    n.x = (a.x + b.x) / 2;
+    n.y = (a.y + b.y) / 2;
   }
 }

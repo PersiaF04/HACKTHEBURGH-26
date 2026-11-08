@@ -43,6 +43,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
   const [perBranch, setPerBranch] = useState(DEFAULT_PER_BRANCH);
   const [showGaps, setShowGaps] = useState(false);
+  const [gapCount, setGapCount] = useState(8);
   const [synth, setSynth] = useState<string | null>(null);
   const [ranked, setRanked] = useState<GapSummary[]>([]);
 
@@ -82,7 +83,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
     return () => { current = false; };
   }, [selectedYear]);
-  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, showGaps ? ranked : [], perBranch) : null), [live, map.concepts, ranked, perBranch, showGaps]);
+  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, showGaps ? ranked.slice(0, gapCount) : [], perBranch) : null), [live, map.concepts, ranked, perBranch, showGaps, gapCount]);
 
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
   const areas = useMemo(() => {
@@ -124,10 +125,9 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   );
   // Supporting links: the strongest predicted links, plus every link of the selected concept.
   const supportEdges = useMemo(() => {
-    const top = showGaps ? [...edges].sort((x, y) => y.p_link - x.p_link).slice(0, 40) : [];
     const own = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId) : [];
-    return [...new Set([...top, ...own])];
-  }, [edges, selectedId, showGaps]);
+    return own;
+  }, [edges, selectedId]);
   const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
   const hasCounts = visible.some((c) => typeof c.paper_count === "number");
   const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
@@ -211,6 +211,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
             </div>
             {hierarchy ? (
               <div className="ex__heatlegend" aria-label="Colour key">
+                {showGaps && <span><strong>A gap</strong>: two topics not studied together yet. A line joins them with a purple dot in the middle; a bigger dot means a likelier link. Click the dot for details.</span>}
                 <span className="ex__heatlegend-bar" aria-hidden="true" />
                 <span>Red: branch hubs and their biggest subtopics</span>
                 <span>Blue: smaller subtopics</span>
@@ -226,11 +227,18 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                   <input type="checkbox" checked={showGaps} onChange={(e) => setShowGaps(e.currentTarget.checked)} />
                   Show gaps and their links
                 </label>
+                {showGaps && (
+                  <label className="ex__perbranch-gaps">
+                    Gaps shown
+                    <input type="range" min={3} max={50} step={1} value={gapCount} onChange={(e) => setGapCount(Number(e.currentTarget.value))} />
+                    <span className="whitespace-mono">{gapCount}</span>
+                  </label>
+                )}
               </div>
             )}
             {hierarchy && (
               <p className="ws-note ex__structure-note">
-                Graph structure: the hot red dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, purple dots are the top ranked hypotheses (gaps), linked to the two concepts they join, and dashed lines are the strongest predicted links; selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
+                Graph structure: the hot red dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, the top ranked gaps are drawn as bridges between the two concepts they join (choose how many with “Gaps shown”); selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
               </p>
             )}
           </>
