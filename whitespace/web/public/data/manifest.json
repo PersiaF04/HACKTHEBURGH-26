@@ -1,150 +1,153 @@
 {
- "code_commit": "93448d23a063b88ee056ac1a86bd1cb88e8e60da",
- "config": {
-  "calibration_origins": [
-   2017
-  ],
-  "fit_origins": [
-   2010,
-   2011,
-   2012,
-   2013,
-   2014
-  ],
-  "horizon": 3,
-  "ks": [
-   100,
-   1000
-  ],
-  "l2": 1.0,
-  "n_boot": 200,
-  "n_min": 30,
-  "neg_ratio": 10,
-  "seed": 0,
-  "test_origins": [
-   2020
-  ]
- },
- "config_hash": "f88c67dc1135341539a63fe47daa10f73ccd527d688ec4340d46c2d23177042b",
- "corpus": {
-  "counts": {
-   "2007": 18,
-   "2008": 50,
-   "2009": 200,
-   "2010": 34615,
-   "2011": 33166,
-   "2012": 35149,
-   "2013": 37302,
-   "2014": 37646,
-   "2015": 37720,
-   "2016": 38411,
-   "2017": 41249,
-   "2018": 50448,
-   "2019": 59537,
-   "2020": 68644,
-   "2021": 77899,
-   "2022": 82957,
-   "2023": 95660,
-   "2024": 639,
-   "2025": 139,
-   "2026": 62
-  },
-  "n_works": {
-   "2010": 140500,
-   "2011": 178146,
-   "2012": 215866,
-   "2013": 254277,
-   "2014": 295526,
-   "2017": 474155,
-   "2020": 730671
-  },
-  "query": null,
-  "retrieved_at": null,
-  "topic_assignment_vintage": null
- },
- "data_label": "real",
- "export": {
-  "corpus_last_year": 2023,
-  "corpus_sha256": "d0d42526e68159f9e81884e850ec0e42445b494185d74011f5384ec4d5efa6ad",
-  "coverage_source": "code join output (papers.csv, coverage.json)",
-  "map_years": [
-   2021,
-   2022,
-   2023
-  ],
-  "path_check": null,
-  "post_export_text_correction": {
-   "files": [
-    "gap-details.json",
-    "gaps.json",
-    "meta.json"
-   ],
-   "note": "The production_label template produced a malformed sentence ('...better calibrated than the backtest's ranks pairs...'). Text-only fix applied after the export run: '...than the backtest model's. It ranks pairs...'. No numbers or data changed; file hashes recomputed. The template is fixed in code separately."
-  },
-  "production_model": "through-2020",
-  "production_model_equals_backtest_model": false,
-  "production_trained_on": {
-   "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of the calibration origin",
-   "calibration_origins": [
-    2020
-   ],
-   "fit_origins": [
-    2010,
-    2011,
-    2012,
-    2013,
-    2014,
-    2017
-   ],
-   "held_out_tested": false,
-   "model": "through-2020",
-   "test_origins_used": [
-    2020
-   ]
-  },
-  "run_dir_config_hash": "811f8e0c657789080ed754c02ed747a1b9b94efdbf14eae4bcdf9ab55e195fd0",
   "synthetic": false,
-  "synthetic_reasons": [],
-  "titles_available": true
- },
- "files": {
-  "backtest.json": "171fe67e1f9bab79273c90d6345f060548c68933cc1e278fe8dec0e9e523b74c",
-  "concepts.json": "3d6e409b9f57a80a393ea60720594e5741b90e73e1d49522a6671a211da6dbbd",
-  "coverage-2021.json": "173569303a98e37b4101ad5d98e3810e8d1e10571c17f4e932834ad7d76ad406",
-  "coverage-2022.json": "95442a56bea367793736df84b6182f45e6664145bdb4fda8aca929e3812e5664",
-  "coverage-2023.json": "41d168f978b9dcb171dc62a9006748fc19102993626d1a4461166a322ea07cc3",
-  "gap-details.json": "aa15139f7c76907944b145d258310854d2d3fabb4e8f5d3a93827fcfe18d7e67",
-  "gaps.json": "90d08378c95dd773ee1ec1af57dadd08175a5eb27637ede8e54492d9fceadb9c",
-  "map-2021.json": "b8ff4f76f1ee1573d8153bdd526039e27898f24bd4c56681d8537dce09e22cee",
-  "map-2022.json": "1514ec5a74bbc6789e56bf1b984eeb364571d9a68e956580b9427b160c64a61c",
-  "map-2023.json": "00fe2244ea82a53f8316bd1c4801d105a98242d526c5c676f3073aa9f6f4be94",
-  "meta.json": "c0efaeb1bf182337c4a056eedac2f7beafb0cd56103f79c908bedb08df0ede6e",
-  "open-problems.json": "83f1a92e76131ea6a3b455ff1d973ed189d5dad700b28a0f977af4763d217587",
-  "routes.json": "5a79dd9772729fad9a5c2ccb9971187587eb0162539c32016936dc6ae4f34d06",
-  "search.json": "9a476d3f0dec809d786be6edcc10f062e2bad43190eaa1556124a450423a13fb"
- },
- "library_versions": {
-  "numpy": "2.5.4",
-  "pytest": "9.2.0",
-  "python": "3.14.5"
- },
- "link_threshold": 3,
- "origins": {
-  "calibration": [
-   2017
-  ],
-  "fit": [
-   2010,
-   2011,
-   2012,
-   2013,
-   2014
-  ],
-  "test": [
-   2020
-  ]
- },
- "real_run": true,
- "seed": 0,
- "synthetic": false
+  "real_run": true,
+  "data_label": "real",
+  "corpus": {
+    "query": null,
+    "counts": {
+      "2007": 18,
+      "2008": 50,
+      "2009": 200,
+      "2010": 34615,
+      "2011": 33166,
+      "2012": 35149,
+      "2013": 37302,
+      "2014": 37646,
+      "2015": 37720,
+      "2016": 38411,
+      "2017": 41249,
+      "2018": 50448,
+      "2019": 59537,
+      "2020": 68644,
+      "2021": 77899,
+      "2022": 82957,
+      "2023": 95660,
+      "2024": 639,
+      "2025": 139,
+      "2026": 62
+    },
+    "retrieved_at": null,
+    "topic_assignment_vintage": null,
+    "n_works": {
+      "2010": 140500,
+      "2011": 178146,
+      "2012": 215866,
+      "2013": 254277,
+      "2014": 295526,
+      "2017": 474155,
+      "2020": 730671
+    }
+  },
+  "origins": {
+    "fit": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014
+    ],
+    "calibration": [
+      2017
+    ],
+    "test": [
+      2020
+    ]
+  },
+  "seed": 0,
+  "config": {
+    "fit_origins": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014
+    ],
+    "calibration_origins": [
+      2017
+    ],
+    "test_origins": [
+      2020
+    ],
+    "seed": 0,
+    "l2": 1.0,
+    "neg_ratio": 10,
+    "n_min": 30,
+    "horizon": 3,
+    "ks": [
+      100,
+      1000
+    ],
+    "n_boot": 200
+  },
+  "config_hash": "f88c67dc1135341539a63fe47daa10f73ccd527d688ec4340d46c2d23177042b",
+  "link_threshold": 3,
+  "code_commit": "93448d23a063b88ee056ac1a86bd1cb88e8e60da",
+  "library_versions": {
+    "python": "3.13.14",
+    "numpy": "2.5.4",
+    "pytest": "9.2.0"
+  },
+  "files": {
+    "backtest.json": "171fe67e1f9bab79273c90d6345f060548c68933cc1e278fe8dec0e9e523b74c",
+    "concepts.json": "149ca2fea7e635cffec76e7bc92619a4246686da8fce375401962b949416e8b0",
+    "coverage-2023.json": "41d168f978b9dcb171dc62a9006748fc19102993626d1a4461166a322ea07cc3",
+    "gap-details.json": "bb4941f4fff222d2be85b1b8894b864fbbe18e51c77ec314fc2d9ccca989742f",
+    "gaps.json": "5ed0c83d5217a0bc72adca5aad297571cc6ab0aa102d298609bf9e2a5c57ed9a",
+    "map-2023.json": "34496090cd1b39b812ac56c41375a52e6d84545b253329154575c35c812b8520",
+    "meta.json": "81da0d54be8e2faf91c0dd26230998cdb25a92662509845be03a4eeb654a383e",
+    "open-problems.json": "7927bfd0bd3cee9a4d821c0077f6b6612e4372928a26a87ed0593adef9f6d54b",
+    "search.json": "9a476d3f0dec809d786be6edcc10f062e2bad43190eaa1556124a450423a13fb",
+    "routes.json": "d53b721d940d0d9a9cb7e33100296dc7dfe53cb8d3258bf85fcba20cf1461a1f"
+  },
+  "export": {
+    "synthetic": false,
+    "synthetic_reasons": [],
+    "corpus_last_year": 2023,
+    "map_years": [
+      2023
+    ],
+    "run_dir_config_hash": "811f8e0c657789080ed754c02ed747a1b9b94efdbf14eae4bcdf9ab55e195fd0",
+    "corpus_sha256": "d0d42526e68159f9e81884e850ec0e42445b494185d74011f5384ec4d5efa6ad",
+    "production_model_equals_backtest_model": false,
+    "production_model": "through-2020",
+    "production_trained_on": {
+      "model": "through-2020",
+      "fit_origins": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2017
+      ],
+      "calibration_origins": [
+        2020
+      ],
+      "test_origins_used": [
+        2020
+      ],
+      "calibration_method": "Platt scaling (logistic fit of the decision value) on the full pair universe of the calibration origin",
+      "held_out_tested": false
+    },
+    "coverage_source": "code join output (papers.csv, coverage.json)",
+    "titles_available": true,
+    "path_check": null,
+    "open_problems": {
+      "cache_hits": 22913,
+      "gap_rates": 4984,
+      "gaps_with_rates": 50,
+      "items": 923,
+      "quality": "unmeasured",
+      "gaps_with_sentences": 50,
+      "concepts_with_sentences": 246,
+      "attribution": "Short excerpts quoted from abstracts indexed by OpenAlex; copyright remains with the publishers/authors. OpenAlex metadata is CC0. No full abstracts are included.",
+      "display_only": "rates are not used in any gap score or backtest",
+      "post_process": "open_problems attach",
+      "tool_commit": "74aab1c606e92c5acfcaa510d1167a61b91e89ea",
+      "cache_sha256": {
+        "hits.jsonl": "16a344765fb1e43f885dd56dcdb80cf36f70dd4d8bd6f7b0fa7b424304addf79",
+        "counts.json": "4b407530f97f97bee401e4e0824e264aa24772972e2255c74253358fb6eed5c7"
+      }
+    }
+  }
 }
