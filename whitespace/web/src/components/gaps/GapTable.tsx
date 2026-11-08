@@ -159,7 +159,7 @@ export function GapTable({ rows, maxScore, selectedId, loading, error, onSelect,
       {!loading && !error && rows.length === 0 && (
         <div className="gx-empty gx-empty--filters" role="status">
           <p className="gx-empty__t">No gaps pass these filters</p>
-          <p>Lower the minimum P(link) or clear the concept filter.</p>
+          <p>Lower the minimum likelihood or clear the concept filter.</p>
           {onReset && <button type="button" className="gx-btn" onClick={onReset}>Reset filters</button>}
         </div>
       )}

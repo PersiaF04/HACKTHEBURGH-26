@@ -65,7 +65,7 @@ function DetailSkeleton({ empty }: { empty: boolean }) {
       </section>
       <section className="gx-sec">
         <h3 className="gx-h3">How the score is made</h3>
-        <div className="gx-formula gx-formula--idle" role="img" aria-label="Gap score equals P(link) times momentum times novelty times stated gaps. Values appear when a gap is selected.">
+        <div className="gx-formula gx-formula--idle" role="img" aria-label="Gap score equals likelihood times momentum times novelty times stated gaps. Values appear when a gap is selected.">
           {FORMULA_NAMES.map(([name, op]) => (
             <div key={name} className="gx-formula__item">
               {op && <span aria-hidden="true" className={op === "=" ? "gx-formula__op is-strong" : "gx-formula__op"}>{op}</span>}
@@ -114,7 +114,7 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
 
       <section className="gx-sec">
         <h3 className="gx-h3">How the score is made</h3>
-        <div className="gx-formula" role="group" aria-label={`Gap score ${fmtDec(g.gap_score)} equals P(link) ${fmtDec(g.p_link)} times momentum ${fmtDec(g.momentum)} times novelty ${fmtDec(g.novelty)} times stated gaps ${fmtFactor(sg).replace("×", "")}`}>
+        <div className="gx-formula" role="group" aria-label={`Gap score ${fmtDec(g.gap_score)} equals likelihood ${fmtPct(g.p_link)} times momentum ${fmtDec(g.momentum)} times novelty ${fmtDec(g.novelty)} times stated gaps ${fmtFactor(sg).replace("×", "")}`}>
           {factors.map((f) => (
             <div key={f.name} className="gx-formula__item">
               {f.op && <span aria-hidden="true" className={f.strong ? "gx-formula__op is-strong" : "gx-formula__op"}>{f.op}</span>}
