@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import type { ConceptSummary, GapDetailResponse, GapListResponse, GapSummary, OpenProblemResponse } from "../api";
-import { GapDetailPanel, GapTable, OpenProblemsCard, gapKey } from "../components/gaps";
+import { GapDetailPanel, GapTable, GapTableSkeleton, OpenProblemsCard, OpenProblemsSkeleton, gapKey } from "../components/gaps";
 import type { CardItem, ConceptSeries, GapRow, ProblemFilter } from "../components/gaps";
 import { SERIES_COLORS } from "../components/gaps/OpenProblemsCard";
-import { f2, isNum, pct } from "../components/gaps/format";
+import { NA, fmtDec, fmtInt, fmtP, fmtPct, fmtText, isNum } from "../lib/format";
 import "../components/gaps/gaps.css";
 import "./whitespace-pages.css";
 
@@ -60,7 +60,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   }, [response.items]);
 
   const rows: GapRow[] = useMemo(() => response.items
-    .filter((g) => g.p_link >= minimumProbability - 1e-9)
+    .filter((g) => minimumProbability <= 0 || (isNum(g.p_link) && g.p_link >= minimumProbability - 1e-9))
     .filter((g) => !focus || g.a === focus || g.b === focus)
     .sort((l, r) => {
       const a = sortValue(l, sort);
@@ -148,23 +148,25 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
   const cardItems: CardItem[] = problems
     .flatMap((p, i) => (p.data ?? EMPTY).items.map((it) => ({ ...it, conceptLabel: p.label, dot: SERIES_COLORS[i % 2] })))
     .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+  const empty = response.items.length === 0;
+  function resetFilters() { setMinimumProbability(0); setFocus(null); }
   const subtitle = focus ? `Stated in abstracts about ${target[0]?.label ?? ""}` : selGap ? `For the selected gap: ${selGap.a_label} and ${selGap.b_label}` : "";
 
   const medianP = median(rows.map((r) => r.gap.p_link).filter(isNum));
   const topScore = rows.reduce<number | null>((m, r) => isNum(r.gap.gap_score) && (m == null || r.gap.gap_score > m) ? r.gap.gap_score : m, null);
   const bothSides = rows.filter((r) => (r.gap.gap_rate_a ?? 0) >= 0.1 && (r.gap.gap_rate_b ?? 0) >= 0.1).length;
   const maxScore = Math.max(0, ...response.items.map((g) => g.gap_score ?? 0));
-  const summary: Array<[string, string, boolean]> = [
-    ["Gaps shown", String(rows.length), false],
-    ["Median P(link)", f2(medianP), true],
-    ["Top gap score", f2(topScore), false],
-    ["Open problems on both sides", String(bothSides), false],
+  const summary: Array<[string, string, boolean, string]> = [
+    ["Gaps shown", empty ? NA : fmtInt(rows.length), false, "Pairs that pass the filters"],
+    ["Median P(link)", empty ? NA : fmtP(medianP), true, "Typical chance of linking among them"],
+    ["Top gap score", empty ? NA : fmtDec(topScore), false, "Highest score among them"],
+    ["Open problems on both sides", empty ? NA : fmtInt(bothSides), false, "Pairs where both concepts’ papers name unsolved problems"],
   ];
   const stats: Array<[string, string]> = [
-    ["Concepts", String(concepts.length)],
-    ["Papers", papers == null ? "—" : papers.toLocaleString("en-GB")],
-    ["Predicted gaps", String(response.items.length)],
-    ["Avg stated-gap rate", pct(avgRate)],
+    ["Concepts", empty ? NA : fmtInt(concepts.length)],
+    ["Papers", empty ? NA : fmtInt(papers)],
+    ["Predicted gaps", empty ? NA : fmtInt(response.items.length)],
+    ["Avg stated-gap rate", empty ? NA : fmtPct(avgRate)],
   ];
 
   function pick(c: ConceptInfo) {
@@ -180,18 +182,21 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
     <div className="gx">
       <aside className="gx-rail" aria-label="Filters and overview">
         <div className="gx-field">
-          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum P(link)</label><span className="gx-mono">{minimumProbability.toFixed(2)}</span></div>
-          <input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value={minimumProbability} onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
+          <div className="gx-field__row"><label htmlFor="gf-minp">Minimum P(link)</label><span className="gx-mono">{empty ? NA : fmtDec(minimumProbability)}</span></div>
+          <input id="gf-minp" type="range" min="0" max="0.8" step="0.05" value={minimumProbability} disabled={empty} aria-describedby="gf-minp-h" onChange={(e) => setMinimumProbability(Number(e.currentTarget.value))} />
+          <p id="gf-minp-h" className="gx-help">Hide pairs the model rates below this chance of linking</p>
         </div>
         <div className="gx-field">
           <label htmlFor="gf-sort">Sort gaps by</label>
-          <select id="gf-sort" value={sort} onChange={(e) => setSort(e.currentTarget.value as SortKey)}>
+          <select id="gf-sort" value={sort} disabled={empty} aria-describedby="gf-sort-h" onChange={(e) => setSort(e.currentTarget.value as SortKey)}>
             {sortOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
+          <p id="gf-sort-h" className="gx-help">Choose which measure orders the table</p>
         </div>
 
         <section className="gx-sec" aria-labelledby="gf-ov">
           <h2 id="gf-ov" className="gx-label">All areas at a glance</h2>
+          {empty && <p className="gx-help">Totals across every concept in the export</p>}
           <div className="gx-stats">
             {stats.map(([label, v]) => (
               <div key={label} className="gx-stat"><span className="gx-stat__l">{label}</span><span className="gx-stat__v">{v}</span></div>
@@ -199,8 +204,8 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
           </div>
           {(fastest || rated[0]) && (
             <p className="gx-fast">
-              {fastest && <>Fastest growing: <strong>{fastest.label}</strong>. </>}
-              {rated[0] && <>Most stated gaps: <strong>{rated[0].label}</strong>.</>}
+              {fastest && <>Fastest growing: <strong>{fmtText(fastest.label)}</strong>. </>}
+              {rated[0] && <>Most stated gaps: <strong>{fmtText(rated[0].label)}</strong>.</>}
             </p>
           )}
         </section>
@@ -213,7 +218,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
               {shownRated.map((c) => (
                 <li key={c.id}>
                   <button type="button" aria-pressed={focus === c.id} className="gx-concept" onClick={() => pick(c)}>
-                    <span className="gx-concept__row"><span>{c.label}</span><span className="gx-mono">{pct(c.rate)}</span></span>
+                    <span className="gx-concept__row"><span>{fmtText(c.label)}</span><span className="gx-mono">{fmtPct(c.rate)}</span></span>
                     <span className="gx-concept__bar"><span style={{ width: `${Math.round(((c.rate as number) / maxRate) * 100)}%` }} /></span>
                   </button>
                 </li>
@@ -227,19 +232,19 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
       <section className="gx-centre" aria-labelledby="gf-h">
         <div className="gx-titles">
           <h1 id="gf-h" className="gx-h1">Gaps &amp; open problems</h1>
-          <p className="gx-desc">Concept pairs not yet linked (fewer than 3 shared papers), ranked, with what authors themselves say is unsolved. <span className="gx-mono gx-ink">{rows.length}</span> gaps shown.</p>
+          <p className="gx-desc">Concept pairs not yet linked (fewer than 3 shared papers), ranked, with what authors themselves say is unsolved.{!empty && <> <span className="gx-mono gx-ink">{fmtInt(rows.length)}</span> gaps shown.</>}</p>
         </div>
 
         <div className="gx-summary">
-          {summary.map(([label, v, blue]) => (
-            <div key={label} className="gx-summary__c"><span className="gx-summary__l">{label}</span><span className="gx-summary__v" style={blue ? { color: "var(--ws-accent)" } : undefined}>{v}</span></div>
+          {summary.map(([label, v, blue, cap]) => (
+            <div key={label} className="gx-summary__c"><span className="gx-summary__l">{label}</span><span className="gx-summary__v" style={blue && !empty ? { color: "var(--ws-accent)" } : undefined}>{v}</span><span className="gx-summary__cap">{cap}</span></div>
           ))}
         </div>
 
         {focus && (
           <div className="gx-focus">
             <span>Gaps involving</span>
-            <span className="gx-focus__pill">{focusLabel}
+            <span className="gx-focus__pill">{fmtText(focusLabel)}
               <button type="button" aria-label="Clear concept filter" onClick={() => setFocus(null)}>
                 <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" /></svg>
               </button>
@@ -247,14 +252,16 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
           </div>
         )}
 
-        <GapTable rows={rows} maxScore={maxScore} selectedId={selKey} loading={loading} error={error} onSelect={(g) => setSelectedId(gapKey(g))} />
+        {empty
+          ? <GapTableSkeleton loading={loading} error={error} />
+          : <GapTable rows={rows} maxScore={maxScore} selectedId={selKey} loading={loading} error={error} onSelect={(g) => setSelectedId(gapKey(g))} onReset={resetFilters} />}
 
-        {selGap && (
-          <OpenProblemsCard subtitle={subtitle} series={series} items={cardItems} filter={filter} onFilter={setFilter} loading={problemsLoading} error={problemsError} />
-        )}
+        {selGap
+          ? <OpenProblemsCard subtitle={subtitle} series={series} items={cardItems} filter={filter} onFilter={setFilter} loading={problemsLoading} error={problemsError} />
+          : <OpenProblemsSkeleton loading={loading && empty} />}
       </section>
 
-      <GapDetailPanel gap={selGap} rank={selected?.rank ?? null} total={response.items.length} detail={detail} loading={detailLoading} error={detailError} />
+      <GapDetailPanel gap={selGap} rank={selected?.rank ?? null} total={response.items.length} detail={detail} loading={detailLoading} error={detailError} empty={empty} />
     </div>
   );
 }
