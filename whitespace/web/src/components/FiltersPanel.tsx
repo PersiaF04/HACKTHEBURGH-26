@@ -3,8 +3,8 @@ import { fmtInt } from "../lib/format";
 import "./explore.css";
 
 export type GrowthFilter = "all" | "up" | "down";
-export type ExploreFilters = { minPapers: number; growth: GrowthFilter; showPredicted: boolean };
-export const DEFAULT_FILTERS: ExploreFilters = { minPapers: 0, growth: "all", showPredicted: true };
+export type ExploreFilters = { minPapers: number; growth: GrowthFilter };
+export const DEFAULT_FILTERS: ExploreFilters = { minPapers: 0, growth: "all" };
 
 export type ResearchArea = { id: string; name: string; count?: number };
 
@@ -137,18 +137,6 @@ export function FiltersPanel({ filters, onChange, maxPapers, onReset, areas, sel
           </section>
         </>
       )}
-
-      <section className="whitespace-filters__section">
-        <label className="whitespace-check whitespace-check--switch">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={filters.showPredicted}
-            onChange={(event) => set({ showPredicted: event.currentTarget.checked })}
-          />
-          <span><strong>Predicted links</strong><small>Show the model's possible next connections.</small></span>
-        </label>
-      </section>
 
       <button type="button" className="whitespace-filters__reset" disabled={disabled} onClick={onReset}>
         Reset filters
