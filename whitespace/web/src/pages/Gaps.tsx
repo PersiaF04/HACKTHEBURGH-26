@@ -222,7 +222,7 @@ export function GapsPage({ response, loadDetail, loading = false, error }: GapsP
 
       </section>
 
-      <div data-tour="gap-detail"><GapDetailPanel gap={selGap} rank={selected?.rank ?? null} total={response.items.length} detail={detail} loading={detailLoading} error={detailError} empty={empty} /></div>
+      <div className="gx-detailcol" data-tour="gap-detail"><GapDetailPanel gap={selGap} rank={selected?.rank ?? null} total={response.items.length} detail={detail} loading={detailLoading} error={detailError} empty={empty} /></div>
     </div>
   );
 }
