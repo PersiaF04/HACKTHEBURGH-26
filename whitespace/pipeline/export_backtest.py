@@ -25,6 +25,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .backtest import is_real_run
 from .common import HORIZON_YEARS, LINK_THRESHOLD, Work
 from .graphs import PairSet
 
@@ -67,12 +68,18 @@ def clean(value):
     return value
 
 
-def is_real_run(metrics: dict | None) -> bool:
-    """True only for a non-empty run labelled ``real`` that has no synthetic generator."""
-    if not metrics or not metrics.get("test"):
-        return False
-    man = metrics.get("manifest") or {}
-    return man.get("data_label") == "real" and not man.get("generator")
+def run_label(metrics: dict | None) -> tuple[str, bool]:
+    """``(data_label, synthetic)`` for a run: a generator or the label ``synthetic`` means synthetic;
+    anything not exactly ``real`` or ``synthetic`` (including missing) is ``unlabelled``."""
+    man = (metrics or {}).get("manifest") or {}
+    if man.get("generator") or man.get("data_label") == "synthetic":
+        return "synthetic", True
+    return ("real" if man.get("data_label") == "real" else "unlabelled"), False
+
+
+def _is_real(metrics: dict | None) -> bool:
+    """Real only when ``backtest.is_real_run(manifest)`` says so and test results exist."""
+    return bool(metrics and metrics.get("test")) and is_real_run(metrics.get("manifest") or {})
 
 
 # ---------------------------------------------------------------- metrics conversion
@@ -119,10 +126,11 @@ def calibration_bins(cal: dict | None) -> dict:
     return {"bins": bins, "note": "; ".join(parts)}
 
 
-def placeholder_response(note: str, synthetic: bool = False, meta: dict | None = None) -> dict:
+def placeholder_response(note: str, synthetic: bool = False, meta: dict | None = None,
+                         data_label: str = "unlabelled") -> dict:
     """The frontend's empty fixture shape, ``placeholder: true``, every number ``null``."""
     return clean({
-        "placeholder": True, "synthetic": synthetic,
+        "placeholder": True, "synthetic": synthetic, "data_label": data_label,
         "base_rate": None, "roc_auc": None, "pr_auc": None, "average_precision": None,
         "precision_at_100": None, "baselines": {}, "by_starting_weight": {},
         "calibration": {"bins": [], "note": note}, "hits": [], "misses": [],
@@ -148,11 +156,11 @@ def to_backtest_response(
     """
     meta = dict(meta or {})
     man = (metrics or {}).get("manifest") or {}
-    synthetic = bool(man.get("generator")) or man.get("data_label") == "synthetic"
-    if not is_real_run(metrics):
-        why = ("synthetic run: numbers withheld" if synthetic else
-               "empty or unlabelled run: no real result supplied")
-        return placeholder_response(why, synthetic, {**meta, "data_label": man.get("data_label")})
+    label, synthetic = run_label(metrics)
+    if not _is_real(metrics):
+        why = ("SYNTHETIC run: numbers withheld" if synthetic else
+               "unlabelled or empty run: no real result supplied, numbers withheld")
+        return placeholder_response(why, synthetic, meta, label)
 
     tests = metrics["test"]
     key = str(origin if origin is not None else max(int(o) for o in tests))
@@ -173,7 +181,7 @@ def to_backtest_response(
             raise ValueError(f"unknown code_link_evaluation keys: {sorted(unknown)}")
         code_link.update(code_link_evaluation)
     out = {
-        "placeholder": False, "synthetic": False,
+        "placeholder": False, "synthetic": False, "data_label": "real",
         "base_rate": top["base_rate"], "roc_auc": top["roc_auc"], "pr_auc": top["pr_auc"],
         "average_precision": top["average_precision"], "precision_at_100": top["precision_at_100"],
         "baselines": top["baselines"],
@@ -183,7 +191,7 @@ def to_backtest_response(
         "hits_note": meta.get("hits_note"),
         "code_link_evaluation": code_link,
         "meta": {"test_origin": int(key), "config_hash": man.get("config_hash"),
-                 "data_label": man.get("data_label"), **meta},
+                 "data_label": "real", **meta},
     }
     return clean(out)
 
@@ -315,9 +323,9 @@ def build_manifest(
     """
     man = (metrics or {}).get("manifest") or {}
     return clean({
-        "synthetic": not is_real_run(metrics) and (bool(man.get("generator")) or man.get("data_label") == "synthetic"),
-        "real_run": is_real_run(metrics),
-        "data_label": man.get("data_label"),
+        "synthetic": run_label(metrics)[1],
+        "real_run": _is_real(metrics),
+        "data_label": run_label(metrics)[0],
         "corpus": {"query": corpus_query, "counts": corpus_counts, "retrieved_at": retrieved_at,
                    "topic_assignment_vintage": topic_vintage, "n_works": man.get("n_works")},
         "origins": {"fit": man.get("fit_origins"), "calibration": man.get("calibration_origins"),
