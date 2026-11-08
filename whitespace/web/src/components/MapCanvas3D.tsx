@@ -149,6 +149,31 @@ export function MapCanvas3D({
       tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
+    // Preserve each area's internal geometry, but make the largest named areas visually distinct.
+    // This is a navigation layout aid; node height and colour still come from the observed growth data.
+    const areaGroups = new Map<string, { indices: number[]; x: number; y: number }>();
+    concepts.forEach((concept, i) => {
+      if (!concept.area) return;
+      const group = areaGroups.get(concept.area) ?? { indices: [], x: 0, y: 0 };
+      group.indices.push(i);
+      group.x += pos[i * 3]; group.y += pos[i * 3 + 1];
+      areaGroups.set(concept.area, group);
+    });
+    const rankedAreas = [...areaGroups.entries()]
+      .map(([name, group]) => ({ name, group, x: group.x / group.indices.length, y: group.y / group.indices.length }))
+      .sort((a, b) => b.group.indices.length - a.group.indices.length);
+    const majorCount = Math.min(5, Math.max(0, Math.ceil(Math.sqrt(rankedAreas.length))));
+    rankedAreas.forEach((area, rank) => {
+      const major = rank < majorCount;
+      const angle = major ? (Math.PI * 2 * rank) / Math.max(1, majorCount) - Math.PI / 2 : Math.atan2(area.y, area.x);
+      const radius = major ? SPAN_XY * 0.42 : Math.min(SPAN_XY * 0.22, Math.hypot(area.x, area.y) * 0.62);
+      const targetX = Math.cos(angle) * radius;
+      const targetY = Math.sin(angle) * radius;
+      for (const i of area.group.indices) {
+        pos[i * 3] += targetX - area.x;
+        pos[i * 3 + 1] += targetY - area.y;
+      }
+    });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
     const labelOrder = concepts.map((_, i) => i).sort((a, b) => (concepts[b].paper_count ?? 0) - (concepts[a].paper_count ?? 0));
     const sums = new Map<string, { x: number; y: number; z: number; n: number }>();
