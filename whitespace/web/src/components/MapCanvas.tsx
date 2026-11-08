@@ -12,7 +12,7 @@ type MapCanvasProps = {
   edges: PredictedEdge[];
   selectedConceptId: string | null;
   focus: MapFocus;
-  placeholder: boolean;
+  placeholder?: boolean;
   onSelectConcept: (id: string) => void;
   /** Optional observed links (3+ shared papers), drawn as solid grey lines. Absent from the current export. */
   linkedEdges?: LinkedEdge[];
@@ -27,8 +27,8 @@ type DragState = { pointerX: number; pointerY: number; cx: number; cy: number; m
 type Node = { id: string; wx: number; wy: number; r: number; color: number; papers: number; label: string; area?: string };
 
 const VIEW_SIZE = 960;
-const MAP_MIN = 42;
-const MAP_MAX = VIEW_SIZE - 42;
+const MAP_MIN = 48;
+const MAP_MAX = VIEW_SIZE - 48;
 const LIST_PAGE_SIZE = 50;
 const MIN_SCALE = 0.6;
 const MAX_SCALE = 12;
@@ -87,7 +87,7 @@ function screenRadius(r: number, scale: number): number {
 }
 
 export function MapCanvas({
-  concepts, edges, selectedConceptId, focus, placeholder, onSelectConcept,
+  concepts, edges, selectedConceptId, focus, onSelectConcept,
   linkedEdges, showPredicted = true, showAreaLabels = true,
 }: MapCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -102,12 +102,12 @@ export function MapCanvas({
   const extents = useMemo(() => {
     const x = extent(concepts.map((concept) => concept.x));
     const y = extent(concepts.map((concept) => concept.y));
-    return { xCenter: (x[0] + x[1]) / 2, yCenter: (y[0] + y[1]) / 2, range: Math.max(x[1] - x[0], y[1] - y[0]) };
+    return { xCenter: (x[0] + x[1]) / 2, yCenter: (y[0] + y[1]) / 2, xRange: x[1] - x[0], yRange: y[1] - y[0] };
   }, [concepts]);
 
   const toWorld = useCallback((x: number, y: number): [number, number] => [
-    VIEW_SIZE / 2 + ((x - extents.xCenter) / extents.range) * (MAP_MAX - MAP_MIN),
-    VIEW_SIZE / 2 - ((y - extents.yCenter) / extents.range) * (MAP_MAX - MAP_MIN),
+    VIEW_SIZE / 2 + ((x - extents.xCenter) / extents.xRange) * (MAP_MAX - MAP_MIN),
+    VIEW_SIZE / 2 - ((y - extents.yCenter) / extents.yRange) * (MAP_MAX - MAP_MIN),
   ], [extents]);
 
   const nodes = useMemo<Node[]>(() => concepts.map((concept) => {
@@ -187,9 +187,10 @@ export function MapCanvas({
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
-    const k = (Math.min(width, height) / VIEW_SIZE) * view.scale;
-    const sx = (wx: number) => width / 2 + (wx - view.cx) * k;
-    const sy = (wy: number) => height / 2 + (wy - view.cy) * k;
+    const kx = (width / VIEW_SIZE) * view.scale;
+    const ky = (height / VIEW_SIZE) * view.scale;
+    const sx = (wx: number) => width / 2 + (wx - view.cx) * kx;
+    const sy = (wy: number) => height / 2 + (wy - view.cy) * ky;
     const selIdx = s.selectedConceptId ? s.indexById.get(s.selectedConceptId) ?? -1 : -1;
     const hoverIdx = hoverRef.current;
     const margin = 14;
@@ -206,8 +207,19 @@ export function MapCanvas({
         ctx.lineTo(bx, by);
       }
       ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(185, 188, 196, 0.7)";
+      ctx.strokeStyle = "#D3D5DA";
       ctx.stroke();
+      if (selIdx >= 0) {
+        ctx.beginPath();
+        for (const [a, b] of s.linked) {
+          if (a !== selIdx && b !== selIdx) continue;
+          ctx.moveTo(sx(s.nodes[a].wx), sy(s.nodes[a].wy));
+          ctx.lineTo(sx(s.nodes[b].wx), sy(s.nodes[b].wy));
+        }
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#15171C";
+        ctx.stroke();
+      }
     }
 
     // Predicted links: dashed accent, stronger when more probable.
@@ -281,8 +293,10 @@ export function MapCanvas({
       const x = sx(n.wx), y = sy(n.wy);
       if (!inView(x, y)) return false;
       ctx.font = `${bold ? 600 : 500} 11px ${FONT_SANS}`;
-      const l = x + screenRadius(n.r, view.scale) + 4;
-      const box = [l - 2, y - 7, l + ctx.measureText(n.label).width + 2, y + 7];
+      const textW = ctx.measureText(n.label).width;
+      let l = x + screenRadius(n.r, view.scale) + 4;
+      if (l + textW > width - 6) l = x - screenRadius(n.r, view.scale) - 4 - textW; // flip to the left near the edge
+      const box = [l - 2, y - 7, l + textW + 2, y + 7];
       for (const p of placed) {
         if (box[0] < p[2] && box[2] > p[0] && box[1] < p[3] && box[3] > p[1]) return false;
       }
@@ -317,7 +331,7 @@ export function MapCanvas({
         const w = ctx.measureText(text).width + 12;
         ctx.fillStyle = "#2952E3";
         ctx.beginPath();
-        ctx.rect(mx - w / 2, my - 9, w, 18);
+        ctx.roundRect(mx - w / 2, my - 9, w, 18, 4);
         ctx.fill();
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText(text, mx, my + 4);
@@ -329,7 +343,7 @@ export function MapCanvas({
     if (!frameRef.current) frameRef.current = requestAnimationFrame(draw);
   }, [draw]);
 
-  useEffect(() => () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); }, []);
+  useEffect(() => () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); frameRef.current = 0; }, []);
 
   // Redraw whenever the scene changes.
   useEffect(() => { schedule(); }, [schedule, nodes, linked, predicted, selectedConceptId, showPredicted, showAreaLabels]);
@@ -363,13 +377,14 @@ export function MapCanvas({
     const view = viewRef.current;
     const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, view.scale * factor));
     if (scale === view.scale || width <= 0) return;
-    const fit = Math.min(width, height) / VIEW_SIZE;
+    const fitX = width / VIEW_SIZE;
+    const fitY = height / VIEW_SIZE;
     const ax = px ?? width / 2;
     const ay = py ?? height / 2;
     // Keep the world point under the anchor fixed.
-    const wx = view.cx + (ax - width / 2) / (fit * view.scale);
-    const wy = view.cy + (ay - height / 2) / (fit * view.scale);
-    viewRef.current = { scale, cx: wx - (ax - width / 2) / (fit * scale), cy: wy - (ay - height / 2) / (fit * scale) };
+    const wx = view.cx + (ax - width / 2) / (fitX * view.scale);
+    const wy = view.cy + (ay - height / 2) / (fitY * view.scale);
+    viewRef.current = { scale, cx: wx - (ax - width / 2) / (fitX * scale), cy: wy - (ay - height / 2) / (fitY * scale) };
     schedule();
   }, [schedule]);
 
@@ -392,10 +407,11 @@ export function MapCanvas({
     const rect = canvas.getBoundingClientRect();
     const { width, height } = sizeRef.current;
     const view = viewRef.current;
-    const k = (Math.min(width, height) / VIEW_SIZE) * view.scale;
-    const wx = view.cx + (clientX - rect.left - width / 2) / k;
-    const wy = view.cy + (clientY - rect.top - height / 2) / k;
-    const reach = 14 / k + 12;
+    const kx = (width / VIEW_SIZE) * view.scale;
+    const ky = (height / VIEW_SIZE) * view.scale;
+    const wx = view.cx + (clientX - rect.left - width / 2) / kx;
+    const wy = view.cy + (clientY - rect.top - height / 2) / ky;
+    const reach = 14 / Math.min(kx, ky) + 12;
     const x0 = Math.floor((wx - reach) / GRID_CELL);
     const x1 = Math.floor((wx + reach) / GRID_CELL);
     const y0 = Math.floor((wy - reach) / GRID_CELL);
@@ -408,7 +424,7 @@ export function MapCanvas({
         if (!bucket) continue;
         for (const i of bucket) {
           const n = nodes[i];
-          const dist = Math.hypot((n.wx - wx) * k, (n.wy - wy) * k);
+          const dist = Math.hypot((n.wx - wx) * kx, (n.wy - wy) * ky);
           if (dist <= Math.max(10, screenRadius(n.r, view.scale) + 3) && dist < bestDist) {
             best = i;
             bestDist = dist;
@@ -444,8 +460,9 @@ export function MapCanvas({
     if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
     if (!drag.moved) return;
     const { width, height } = sizeRef.current;
-    const k = (Math.min(width, height) / VIEW_SIZE) * viewRef.current.scale;
-    viewRef.current = { ...viewRef.current, cx: drag.cx - dx / k, cy: drag.cy - dy / k };
+    const kx = (width / VIEW_SIZE) * viewRef.current.scale;
+    const ky = (height / VIEW_SIZE) * viewRef.current.scale;
+    viewRef.current = { ...viewRef.current, cx: drag.cx - dx / kx, cy: drag.cy - dy / ky };
     schedule();
   }
 
@@ -470,27 +487,14 @@ export function MapCanvas({
   }
 
   const hasLinked = (linkedEdges?.length ?? 0) > 0;
+  const iconProps = { width: 14, height: 14, viewBox: "0 0 14 14", "aria-hidden": true } as const;
 
   return (
     <section className="whitespace-map" aria-label="Research concept map">
-      <div className="whitespace-map__toolbar">
-        {placeholder && (
-          <span className="whitespace-placeholder-tag">Placeholder data: this map is not the real corpus</span>
-        )}
-        <div className="whitespace-map__zoom" role="group" aria-label="Map controls">
-          <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in">+</button>
-          <button type="button" onClick={() => zoomAt(0.8)} aria-label="Zoom out">−</button>
-          <button type="button" onClick={resetView}>Reset view</button>
-        </div>
-      </div>
-
-      {!concepts.length ? (
-        <div className="whitespace-map__empty" role="status">
-          <strong>No concepts are available for this year.</strong>
-          <span>Choose another snapshot origin to explore the map.</span>
-        </div>
-      ) : (
-        <div className="whitespace-map__stage">
+      <div className="whitespace-map__stage">
+        {!concepts.length ? (
+          <div className="whitespace-map__empty" role="status">No concepts to show</div>
+        ) : (
           <canvas
             ref={canvasRef}
             className="whitespace-map__canvas"
@@ -507,23 +511,25 @@ export function MapCanvas({
             }}
             onPointerCancel={() => { dragRef.current = null; }}
           />
-          {hoverText && <div className="whitespace-map__hover" aria-hidden="true">{hoverText}</div>}
+        )}
+        {hoverText && <div className="whitespace-map__hover" aria-hidden="true">{hoverText}</div>}
+        <div className="whitespace-map__zoom" role="group" aria-label="Map controls">
+          <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in"><svg {...iconProps}><path d="M7 2v10M2 7h10" stroke="#15171C" strokeWidth="1.6" strokeLinecap="round" /></svg></button>
+          <button type="button" onClick={() => zoomAt(0.8)} aria-label="Zoom out"><svg {...iconProps}><path d="M2 7h10" stroke="#15171C" strokeWidth="1.6" strokeLinecap="round" /></svg></button>
+          <button type="button" onClick={resetView} aria-label="Reset view"><svg {...iconProps}><rect x="2" y="2" width="10" height="10" rx="1.5" fill="none" stroke="#15171C" strokeWidth="1.5" /></svg></button>
         </div>
-      )}
+      </div>
 
-      <p className="whitespace-map__note">
-        The map shows {concepts.length.toLocaleString("en-GB")} concepts. Use the complete keyboard-accessible list below to select one. Map distance is a 2D projection, not a definitive measure of research similarity.
-      </p>
-      <div className="whitespace-map__legend" role="group" aria-label="Map legend">
+      <div className="whitespace-map__legend" role="group" aria-label="Legend">
         <span className="whitespace-map__legend-scale">
           <span>Shrinking</span>
           <span className="whitespace-map__legend-swatches">
             {GROWTH_STEPS.map((step) => (
-              <i key={step.label} style={{ background: step.color }} title={step.label} aria-hidden="true" />
+              <i key={step.label} style={{ background: step.color }} aria-hidden="true" />
             ))}
           </span>
           <span>Fast-growing</span>
-          <span className="whitespace-map__legend-sub">colour = 3-year paper growth ({GROWTH_STEPS.map((s) => s.label).join(", ")})</span>
+          <span className="whitespace-map__legend-sub">{"\u00b7"} colour = 3-yr paper growth</span>
         </span>
         <span>
           <span className="whitespace-map__legend-sizes" aria-hidden="true">
@@ -531,22 +537,12 @@ export function MapCanvas({
           </span>
           Size = papers
         </span>
-        {hasLinked ? (
-          <span><i className="whitespace-map__legend-solid" aria-hidden="true" /> Linked · 3+ shared papers</span>
-        ) : (
-          <span>Linked edges (3+ shared papers) are not in this export</span>
-        )}
-        <span>
-          <i className="whitespace-map__legend-dash" aria-hidden="true" />
-          Predicted link · not yet linked, fewer than 3 shared papers{placeholder ? " (placeholder P)" : ""}
-        </span>
+        {hasLinked && <span><i className="whitespace-map__legend-solid" aria-hidden="true" />Linked {"\u00b7"} 3+ shared papers</span>}
+        <span><i className="whitespace-map__legend-dash" aria-hidden="true" />Predicted link {"\u00b7"} next 3 years</span>
       </div>
 
-      <details className="whitespace-map__browse">
-        <summary>Browse all {concepts.length.toLocaleString("en-GB")} concepts</summary>
-        <div className="whitespace-map__browse-status" role="status" aria-live="polite">
-          Showing {concepts.length ? pageStart + 1 : 0}–{Math.min(pageStart + LIST_PAGE_SIZE, concepts.length)} of {concepts.length} concepts
-        </div>
+      <div className="whitespace-map__browse">
+        <h2>Concepts</h2>
         <ul className="whitespace-map__concept-list">
           {pageConcepts.map((concept) => (
             <li key={concept.id}>
@@ -556,21 +552,17 @@ export function MapCanvas({
                 aria-label={nodeDescription(concept)}
                 onClick={() => selectConcept(concept.id)}
               >
-                <span>{concept.label}</span>
-                <span className="whitespace-map__concept-meta">
-                  {concept.paper_count === undefined ? "Papers n/a" : `${concept.paper_count.toLocaleString("en-GB")} papers`}
-                  {concept.growth === null ? " · growth n/a" : ` · ${concept.growth >= 0 ? "+" : ""}${(concept.growth * 100).toFixed(1)}%`}
-                </span>
+                {concept.label}
               </button>
             </li>
           ))}
         </ul>
-        <nav className="whitespace-map__pagination" aria-label="Concept list pages">
+        <nav aria-label="Concept list pages">
           <button type="button" disabled={listPage <= 0} onClick={() => setListPage((page) => Math.max(0, page - 1))}>Previous</button>
           <span>Page {Math.min(listPage + 1, pageCount)} of {pageCount}</span>
           <button type="button" disabled={listPage + 1 >= pageCount} onClick={() => setListPage((page) => Math.min(pageCount - 1, page + 1))}>Next</button>
         </nav>
-      </details>
+      </div>
     </section>
   );
 }
