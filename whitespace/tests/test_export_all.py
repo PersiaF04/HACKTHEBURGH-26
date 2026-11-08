@@ -219,3 +219,15 @@ def test_incomplete_run_is_refused(dry, tmp_path):
     (run / "run_manifest.json").write_text(json.dumps({"status": "failed"}), encoding="utf-8")
     with pytest.raises(E.ExportError):
         E.load_run(run)
+
+
+def test_committed_sample_export_is_valid_synthetic_and_placeholder():
+    from pathlib import Path
+    sample = Path(__file__).parent / "fixtures" / "export_sample"
+    assert E.validate_export(sample) == []
+    routes = read(sample / "routes.json")
+    assert routes["synthetic"] is True and routes["map_years"]
+    for path in sample.glob("*.json"):
+        if path.name not in ("routes.json", "manifest.json"):
+            data = read(path)
+            assert data["placeholder"] is True and data["synthetic"] is True, path.name

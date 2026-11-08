@@ -1,0 +1,35 @@
+{
+ "average_precision": null,
+ "base_rate": null,
+ "baselines": {},
+ "by_starting_weight": {},
+ "calibration": {
+  "bins": [],
+  "note": "SYNTHETIC run: numbers withheld"
+ },
+ "code_link_evaluation": {
+  "correct_matches": null,
+  "interval_method": null,
+  "lower": null,
+  "precision": null,
+  "protocol": null,
+  "sample_composition": null,
+  "sample_size": null,
+  "upper": null
+ },
+ "data_label": "synthetic",
+ "hits": [],
+ "hits_note": null,
+ "kind": "held_out_backtest",
+ "meta": {
+  "examples_available": true,
+  "hits_note": "Year is the calendar year of the work that took the pair to the link threshold, from work dates (arXiv-id month where available)."
+ },
+ "misses": [],
+ "note": "Held-out test (scored once on the frozen model). The production forecast is gaps.json, a separate file.",
+ "placeholder": true,
+ "pr_auc": null,
+ "precision_at_100": null,
+ "roc_auc": null,
+ "synthetic": true
+}
