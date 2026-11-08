@@ -1,5 +1,9 @@
 # Whitespace: Find research gaps worth a closer look
 
+## In short
+
+Whitespace is a research-discovery tool for AI literature. It turns 730,671 OpenAlex papers in AI (subfield 1702) into a 3D map of concepts, then ranks pairs of topics that are not yet studied together but look likely to connect within three years. Each ranked gap comes with its supporting papers, how fast both topics are growing, and short author-stated open problems quoted from related abstracts. We built it during HackTheBurgh XIII with a Python pipeline (phrase extraction, co-occurrence graphs, a logistic link model) and a static React and Three.js site deployed on Vercel. We evaluated the forecast with a purged, pre-registered temporal backtest scored once on held-out 2021–2023 outcomes: it beats the pre-registered baseline on aggregate average precision (0.6876 vs 0.5984, +0.0892, 95% interval [0.0845, 0.0945]), though simpler graph baselines are stronger within each stratum, and we report that openly. The team worked with AI coding agents: Claude Code agents implemented features and Codex agents reviewed pull requests, under the team's decisions on scope and merging.
+
 ## Inspiration
 
 Research moves faster than people can read it. Search finds work that already exists, but it does not rank combinations that have not yet become connected in published literature. Authors' open problems are scattered across papers, and paper-to-code links are incomplete and difficult to compare. We built Whitespace to help people explore research directions and inspect the evidence behind them.
@@ -8,7 +12,7 @@ Research moves faster than people can read it. Search finds work that already ex
 
 Whitespace maps AI research concepts from OpenAlex and ranks concept pairs that have not yet met the project's three-paper co-occurrence rule. The 3D-only map shows the 2023 snapshot of 730,671 works; its header badge reads **Real data · 731k papers · 2023**. The header has three tabs: Research map, Gap finder and Open problems. Evidence and Code coverage are in the footer and at `/evidence` and `/coverage`.
 
-Gap Finder presents ranked pairs and supporting evidence. Its labels are Likelihood (%), Strength (Strong/Moderate/Weak), and a “How this is measured” toggle. The gap score's momentum is `sigmoid(2·min(growth_a, growth_b))`, so both topics must be growing. A generic-phrase stoplist hides filler phrases from the displayed gap list only; it does not change the underlying scores or evaluation. A production model fitted on origins 2010–2014 and 2017, then Platt-calibrated on 2020, supplies the live gap scores. Because 2020 is also the held-out backtest origin, this production model has no held-out test of its own and is not shown to be better calibrated than the backtest model. Read Likelihood (%) as a ranking, not a real chance; the combined gap score is a ranking heuristic, not a probability.
+The Research map is a branch → concept → hypothesis graph; selecting a concept shows its papers, growth and linked open-problem excerpts. Gap Finder presents ranked pairs and supporting evidence, with an at-a-glance overview and sorting from the table headers. Its labels are Likelihood (%), Strength (Strong/Moderate/Weak), and a “How this is measured” toggle; the gap and hypothesis panels show linked open-problem excerpts. The gap score's momentum is `sigmoid(2·min(growth_a, growth_b))`, so both topics must be growing. A generic-phrase stoplist hides filler phrases, and no concept appears in more than three listed gaps (the candidate pool is built per concept), so one hub topic cannot fill the list. Both apply to the displayed gap list only; they do not change the underlying scores or evaluation. A Stated gaps column shows, for context only, the share of each topic's papers that state an open problem (open-problem statements only); it is not part of the gap score. A production model fitted on origins 2010–2014 and 2017, then Platt-calibrated on 2020, supplies the live gap scores. Because 2020 is also the held-out backtest origin, this production model has no held-out test of its own and is not shown to be better calibrated than the backtest model. Read Likelihood (%) as a ranking, not a real chance; the combined gap score is a ranking heuristic, not a probability.
 
 Open Problems displays short attributed excerpts of the `open_problem` type only, quoted from abstracts indexed by OpenAlex and capped at 400 characters. Copyright remains with publishers and authors. On this type, the AI-labelled precision sample was 24/34 (71%). It is not human-validated: the same AI system that built the extractor labelled the sample, so this is not independent validation. Overall extraction quality has not been independently evaluated. The excerpts are prompts for checking source papers, not verified labels.
 
@@ -36,11 +40,11 @@ A single aggregate metric can hide weaker performance in the groups that make it
 
 ## What's next
 
-Improve concept quality and calibration, and assess the forecast against the structural baselines within each stratum. Validate paper-to-code matching with the planned hand-check and continue to present archive coverage as a lower bound. Improve open-problem extraction and validation before treating its labels as reliable.
+Improve concept quality and calibration, and assess the forecast against the structural baselines within each stratum. Validate paper-to-code matching with the planned hand-check and continue to present archive coverage as a lower bound. Improve open-problem extraction and validation before treating its labels as reliable. Extend the corpus to 2024–2026 papers with a consistent OpenAlex topic vintage (topics were re-classified in October 2026), and give the production model its own held-out test.
 
 ## Built with
 
-Python, NumPy, OpenAlex, Papers with Code archive, Vite, React, TypeScript, IBM Plex, GitHub Actions, Vercel, Claude Code, Codex
+Python, NumPy, OpenAlex, Papers with Code archive, Vite, React, TypeScript, Three.js, IBM Plex, GitHub Actions, Vercel, Claude Code, Codex
 
 ## Links
 
