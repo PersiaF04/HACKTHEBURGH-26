@@ -24,7 +24,9 @@ env:
 jobs:
   deploy:
     name: Vercel production
-    if: github.repository == 'PersiaF04/HACKTHEBURGH-26'
+    # main only, including manual runs; the token lives in the protected production environment.
+    if: github.repository == 'PersiaF04/HACKTHEBURGH-26' && github.ref == 'refs/heads/main'
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
