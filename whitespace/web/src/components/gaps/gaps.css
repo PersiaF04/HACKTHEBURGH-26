@@ -86,7 +86,8 @@
 .gx-plink__range { position: absolute; top: 3px; height: 8px; background: var(--ws-range); border-radius: 2px; }
 .gx-plink__pt { position: absolute; top: 1px; width: 3px; height: 12px; margin-left: -1.5px; background: var(--ws-accent); border-radius: 1px; }
 .gx-score { display: flex; align-items: center; gap: 8px; }
-.gx-score__v { font-family: var(--ws-mono); font-weight: 600; width: 34px; }
+.gx-score__v { flex: none; min-width: 5.5em; font-family: var(--ws-mono); font-weight: 600; white-space: nowrap; }
+.gx-score__track { min-width: 24px; }
 .gx-score__track { flex: 1; height: 6px; background: var(--ws-soft); border-radius: 3px; }
 .gx-score__fill { display: block; height: 6px; background: var(--ws-ink); border-radius: 3px; }
 .gx-empty { padding: 24px; font-size: 13px; color: var(--ws-muted); text-align: center; }
