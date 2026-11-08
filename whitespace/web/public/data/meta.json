@@ -1,0 +1,45 @@
+{
+ "backtest_available": true,
+ "concepts_note": "Concepts are 1 to 3 word phrases from titles and abstracts (a vocabulary chosen from works up to each year), not OpenAlex topic ids. Coverage uses topic ids.",
+ "corpus": {
+  "last_year": 2026,
+  "note": "The corpus ends in 2026. Snapshot years after 2026 are absent, not zero: no map, gap or coverage file exists for them."
+ },
+ "counts": {
+  "concepts": 5000,
+  "map_years": 12,
+  "predicted_edges_final_year": 300,
+  "ranked_gaps": 50,
+  "works": 731511
+ },
+ "data_label": "real",
+ "headline_metrics": {
+  "average_precision_ci_high": 0.09446799354360029,
+  "average_precision_ci_low": 0.08445335339236697,
+  "average_precision_difference": 0.089181289030978,
+  "backtest_data_label": "real",
+  "best_baseline": "current_weight",
+  "precision_at_100_ci_high": 0.6207500000000001,
+  "precision_at_100_ci_low": 0.10999999999999999,
+  "precision_at_100_difference": 0.33999999999999997,
+  "test_origin": 2020,
+  "verdict": "model beats best baseline (current_weight) on average_precision: interval excludes 0"
+ },
+ "headline_source": "held-out backtest (backtest.json); the production forecast has no result",
+ "layout": {
+  "method": "truncated SVD of positive-PMI co-occurrence matrix, per year",
+  "note": "Positions are a 2D projection (truncated SVD of the positive-PMI co-occurrence matrix) of this year's snapshot only, so points can move between years. Distance is not research similarity."
+ },
+ "placeholder": false,
+ "production_forecast": {
+  "file": "gaps.json",
+  "label": "Production forecast, not the held-out test. The model frozen for the backtest (fit on origins [2010, 2011, 2012, 2013, 2014], calibrated at [2017]; no test origin used) ranks pairs that have not yet co-occurred 3+ times at the 2026 snapshot, the last year in the corpus. Their outcomes (2027 to 2029) are not observed, so nothing in this file was evaluated. The held-out result is in backtest.json.",
+  "snapshot_year": 2026
+ },
+ "synthetic": false,
+ "titles_available": true,
+ "year_range": {
+  "max": 2026,
+  "min": 2015
+ }
+}
