@@ -136,7 +136,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
         />
       </aside>
 
-      <section className="ex__centre" aria-label="Research map">
+      <section className="ex__centre" aria-label="Research map" data-tour="map-canvas">
         <dl className="ex-stats" aria-label="Map summary">
           {stats.map(({ label, value, help, caption, accent }) => (
             <div key={label} title={help}>

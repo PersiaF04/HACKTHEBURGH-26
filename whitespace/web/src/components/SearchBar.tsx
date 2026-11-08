@@ -48,7 +48,7 @@ export function SearchBar({ onSearch, onResults, onSelectConcept, concepts, disa
   const none = needle && results.length === 0 && papers.length === 0;
 
   return (
-    <section className="whitespace-search" aria-label="Search">
+    <section className="whitespace-search" aria-label="Search" data-tour="map-search">
       <form className="whitespace-search__form" onSubmit={submit} role="search">
         <label htmlFor={`${uid}-q`}>Find a concept or paper</label>
         <div className="whitespace-search__field">

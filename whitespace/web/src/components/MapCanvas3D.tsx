@@ -721,7 +721,7 @@ export function MapCanvas3D({
         tabIndex={0}
         role="region"
         title={HELP}
-        aria-label="3D concept map. Drag to orbit around the centre, scroll or pinch to zoom. Use Top, Front, or Overview camera controls. Arrow keys rotate, plus and minus zoom, zero resets."
+        aria-label="3D concept map. Drag to orbit around the centre, scroll or pinch to zoom. Use Top, Front, or Default camera controls. Arrow keys rotate, plus and minus zoom, zero resets."
       >
         {unsupported ? (
           <div className="ws3d__unsupported" role="status">This browser cannot display the 3D research map.</div>
@@ -733,7 +733,7 @@ export function MapCanvas3D({
               <div className="ws3d__camera" role="group" aria-label="Camera angle">
                 <button type="button" aria-pressed={cameraView === "top"} onClick={() => chooseCameraView("top")} title="Look straight down on the map">Top</button>
                 <button type="button" aria-pressed={cameraView === "front"} onClick={() => chooseCameraView("front")} title="Look across the map at node height">Front</button>
-                <button type="button" aria-pressed={cameraView === "overview"} onClick={() => chooseCameraView("overview")} title="Return to the overview camera">Overview</button>
+                <button type="button" aria-pressed={cameraView === "overview"} onClick={() => chooseCameraView("overview")} title="Restore the centred default camera">Default</button>
               </div>
               <button type="button" className="ws3d__heat" aria-pressed={heatmap} onClick={() => setHeatmap((value) => !value)} title="Highlight recent paper growth: cool is colder and warm is emerging">Heat map</button>
               <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>

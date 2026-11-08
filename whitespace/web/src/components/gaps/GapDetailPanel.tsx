@@ -42,7 +42,6 @@ const SECTIONS: Array<[string, string]> = [
   ["How the score is made", "The four numbers multiplied together to rank this pair."],
   ["Closest papers on each side", "The papers that best represent each concept, so you can judge the pair yourself."],
   ["Shared neighbouring concepts", "Concepts both sides already connect to, which hint at a bridge."],
-  ["Stated open problems", "Sentences where authors say something is still unsolved."],
 ];
 
 const FORMULA_NAMES: Array<[string, string?]> = [["P(link)"], ["Momentum", "×"], ["Novelty", "×"], ["Stated gaps", "×"], ["Gap score", "="]];
@@ -148,7 +147,6 @@ export function GapDetailPanel({ gap, rank, total, detail, loading, error, empty
             <div className="gx-chips">{shared.map((c) => <span key={c.id} className="gx-chip">{fmtText(c.label)}</span>)}</div>
           </>
         )}
-        <a className="gx-link" href="#open-problems">Stated open problems for this pair ↓</a>
       </section>
     </aside>
   );

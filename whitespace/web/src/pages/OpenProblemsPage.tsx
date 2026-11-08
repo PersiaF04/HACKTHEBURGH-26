@@ -130,13 +130,16 @@ export function OpenProblemsPage({
   return (
     <section className="ws-page ws-open-problems" aria-label="Open problems">
       <header className="ws-page__header">
+        <p className="ws-eyebrow">Source-led reading</p>
+        <h1>Open Problems</h1>
         <p className="ws-lede">
-          Questions and limitations stated by authors, linked to the papers where they appear.
+          Questions, limitations and future work stated by authors — always linked back to the paper where the wording appears.
         </p>
+        <p className="ws-page__note">Use this page to investigate source material. A statement is evidence to follow up, not proof that a question remains unresolved today.</p>
       </header>
 
 
-      <section className="ws-filters" aria-label="Filter open problems">
+      <section className="ws-filters" aria-label="Filter open problems" data-tour="open-problem-filters">
         <label>
           <span>Concept</span>
           <select value={selectedConcept} onChange={changeConcept}>
@@ -155,10 +158,10 @@ export function OpenProblemsPage({
         </label>
       </section>
 
-      <section className="ws-rate-section" aria-labelledby="ws-rate-heading">
+      <section className="ws-rate-section" aria-labelledby="ws-rate-heading" data-tour="open-problem-trend">
         <div>
           <h2 id="ws-rate-heading">Stated open problems over time</h2>
-          <p>Compare the share of papers for this concept with all concepts in the AI/ML scope. Missing values are not treated as zero.</p>
+          <p>Compare the share of papers containing a stated question or limitation for this concept with the AI/ML scope. Missing values are not treated as zero.</p>
         </div>
         {status === 'error' && <EmptyNote>Rate history is unavailable while the statements request has failed.</EmptyNote>}
         {status === 'ready' && response && <RateTrend points={response.rates_by_year ?? []} conceptLabel={selectedConcept ? selectedLabel : 'All selected concepts'} />}
@@ -176,7 +179,7 @@ export function OpenProblemsPage({
       {status === 'ready' && items.length > 0 && (
         <>
           <p className="ws-result-count" aria-live="polite">{items.length} {items.length === 1 ? 'statement' : 'statements'}</p>
-          <ul className="ws-problem-list">
+          <ul className="ws-problem-list" data-tour="open-problem-list">
             {items.map((item, index) => (
               <li className="ws-problem-card" key={`${item.paper.id}-${index}`}>
                 <div className="ws-problem-card__meta">
