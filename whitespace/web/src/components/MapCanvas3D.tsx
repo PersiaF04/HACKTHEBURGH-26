@@ -3,12 +3,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { ConceptPoint, PredictedEdge } from "../api";
 import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import type { NodeKind, StructureEdge } from "../lib/hierarchy";
 import { readMapTheme } from "../lib/mapTheme";
 import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
-type MapConcept = ConceptPoint & { area?: string };
+type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number; strength?: number; gapEnd?: boolean };
 type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
@@ -25,6 +26,8 @@ export type MapCanvas3DProps = {
   placeholder: boolean;
   onSelectConcept: (id: string) => void;
   linkedEdges?: LinkedEdge[];
+  /** Branch splits, branch-to-concept and hypothesis links. Drawn as solid lines of three weights. */
+  structure?: StructureEdge[];
   showPredicted?: boolean;
   showAreaLabels?: boolean;
   /** Called once if WebGL cannot be created, so the host can report unavailable 3D. */
@@ -51,7 +54,9 @@ function growthBucket(g: number | null): number {
   return 4;
 }
 
-function describe(c: ConceptPoint): string {
+function describe(c: ConceptPoint & { kind?: NodeKind }): string {
+  if (c.kind === "branch") return `Branch: ${fmtText(c.label)}; click for its subtopics`;
+  if (c.kind === "hypothesis") return `Predicted gap: ${fmtText(c.label)}; click for details`;
   return `${fmtText(c.label)}; papers ${fmtInt(c.paper_count)}; 3-yr growth ${fmtGrowth(c.growth)}`;
 }
 
@@ -109,7 +114,7 @@ type Flight = { t0: number; dur: number; fromT: THREE.Vector3; toT: THREE.Vector
 
 export function MapCanvas3D({
   concepts, allConcepts, resetKey, edges, selectedConceptId, focus, focusRequest, placeholder, onSelectConcept,
-  linkedEdges, showPredicted = true, showAreaLabels = true, onUnsupported,
+  linkedEdges, structure, showPredicted = true, showAreaLabels = true, onUnsupported,
 }: MapCanvas3DProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -118,7 +123,6 @@ export function MapCanvas3D({
   const [unsupported, setUnsupported] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [hoverText, setHoverText] = useState("");
-  const [heatmap, setHeatmap] = useState(false);
   const { theme } = useTheme();
 
   // Layout from the UNFILTERED set: bounds, z scale and area offsets are fixed per year, so a filter only hides dots.
@@ -183,20 +187,33 @@ export function MapCanvas3D({
     const heat = new Float32Array(n);
     const bucket = new Uint8Array(n);
     const tmp = new THREE.Color();
-    const palette = readMapTheme().growth;
+    const themeHues = readMapTheme();
+    const palette = themeHues.growth;
     concepts.forEach((c, i) => {
       const k = (layout.slot.get(c.id) ?? 0) * 3;
       pos[i * 3] = layout.pos[k]; pos[i * 3 + 1] = layout.pos[k + 1]; pos[i * 3 + 2] = layout.pos[k + 2];
       const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
-      heat[i] = Math.max(0, Math.min(1, (g / zRef + 1) / 2));
+      heat[i] = c.heat !== undefined ? c.heat : Math.max(0, Math.min(1, (g / zRef + 1) / 2));
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
-      tmp.set(palette[b]).convertLinearToSRGB(); // shader writes raw values
+      if (c.scale) size[i] *= c.scale;
+      if (c.kind === "branch") size[i] = 3.8;
+      else if (c.kind === "hypothesis") size[i] = 1.8 + 2.4 * (c.strength ?? 0.5);
+      else if (c.gapEnd) size[i] = Math.max(size[i] * 1.8, 1.6);
+      const hue = c.kind === "branch" ? themeHues.ink : c.kind === "hypothesis" ? themeHues.accent : palette[b];
+      tmp.set(hue).convertLinearToSRGB(); // shader writes raw values
       color[i * 3] = tmp.r; color[i * 3 + 1] = tmp.g; color[i * 3 + 2] = tmp.b;
     });
     const indexById = new Map(concepts.map((c, i) => [c.id, i]));
-    const labelOrder = concepts.map((_, i) => i).sort((a, b) => (concepts[b].paper_count ?? 0) - (concepts[a].paper_count ?? 0));
+    // Branch drift: each branch (hub plus its concepts) floats gently; a hypothesis follows the mean of its two branches.
+    const groupIds = [...new Set(concepts.map((c) => c.branch).filter((b): b is string => !!b))];
+    const groupOf = new Map(groupIds.map((g, k) => [g, k]));
+    const group = Int16Array.from(concepts, (c) => (c.branch ? groupOf.get(c.branch) ?? -1 : -1));
+    const ends = Int16Array.from(concepts.flatMap((c) => (c.ends ? c.ends.map((e) => groupOf.get(e) ?? -1) : [-1, -1])));
+    const base = pos.slice();
+    const rank = (c: MapConcept) => (c.gapEnd || c.kind === "hypothesis" ? 1e12 : c.kind === "branch" ? 1e11 : c.paper_count ?? 0);
+    const labelOrder = concepts.map((_, i) => i).sort((a, b) => rank(concepts[b]) - rank(concepts[a]));
     const sums = new Map<string, { x: number; y: number; z: number; n: number }>();
     concepts.forEach((c, i) => {
       if (!c.area) return;
@@ -206,13 +223,13 @@ export function MapCanvas3D({
     });
     const areas = [...sums].map(([name, s]) => ({ name, v: new THREE.Vector3(s.x / s.n, s.y / s.n, s.z / s.n) }));
     const center = layout.center;
-    return { n, pos, size, color, heat, bucket, indexById, labelOrder, areas, center };
+    return { n, pos, size, color, heat, bucket, indexById, labelOrder, areas, center, group, groupCount: groupIds.length, ends, base };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [concepts, layout, theme]);
 
   // Latest props for the render loop (no re-creation of the engine).
-  const live = useRef({ resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
-  live.current = { resetKey, data, concepts, edges, linkedEdges, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
+  const live = useRef({ resetKey, data, concepts, edges, linkedEdges, structure, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept });
+  live.current = { resetKey, data, concepts, edges, linkedEdges, structure, selectedConceptId, showPredicted, showAreaLabels, onSelectConcept };
 
   // Engine: renderer, camera, controls, picking, overlay. Created once per mount.
   useEffect(() => {
@@ -246,12 +263,15 @@ export function MapCanvas3D({
     const controls = new OrbitControls(camera, canvas);
     controls.target.copy(TARGET);
     controls.enableDamping = !reduced;
-    controls.dampingFactor = 0.12;
-    controls.enablePan = false;
+    controls.dampingFactor = 0.08;
+    controls.rotateSpeed = 0.8;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    controls.zoomToCursor = true;
     controls.minDistance = 8;
     controls.maxDistance = 400;
-    controls.zoomSpeed = 0.9;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+    controls.zoomSpeed = 0.7;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.update();
 
     // Labels pool and rings, built once.
@@ -275,6 +295,11 @@ export function MapCanvas3D({
     let points: THREE.Points | null = null;
     let edgeLines: THREE.LineSegments | null = null;
     let linkLines: THREE.LineSegments | null = null;
+    const structLines: Array<THREE.LineSegments | null> = [null, null, null];
+    let lineSets: Array<{ geom: THREE.BufferGeometry; arr: Float32Array; pairs: Array<[number, number]> }> = [];
+    const splitMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.95 });
+    const memberMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.28 });
+    const hypMat = new THREE.LineBasicMaterial({ color: 0x6b8cff, transparent: true, opacity: 0.8 });
     const edgeMat = new THREE.LineDashedMaterial({ color: 0x6b8cff, dashSize: 1.6, gapSize: 1.0, transparent: true, opacity: 0.85 });
     const linkMat = new THREE.LineBasicMaterial({ color: 0x808080, transparent: true, opacity: 0.6 });
 
@@ -505,6 +530,8 @@ export function MapCanvas3D({
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
     canvas.addEventListener("pointerleave", onLeave);
+    const onDouble = (e: MouseEvent) => { if (hit(e.clientX, e.clientY) < 0) resetView(); };
+    canvas.addEventListener("dblclick", onDouble);
 
     const zoom = (factor: number) => {
       flight = null;
@@ -574,6 +601,9 @@ export function MapCanvas3D({
       renderer.setClearColor(new THREE.Color(T.mapBg), 1);
       edgeMat.color.set(T.accent);
       linkMat.color.set(T.rule);
+      splitMat.color.set(T.ink);
+      memberMat.color.set(T.muted);
+      hypMat.color.set(T.accent);
       const rim = new THREE.Color(T.surface).convertLinearToSRGB(); // shader writes raw values
       (pointsMat.uniforms.uRim.value as THREE.Vector3).set(rim.r, rim.g, rim.b);
       requestRender();
@@ -612,13 +642,15 @@ export function MapCanvas3D({
         });
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+        lineSets.push({ geom: g, arr, pairs });
         const l = new THREE.LineSegments(g, mat);
         l.frustumCulled = false;
         if (dashed) l.computeLineDistances();
         scene.add(l);
         return l;
       };
-      for (const l of [edgeLines, linkLines]) if (l) { scene.remove(l); l.geometry.dispose(); }
+      lineSets = [];
+      for (const l of [edgeLines, linkLines, ...structLines]) if (l) { scene.remove(l); l.geometry.dispose(); }
       const pred: Array<[number, number]> = [];
       if (s.showPredicted) {
         for (const e of s.edges) {
@@ -633,8 +665,51 @@ export function MapCanvas3D({
         if (a !== undefined && b !== undefined) lk.push([a, b]);
       }
       linkLines = build(lk, linkMat, false);
+      const parts: Record<StructureEdge["kind"], Array<[number, number]>> = { split: [], member: [], hypothesis: [] };
+      for (const e of s.structure ?? []) {
+        const a = d.indexById.get(e.source), b = d.indexById.get(e.target);
+        if (a !== undefined && b !== undefined) parts[e.kind].push([a, b]);
+      }
+      structLines[0] = build(parts.split, splitMat, false);
+      structLines[1] = build(parts.member, memberMat, false);
+      structLines[2] = build(parts.hypothesis, hypMat, false);
       requestRender();
     };
+    // Slow float of each branch. Off for reduced motion, hidden tabs and the flat views.
+    let driftId = 0, driftLast = 0;
+    const offs = new Float32Array(64 * 3);
+    const drift = (now: number) => {
+      driftId = requestAnimationFrame(drift);
+      const d = live.current.data;
+      if (!d.groupCount || document.hidden || now - driftLast < 33) return;
+      driftLast = now;
+      const G = Math.min(64, d.groupCount);
+      for (let g = 0; g < G; g += 1) {
+        offs[g * 3] = Math.sin(now * 0.00011 + g * 1.9) * 3.2;
+        offs[g * 3 + 1] = Math.cos(now * 0.0001 + g * 2.7) * 3.2;
+        offs[g * 3 + 2] = Math.sin(now * 0.00008 + g * 1.3) * 1.8;
+      }
+      for (let i = 0; i < d.n; i += 1) {
+        const g = d.group[i];
+        for (let k = 0; k < 3; k += 1) {
+          let o = 0;
+          if (g >= 0 && g < G) o = offs[g * 3 + k];
+          else if (d.ends[i * 2] >= 0 && d.ends[i * 2 + 1] >= 0) o = (offs[d.ends[i * 2] * 3 + k] + offs[d.ends[i * 2 + 1] * 3 + k]) / 2;
+          d.pos[i * 3 + k] = d.base[i * 3 + k] + o;
+        }
+      }
+      if (points) (points.geometry.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+      for (const set of lineSets) {
+        set.pairs.forEach(([a, b], k) => {
+          set.arr.set(d.pos.subarray(a * 3, a * 3 + 3), k * 6);
+          set.arr.set(d.pos.subarray(b * 3, b * 3 + 3), k * 6 + 3);
+        });
+        (set.geom.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+      }
+      projDirty = true;
+      requestRender();
+    };
+    if (!reduced) driftId = requestAnimationFrame(drift);
     const setHeatmap = (enabled: boolean) => {
       pointsMat.uniforms.uHeatmap.value = enabled ? 1 : 0;
       requestRender();
@@ -675,6 +750,7 @@ export function MapCanvas3D({
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
+      if (driftId) cancelAnimationFrame(driftId);
       flight = null;
       observer.disconnect();
       window.removeEventListener("resize", resize);
@@ -685,11 +761,12 @@ export function MapCanvas3D({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
       canvas.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("dblclick", onDouble);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       stage.removeEventListener("keydown", onKey);
-      for (const o of [points, edgeLines, linkLines]) if (o) o.geometry.dispose();
-      pointsMat.dispose(); edgeMat.dispose(); linkMat.dispose();
+      for (const o of [points, edgeLines, linkLines, ...structLines]) if (o) o.geometry.dispose();
+      pointsMat.dispose(); edgeMat.dispose(); linkMat.dispose(); splitMat.dispose(); memberMat.dispose(); hypMat.dispose();
       for (const el of [...labelEls, ...areaEls, ...chipEls, hoverRing, selRing]) el.remove();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -702,8 +779,10 @@ export function MapCanvas3D({
 
   useEffect(() => { engineRef.current?.applyTheme(); engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
   useEffect(() => { engineRef.current?.applyTheme(); }, [theme]);
-  useEffect(() => { engineRef.current?.setHeatmap(heatmap); }, [heatmap]);
-  useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, showPredicted, data]);
+  // Heat is intrinsic to the hierarchy graph: red hubs and big subtopics, blue small ones.
+  const hasHeat = concepts.some((c) => c.heat !== undefined);
+  useEffect(() => { engineRef.current?.setHeatmap(hasHeat); }, [hasHeat, data]);
+  useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, structure, showPredicted, data]);
   useEffect(() => { engineRef.current?.requestRender(); }, [selectedConceptId, showAreaLabels]);
 
   // Camera focus: an explicit request (search, panel link) wins; otherwise the map's initial focus point.
@@ -757,11 +836,10 @@ export function MapCanvas3D({
                 <button type="button" aria-pressed={cameraView === "front"} onClick={() => chooseCameraView("front")} title="Look across the map at node height">Front</button>
                 <button type="button" aria-pressed={cameraView === "overview"} onClick={() => chooseCameraView("overview")} title="Restore the centred default camera">Default</button>
               </div>
-              <button type="button" className="ws3d__heat" aria-pressed={heatmap} onClick={() => setHeatmap((value) => !value)} title="Highlight recent paper growth: cool is colder and warm is emerging">Heat map</button>
               <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>
               <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out" title="Zoom out (-)">{"−"}</button>
             </div>
-            <p className="ws3d__guide">{heatmap ? "Growth heat: cool = colder · warm = emerging" : "Drag to orbit · Scroll to zoom · Click a node to inspect it"}</p>
+            <p className="ws3d__guide">Drag to orbit · Right-drag to pan · Scroll to zoom · Double-click empty space to reset</p>
             {!concepts.length && <div className="ws3d__unsupported ws3d__empty" role="status">No concepts match the current filters.</div>}
             {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not recover, refresh the page.</div>}
             {hoverText && <div className="ws3d__hover" aria-hidden="true">{hoverText}</div>}

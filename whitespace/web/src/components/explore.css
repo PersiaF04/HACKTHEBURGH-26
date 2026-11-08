@@ -118,3 +118,10 @@
 .whitespace-try h2 { margin: 0 0 10px; font-size: 16px; }
 .whitespace-try ol { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
 .whitespace-try a { color: var(--ws-accent); }
+
+/* Each control sits in its own card (left panel). */
+.whitespace-filters { gap: 12px; }
+.whitespace-filters__title { font-size: 13px; font-weight: 650; color: var(--ws-ink); }
+.whitespace-filters__label label { font-size: 13px; font-weight: 650; color: var(--ws-ink); }
+.whitespace-filters__section { background: var(--ws-surface); gap: 10px; }
+.whitespace-filters__reset { align-self: stretch; }
