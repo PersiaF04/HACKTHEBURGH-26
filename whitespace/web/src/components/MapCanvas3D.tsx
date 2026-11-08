@@ -9,7 +9,7 @@ import { useTheme } from "../lib/useTheme";
 import "./map3d.css";
 
 type MapFocus = { x: number; y: number } | null;
-type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string]; scale?: number };
+type MapConcept = ConceptPoint & { area?: string; kind?: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number };
 type LinkedEdge = { source: string; target: string };
 
 export type MapCanvas3DProps = {
@@ -54,7 +54,9 @@ function growthBucket(g: number | null): number {
   return 4;
 }
 
-function describe(c: ConceptPoint): string {
+function describe(c: ConceptPoint & { kind?: NodeKind }): string {
+  if (c.kind === "branch") return `Branch: ${fmtText(c.label)}; click for its subtopics`;
+  if (c.kind === "hypothesis") return `Predicted gap: ${fmtText(c.label)}; click for details`;
   return `${fmtText(c.label)}; papers ${fmtInt(c.paper_count)}; 3-yr growth ${fmtGrowth(c.growth)}`;
 }
 
@@ -121,7 +123,6 @@ export function MapCanvas3D({
   const [unsupported, setUnsupported] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [hoverText, setHoverText] = useState("");
-  const [heatmap, setHeatmap] = useState(false);
   const { theme } = useTheme();
 
   // Layout from the UNFILTERED set: bounds, z scale and area offsets are fixed per year, so a filter only hides dots.
@@ -192,7 +193,7 @@ export function MapCanvas3D({
       const k = (layout.slot.get(c.id) ?? 0) * 3;
       pos[i * 3] = layout.pos[k]; pos[i * 3 + 1] = layout.pos[k + 1]; pos[i * 3 + 2] = layout.pos[k + 2];
       const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
-      heat[i] = Math.max(0, Math.min(1, (g / zRef + 1) / 2));
+      heat[i] = c.heat !== undefined ? c.heat : Math.max(0, Math.min(1, (g / zRef + 1) / 2));
       size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
@@ -260,12 +261,15 @@ export function MapCanvas3D({
     const controls = new OrbitControls(camera, canvas);
     controls.target.copy(TARGET);
     controls.enableDamping = !reduced;
-    controls.dampingFactor = 0.12;
-    controls.enablePan = false;
+    controls.dampingFactor = 0.08;
+    controls.rotateSpeed = 0.8;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    controls.zoomToCursor = true;
     controls.minDistance = 8;
     controls.maxDistance = 400;
-    controls.zoomSpeed = 0.9;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+    controls.zoomSpeed = 0.7;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.update();
 
     // Labels pool and rings, built once.
@@ -524,6 +528,8 @@ export function MapCanvas3D({
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
     canvas.addEventListener("pointerleave", onLeave);
+    const onDouble = (e: MouseEvent) => { if (hit(e.clientX, e.clientY) < 0) resetView(); };
+    canvas.addEventListener("dblclick", onDouble);
 
     const zoom = (factor: number) => {
       flight = null;
@@ -677,9 +683,9 @@ export function MapCanvas3D({
       driftLast = now;
       const G = Math.min(64, d.groupCount);
       for (let g = 0; g < G; g += 1) {
-        offs[g * 3] = Math.sin(now * 0.00031 + g * 1.9) * 3.2;
-        offs[g * 3 + 1] = Math.cos(now * 0.00027 + g * 2.7) * 3.2;
-        offs[g * 3 + 2] = Math.sin(now * 0.00023 + g * 1.3) * 1.8;
+        offs[g * 3] = Math.sin(now * 0.00011 + g * 1.9) * 3.2;
+        offs[g * 3 + 1] = Math.cos(now * 0.0001 + g * 2.7) * 3.2;
+        offs[g * 3 + 2] = Math.sin(now * 0.00008 + g * 1.3) * 1.8;
       }
       for (let i = 0; i < d.n; i += 1) {
         const g = d.group[i];
@@ -753,6 +759,7 @@ export function MapCanvas3D({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
       canvas.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("dblclick", onDouble);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       stage.removeEventListener("keydown", onKey);
@@ -770,7 +777,9 @@ export function MapCanvas3D({
 
   useEffect(() => { engineRef.current?.applyTheme(); engineRef.current?.setData(); engineRef.current?.setLines(); }, [data]);
   useEffect(() => { engineRef.current?.applyTheme(); }, [theme]);
-  useEffect(() => { engineRef.current?.setHeatmap(heatmap); }, [heatmap]);
+  // Heat is intrinsic to the hierarchy graph: red hubs and big subtopics, blue small ones.
+  const hasHeat = concepts.some((c) => c.heat !== undefined);
+  useEffect(() => { engineRef.current?.setHeatmap(hasHeat); }, [hasHeat, data]);
   useEffect(() => { engineRef.current?.setLines(); }, [edges, linkedEdges, structure, showPredicted, data]);
   useEffect(() => { engineRef.current?.requestRender(); }, [selectedConceptId, showAreaLabels]);
 
@@ -825,11 +834,10 @@ export function MapCanvas3D({
                 <button type="button" aria-pressed={cameraView === "front"} onClick={() => chooseCameraView("front")} title="Look across the map at node height">Front</button>
                 <button type="button" aria-pressed={cameraView === "overview"} onClick={() => chooseCameraView("overview")} title="Restore the centred default camera">Default</button>
               </div>
-              <button type="button" className="ws3d__heat" aria-pressed={heatmap} onClick={() => setHeatmap((value) => !value)} title="Highlight recent paper growth: cool is colder and warm is emerging">Heat map</button>
               <button type="button" onClick={() => onZoom(0.8)} aria-label="Zoom in" title="Zoom in (+)">+</button>
               <button type="button" onClick={() => onZoom(1.25)} aria-label="Zoom out" title="Zoom out (-)">{"−"}</button>
             </div>
-            <p className="ws3d__guide">{heatmap ? "Growth heat: cool = colder · warm = emerging" : "Drag to orbit · Scroll to zoom · Click a node to inspect it"}</p>
+            <p className="ws3d__guide">Drag to orbit · Right-drag to pan · Scroll to zoom · Double-click empty space to reset</p>
             {!concepts.length && <div className="ws3d__unsupported ws3d__empty" role="status">No concepts match the current filters.</div>}
             {contextLost && <div className="ws3d__unsupported ws3d__empty" role="status">The 3D display was interrupted and is restoring. If it does not recover, refresh the page.</div>}
             {hoverText && <div className="ws3d__hover" aria-hidden="true">{hoverText}</div>}

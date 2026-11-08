@@ -10,7 +10,7 @@ import type { ConceptPoint, GapSummary, PredictedEdge } from "../api";
 export type NodeKind = "branch" | "concept" | "hypothesis";
 export type StructureKind = "split" | "member" | "hypothesis";
 export type StructureEdge = { source: string; target: string; kind: StructureKind };
-export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string]; scale?: number };
+export type HNode = ConceptPoint & { kind: NodeKind; branch?: string; ends?: [string, string]; scale?: number; heat?: number };
 export type BranchInfo = { id: string; label: string; total: number; papers: number; growth: number | null; shown: ConceptPoint[]; hypotheses: GapSummary[] };
 export type Hierarchy = {
   nodes: HNode[]; structure: StructureEdge[]; branches: number;
@@ -79,12 +79,13 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
     const growth = gs.length ? gs.reduce((s, m) => s + (m.growth as number), 0) / gs.length : null;
     const total = members.reduce((s, m) => s + (m.paper_count ?? 0), 0);
     const id = `${BRANCH_PREFIX}${b}`;
-    nodes.push({ id, label: name, x, y, paper_count: total, growth, kind: "branch", branch: id });
+    nodes.push({ id, label: name, x, y, paper_count: total, growth, kind: "branch", branch: id, heat: 1 });
     hubs.push({ id, x, y });
     // Only each branch's largest concepts (and any concept in a ranked gap) are drawn, so the tree stays readable.
     const drawn = members.filter((m, i) => i < perBranch || inGap.has(m.id));
     branchInfo.set(id, { id, label: name, total: members.length, papers: total, growth, shown: drawn, hypotheses: [] });
-    for (const m of drawn) { nodes.push({ ...m, kind: "concept", branch: id }); conceptBranch.set(m.id, id); }
+    // Heat: the hub is hottest; subtopics cool from warm (largest in the branch) to blue (smallest).
+    drawn.forEach((m, i) => { nodes.push({ ...m, kind: "concept", branch: id, heat: 0.85 * (1 - i / Math.max(1, drawn.length)) ** 0.8 }); conceptBranch.set(m.id, id); });
     for (const m of drawn) structure.push({ source: id, target: m.id, kind: "member" });
   });
 
@@ -114,7 +115,7 @@ export function buildHierarchy(concepts: ConceptPoint[], gaps: GapSummary[], per
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     nodes.push({
       id, label: `${a.label} × ${b.label}`, growth: null,
-      x: mx, y: my, kind: "hypothesis", ends: [conceptBranch.get(g.a) ?? "", conceptBranch.get(g.b) ?? ""],
+      x: mx, y: my, kind: "hypothesis", heat: 0.5, ends: [conceptBranch.get(g.a) ?? "", conceptBranch.get(g.b) ?? ""],
     });
     hypothesisInfo.set(id, g);
     for (const end of new Set([conceptBranch.get(g.a), conceptBranch.get(g.b)])) if (end) branchInfo.get(end)?.hypotheses.push(g);

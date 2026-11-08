@@ -55,7 +55,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   // Single selection: the store toggles and appends, so set the list directly.
   function pick(id: string) {
     if (!live) return;
-    if (isSynthetic(id)) { setSynth((cur) => (cur === id ? null : id)); return; }
+    if (isSynthetic(id)) { setSynth((cur) => (cur === id ? null : id)); setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 })); return; }
     setSynth(null);
     const current = useWhitespaceStore.getState().selectedConcepts;
     if (current.length !== 1 || current[0] !== id) useWhitespaceStore.setState({ selectedConcepts: [id] });
@@ -209,7 +209,14 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 placeholder={false}
               />
             </div>
-            <MapLegend view="3d" hasLinked={hasLinked} />
+            {hierarchy ? (
+              <div className="ex__heatlegend" aria-label="Colour key">
+                <span className="ex__heatlegend-bar" aria-hidden="true" />
+                <span>Red: branch hubs and their biggest subtopics</span>
+                <span>Blue: smaller subtopics</span>
+                <span>Dot size = papers</span>
+              </div>
+            ) : <MapLegend view="3d" hasLinked={hasLinked} />}
             {hierarchy && (
               <div className="ex__perbranch">
                 <label htmlFor="ex-per-branch">Concepts per branch</label>
@@ -223,7 +230,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
             )}
             {hierarchy && (
               <p className="ws-note ex__structure-note">
-                Graph structure: large white dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Grey dots are the largest concepts in each branch. With “Show gaps and their links” on, blue dots are the top ranked hypotheses (gaps), linked to the two concepts they join, and dashed lines are the strongest predicted links; selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
+                Graph structure: the hot red dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, purple dots are the top ranked hypotheses (gaps), linked to the two concepts they join, and dashed lines are the strongest predicted links; selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
               </p>
             )}
           </>

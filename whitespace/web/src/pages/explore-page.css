@@ -44,3 +44,5 @@
 .ex__perbranch input { flex: 1; max-width: 320px; }
 .ex__perbranch-gaps { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; white-space: nowrap; }
 .ex__perbranch { flex-wrap: wrap; }
+.ex__heatlegend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--ws-border); border-radius: 8px; font-size: 13px; color: var(--ws-ink); }
+.ex__heatlegend-bar { width: 96px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1f59c2, #f53814); }
