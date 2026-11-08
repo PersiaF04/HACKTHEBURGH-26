@@ -4,7 +4,7 @@ Whitespace is a research-discovery tool for AI/ML literature. It turns a histori
 
 **One-liner:** "See where research is going, and the questions nobody has answered yet."
 
-**Status:** under active development (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](PRD.md)). The pipeline code and tests are in place; the full corpus, the frontend MVP and the forecast evaluation are still in progress. No forecast result exists yet, and nothing in this repository is a measured result until it is recorded.
+**Status:** under active development (spike [#122](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/122), requirements in [`PRD.md`](PRD.md)). The pipeline code and tests and the frontend MVP (on mock data) are in place; the full corpus, real artifacts and the forecast evaluation are still in progress. No forecast result exists yet, and nothing in this repository is a measured result until it is recorded.
 
 ## Who it is for
 
@@ -25,15 +25,16 @@ The exact track prompts are not yet confirmed against the official event site (s
 
 | Path | Contents |
 | --- | --- |
-| `whitespace/pipeline/` | Python pipeline: shared time rules and purge check, concepts, snapshot graphs, labels, baselines, metrics, Papers with Code layer |
+| `whitespace/pipeline/` | Python pipeline: shared time rules and purge check, concepts, snapshot graphs, labels, baselines, metrics, Papers with Code layer, coverage export |
 | `whitespace/tests/` | Offline tests (no network, no downloaded data) |
-| `web/` | Minimal Vite + React shell that CI builds |
+| `whitespace/web/` | Frontend MVP (Vite, React, TypeScript, Zustand): Explore, Gaps, Open problems, Evidence and Coverage routes, built against `mock/*.json` |
+| `web/` | Earlier minimal frontend shell, still the folder CI's Web build checks |
 | `docs/` | Demo script, judge Q&A, submission checklist |
 | `docs/coordination/` | Issue workflow, CI and delivery, decision log, agent messaging |
 | `scripts/` | Team inbox, agent session start, old-project term check |
 | `.github/` | Issue and PR templates, CI workflows |
 
-The frontend MVP is in review in [PR #159](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/159) under `whitespace/web/`, the location in [`PRD.md`](PRD.md) section 15. Which web folder stays on `main` is still to be decided ([#169](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/169)). See [`whitespace/README.md`](whitespace/README.md) for the pipeline's rules and modules.
+`whitespace/web/` is the frontend location in [`PRD.md`](PRD.md) section 15. Removing the `web/` shell and pointing CI at `whitespace/web/` is waiting on an owner decision ([#169](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/169)). See [`whitespace/README.md`](whitespace/README.md) for the pipeline's rules and modules.
 
 ## Run locally
 
@@ -46,18 +47,18 @@ python -m pytest -q whitespace
 
 There is no end-to-end pipeline command on `main` yet; the manual Papers with Code resolution check is described in [`whitespace/README.md`](whitespace/README.md).
 
-Web shell, with Node.js 22:
+Frontend, with Node.js 22. It reads the mock JSON in `whitespace/web/mock/` and needs no API or network:
 
 ```sh
-npm --prefix web ci
-npm --prefix web run dev      # development server
-npm --prefix web run build    # type-check and build to web/dist
-npm --prefix web run preview  # serve the build
+npm --prefix whitespace/web ci
+npm --prefix whitespace/web run dev      # development server
+npm --prefix whitespace/web run build    # type-check and build to whitespace/web/dist
+npm --prefix whitespace/web run preview  # serve the build
 ```
 
 ## Vercel preview
 
-Deployment is tracked in [#135](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/135). The Vercel project `whitespace` is set to root directory `whitespace/web`, install `npm ci`, build `npm run build` and output `dist`; the SPA route rewrite comes with PR #159.
+Deployment is tracked in [#135](https://github.com/PersiaF04/HACKTHEBURGH-26/issues/135). The Vercel project `whitespace` is set to root directory `whitespace/web`, install `npm ci`, build `npm run build` and output `dist`; `whitespace/web/vercel.json` rewrites every route to `index.html` so deep links load on refresh.
 
 - Vercel's Git deployments are blocked for this private repository on the Hobby plan, because the commit author must be the team owner. Previews are therefore deployed from the owner's authenticated machine with `vercel deploy` in a folder linked to the project, without `--prod`. [PR #172](https://github.com/PersiaF04/HACKTHEBURGH-26/pull/172) proposes an owner-token preview workflow instead.
 - A preview of PR #159 at `eff0a25` is at <https://whitespace-gd2vx6uoz-persia3.vercel.app>. It runs on mock fixtures and shows no real results. The link is deployment-specific and may change.
