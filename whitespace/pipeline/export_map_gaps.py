@@ -36,8 +36,10 @@ from .graphs import PairSet, Snapshot, build_snapshot, vocabulary
 
 COORD_RANGE = 1.0  # layout coordinates lie in [-COORD_RANGE, COORD_RANGE] (the frontend rescales)
 LAYOUT_SEED = 0
+MOMENTUM_K = 2.0  # slope of the momentum sigmoid on the weaker partner's growth (issue #276)
+MOMENTUM_FORMULA = "sigmoid(2.0 * min(growth_a, growth_b))"  # keep in step with MOMENTUM_K
 GAP_FORMULA_FULL = (
-    "p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) "
+    "p_link * sigmoid(2.0 * min(growth_a, growth_b)) * (1 - max(cosine, neighbour_overlap)) "
     "* (1 + gap_rate_a + gap_rate_b)"
 )
 GAP_NOTE = (
@@ -75,6 +77,93 @@ GENERIC_PHRASES = frozenset({
     "many field", "many problem", "many case", "many study", "small number", "large amount",
     # extraction fragments and non-English remnants
     "ing", "penting", "sering", "aforementioned", "regarding", "concerning",
+    # extension (issue #266): non-English function words and generic English scaffolding
+    # Indonesian/Malay function words
+    "adalah", "ada", "adanya", "agar", "akan", "antara", "atau", "bagi", "bahwa", "baik", "banyak",
+    "beberapa", "berbagai", "berdasarkan", "berupa", "bisa", "dalam", "dapat", "dari", "dengan", "di",
+    "dibuat", "digunakan", "dilakukan", "dimana", "diperlukan", "diperoleh", "dua", "hal", "hanya",
+    "harus", "ini", "itu", "juga", "karena", "ke", "kemudian", "lain", "lebih", "maka", "mampu",
+    "masih", "melakukan", "melalui", "membantu", "memberikan", "membuat", "memiliki", "mendapatkan",
+    "menentukan", "mengetahui", "menggunakan", "menghasilkan", "menjadi", "menunjukkan", "merupakan",
+    "namun", "oleh", "pada", "sangat", "satu", "saat", "sebagai", "sebesar", "sebuah", "secara",
+    "sedangkan", "sehingga", "seperti", "serta", "sesuai", "setiap", "suatu", "sudah", "tentang",
+    "terdapat", "terhadap", "terjadi", "tersebut", "tidak", "untuk", "yaitu", "yang",
+    # Indonesian/Malay scaffolding words
+    "penelitian", "hasil",
+    # Indonesian/Malay phrases
+    "bertujuan untuk", "dalam penelitian ini", "dapat digunakan", "dapat membantu", "dari penelitian",
+    "dari penelitian ini", "dengan menggunakan", "dengan menggunakan metode", "dengan metode",
+    "digunakan dalam", "digunakan untuk", "dilakukan dengan", "hal ini", "hasil dari",
+    "hasil penelitian", "hasil pengujian", "ini adalah", "ini bertujuan", "ini dapat",
+    "ini menggunakan", "menggunakan metode", "metode yang", "oleh karena itu", "pada penelitian ini",
+    "penelitian ini", "penelitian ini adalah", "saat ini", "sesuai dengan", "untuk mengetahui",
+    "yang ada", "yang akan", "yang dapat", "yang digunakan", "yang dilakukan", "yang lebih",
+    "yang telah", "yang tidak",
+    # Spanish/Portuguese/French/German function words
+    "aux", "avec", "cada", "como", "con", "das", "del", "der", "des", "die", "dos", "du", "el", "en",
+    "entre", "est", "esta", "este", "la", "las", "le", "les", "los", "mais", "nos", "nous", "ou",
+    "para", "por", "pour", "que", "qui", "sobre", "sont", "sur", "um", "uma", "una", "une", "von", "à",
+    "é",
+    # Spanish/Portuguese phrases
+    "con el", "de dado", "de la", "de las", "de los", "de um", "de un", "de una", "en el", "en este",
+    "en la", "este trabajo", "et de", "para el", "para la", "partir de", "que la", "que se", "à la",
+    # Cyrillic and Korean function words
+    "для", "и", "на", "при", "с", "в", "а", "대한", "및", "본", "수", "위한", "위해", "있는", "있다", "제안한다", "통해",
+    # Extraction fragments
+    "al", "tion", "vs", "versus", "et al",
+    # English adverbs and connectives
+    "afterward", "amongst", "approximately", "broadly", "carefully", "closely", "completely",
+    "considerably", "constantly", "correctly", "dramatically", "drastically", "entirely", "equally",
+    "exactly", "extensively", "extremely", "fairly", "frequently", "gradually", "greatly", "hardly",
+    "heavily", "herein", "immediately", "increasingly", "initially", "largely", "meanwhile", "mostly",
+    "naturally", "nearly", "necessarily", "nevertheless", "nonetheless", "normally", "notably",
+    "originally", "otherwise", "possibly", "potentially", "practically", "precisely", "primarily",
+    "quickly", "quite", "rarely", "readily", "reasonably", "relatively", "remarkably", "repeatedly",
+    "roughly", "severely", "similarly", "slightly", "solely", "specially", "strictly", "strongly",
+    "substantially", "sufficiently", "thereby", "thoroughly", "though", "throughout", "traditionally",
+    "whenever", "wherea", "wherein", "whilst",
+    # English light verbs, participles and number words
+    "let", "got", "gave", "took", "became", "brought", "seen", "taken", "said", "led", "going",
+    "getting", "giving", "keeping", "put", "say", "see", "try", "trying", "want", "come", "coming",
+    "looking", "look", "thank", "don", "goe", "themselve", "nowaday", "sometime", "enough", "aimed",
+    "aiming", "attained", "concerned", "devised", "devoted", "intended", "mentioned", "referred",
+    "regarded", "regardless", "regard", "termed", "owing", "eight", "nine", "seven", "six", "ten",
+    "twenty", "hundred", "thousand", "million", "billion",
+    # English scaffolding phrases (no domain noun)
+    "address the challenge", "address the issue", "address the problem", "address these challenge",
+    "address these issue", "address this challenge", "address this issue", "address this problem",
+    "solve the problem", "solve these problem", "solve this problem", "solving the problem",
+    "overcome this problem", "tackle this problem", "study the problem", "consider the problem",
+    "order to achieve", "order to improve", "order to make", "order to obtain", "order to overcome",
+    "order to provide", "order to reduce", "order to solve", "play a crucial", "play a vital",
+    "play an important", "become an important", "bridge the gap", "attention in recent",
+    "experimental results demonstrate", "experimental results indicate",
+    "simulation results demonstrate", "demonstrate the effectiveness", "demonstrate the efficacy",
+    "demonstrate the superiority", "evaluate the effectiveness", "evaluate the performance",
+    "evaluate our method", "validate the effectiveness", "verify the effectiveness",
+    "outperform the baseline", "outperform the state", "improve the accuracy", "improve the efficiency",
+    "improve the performance", "improve the quality", "improve the robustness",
+    "improving the performance", "enhance the performance", "compare the performance",
+    "compared to existing", "achieve good", "achieve high", "achieve the best", "aim to develop",
+    "aim to provide", "able to learn", "easy to implement", "find the best", "find the optimal",
+    "code is available", "future work", "related work", "previous work", "prior work", "existing work",
+    "existing study", "research work", "work aim", "work focuse", "study aim", "study demonstrate",
+    "study provide", "recent study", "recent work", "previous study", "method achieve", "method called",
+    "method can effectively", "method improve", "method outperform", "method perform", "method provide",
+    "method require", "method significantly", "method to improve", "method to solve",
+    "method is applied", "method in term", "method for solving", "algorithm is applied",
+    "algorithm in term", "algorithm to solve", "algorithm for solving", "performance in term",
+    "term of accuracy", "model is trained", "model to learn", "model to predict",
+    "experiment are conducted", "feature are extracted", "series of experiment", "several experiment",
+    "several benchmark", "several state", "several method", "point of view", "range of application",
+    "type of data", "volume of data", "source of information", "area of research", "around the world",
+    "across different", "across various", "five different", "four different", "require a large",
+    "relatively small", "many different", "best known", "best performing", "best accuracy",
+    "best performance", "good performance", "high accuracy", "high performance", "high quality",
+    "high efficiency",
+    # English quantity phrases
+    "small amount", "large number", "total number", "increasing number", "limited number",
+    "reduce the number", "reduce the computational",
 })
 STOPLIST_NOTE = ("{n} generic phrases hidden from this list; vocabulary and backtest unchanged")
 
@@ -259,11 +348,11 @@ def gap_score_parts(
 ) -> dict:
     """Score factors as documented. A missing input omits its factor (it is 1), never a guess.
 
-    ``score = p_link * momentum * novelty * gap_factor`` where ``momentum = sigmoid(growth_a +
-    growth_b)``, ``novelty = 1 - max(cosine, neighbour_overlap)`` (cosine dropped if None) and
+    ``score = p_link * momentum * novelty * gap_factor`` where ``momentum = sigmoid(MOMENTUM_K *
+    min(growth_a, growth_b))`` (both topics must be growing), ``novelty = 1 - max(cosine, neighbour_overlap)`` (cosine dropped if None) and
     ``gap_factor = 1 + gap_rate_a + gap_rate_b`` (1 if either rate is None).
     """
-    momentum = sigmoid(growth_a + growth_b)
+    momentum = sigmoid(MOMENTUM_K * min(growth_a, growth_b))
     novelty = 1.0 - (neighbour_overlap if cosine is None else max(cosine, neighbour_overlap))
     have_rates = gap_rate_a is not None and gap_rate_b is not None
     gap_factor = 1.0 + gap_rate_a + gap_rate_b if have_rates else 1.0
@@ -328,7 +417,7 @@ def build_gaps(
         omitted.append("gap_rate (open problems not mined)")
     gaps = {
         "placeholder": False, "year": year, "items": items, "note": GAP_NOTE,
-        "formula_used": gap_formula(bool(gap_rates)), "omitted_components": omitted,
+        "formula_used": gap_formula(bool(gap_rates)), "momentum_formula": MOMENTUM_FORMULA, "omitted_components": omitted,
         "ranking_pool": f"top {pool} eligible pairs by p_link",
     }
     if stoplist:
@@ -342,7 +431,7 @@ def stoplist_record(stoplist: frozenset[str], hidden: int) -> dict:
 
 
 def gap_formula(has_gap_rates: bool) -> str:
-    base = "p_link * sigmoid(growth_a + growth_b) * (1 - neighbour_overlap)"
+    base = "p_link * sigmoid(2.0 * min(growth_a, growth_b)) * (1 - neighbour_overlap)"
     return base + (" * (1 + gap_rate_a + gap_rate_b)" if has_gap_rates else "")
 
 

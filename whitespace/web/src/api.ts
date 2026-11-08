@@ -24,6 +24,8 @@ export type ConceptPoint = ConceptSummary & {
   x: number;
   y: number;
   growth: number | null;
+  /** Papers in the snapshot year alone, when the export has it. */
+  papers_year?: number;
   /** Optional research-area name; the Explore page shows the area list only when concepts carry it. */
   area?: string;
 };

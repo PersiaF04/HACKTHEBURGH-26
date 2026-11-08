@@ -31,12 +31,20 @@ def dry(tmp_path_factory):
     return root / "run"
 
 
-def test_denylist_is_short_lowercase_and_documented():
-    assert 30 <= len(GENERIC_PHRASES) <= 80
+def test_denylist_is_curated_lowercase_and_documented():
+    assert 400 <= len(GENERIC_PHRASES) <= 800  # 66 English fillers (#255) plus non-English and scaffolding (#266)
     assert all(p == p.lower() and p == p.strip() for p in GENERIC_PHRASES)
     for owner_phrase in ("vice versa", "located", "many area", "already", "today", "achieving", "un", "abc",
                          "able to achieve"):
         assert owner_phrase in GENERIC_PHRASES
+    for extension_phrase in ("adalah", "menggunakan metode", "yang", "este", "address this problem", "en el",
+                             "nevertheless", "future work"):
+        assert extension_phrase in GENERIC_PHRASES
+    # domain terms stay visible
+    for kept in ("covid", "roberta", "pretrained language model", "indonesia", "classification", "client",
+                 "algoritmo", "modelo", "problema", "sistema", "técnica", "rede", "objetivo", "método", "metode",
+                 "algoritma", "sistem", "data", "dato", "dado", "different model", "number of feature"):
+        assert kept not in GENERIC_PHRASES
 
 
 def test_off_by_default_adds_no_key(works, predictor):

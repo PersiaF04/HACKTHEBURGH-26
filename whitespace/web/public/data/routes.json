@@ -1,20 +1,11 @@
 {
- "corpus_last_year": 2026,
+ "corpus_last_year": 2023,
  "data_label": "real",
  "layout_version": 1,
  "map_years": [
-  2015,
-  2016,
-  2017,
-  2018,
-  2019,
-  2020,
   2021,
   2022,
-  2023,
-  2024,
-  2025,
-  2026
+  2023
  ],
  "note": "Static route map for the files in this directory. Strip the query string except 'year'; 'kind' says how to find the payload; 'status' is placeholder when the file has no data.",
  "routes": [
@@ -29,48 +20,6 @@
    "kind": "static",
    "route": "/api/backtest",
    "status": "real"
-  },
-  {
-   "file": "map-2015.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2015",
-   "status": "real",
-   "year": 2015
-  },
-  {
-   "file": "map-2016.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2016",
-   "status": "real",
-   "year": 2016
-  },
-  {
-   "file": "map-2017.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2017",
-   "status": "real",
-   "year": 2017
-  },
-  {
-   "file": "map-2018.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2018",
-   "status": "real",
-   "year": 2018
-  },
-  {
-   "file": "map-2019.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2019",
-   "status": "real",
-   "year": 2019
-  },
-  {
-   "file": "map-2020.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2020",
-   "status": "real",
-   "year": 2020
   },
   {
    "file": "map-2021.json",
@@ -92,27 +41,6 @@
    "route": "/api/map?year=2023",
    "status": "real",
    "year": 2023
-  },
-  {
-   "file": "map-2024.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2024",
-   "status": "real",
-   "year": 2024
-  },
-  {
-   "file": "map-2025.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2025",
-   "status": "real",
-   "year": 2025
-  },
-  {
-   "file": "map-2026.json",
-   "kind": "by_year",
-   "route": "/api/map?year=2026",
-   "status": "real",
-   "year": 2026
   },
   {
    "file": "gaps.json",
@@ -152,48 +80,6 @@
    "status": "placeholder"
   },
   {
-   "file": "coverage-2015.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2015",
-   "status": "real",
-   "year": 2015
-  },
-  {
-   "file": "coverage-2016.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2016",
-   "status": "real",
-   "year": 2016
-  },
-  {
-   "file": "coverage-2017.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2017",
-   "status": "real",
-   "year": 2017
-  },
-  {
-   "file": "coverage-2018.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2018",
-   "status": "real",
-   "year": 2018
-  },
-  {
-   "file": "coverage-2019.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2019",
-   "status": "real",
-   "year": 2019
-  },
-  {
-   "file": "coverage-2020.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2020",
-   "status": "real",
-   "year": 2020
-  },
-  {
    "file": "coverage-2021.json",
    "kind": "by_year",
    "route": "/api/coverage?year=2021",
@@ -213,27 +99,6 @@
    "route": "/api/coverage?year=2023",
    "status": "real",
    "year": 2023
-  },
-  {
-   "file": "coverage-2024.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2024",
-   "status": "real",
-   "year": 2024
-  },
-  {
-   "file": "coverage-2025.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2025",
-   "status": "real",
-   "year": 2025
-  },
-  {
-   "file": "coverage-2026.json",
-   "kind": "by_year",
-   "route": "/api/coverage?year=2026",
-   "status": "real",
-   "year": 2026
   }
  ],
  "synthetic": false

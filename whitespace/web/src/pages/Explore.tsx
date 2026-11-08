@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { ConceptResponse, GapSummary, MapResponse, SearchResponse } from "../api";
+import { BranchPanel } from "../components/BranchPanel";
 import { ConceptPanel, ConceptPanelSkeleton } from "../components/ConceptPanel";
 import { DEFAULT_FILTERS, FiltersPanel } from "../components/FiltersPanel";
 import type { ExploreFilters } from "../components/FiltersPanel";
@@ -9,6 +10,7 @@ import { MapLegend } from "../components/MapLegend";
 import { MapSkeleton } from "../components/MapSkeleton";
 import { SearchBar } from "../components/SearchBar";
 import { fmtInt } from "../lib/format";
+import { buildHierarchy, DEFAULT_PER_BRANCH, isSynthetic } from "../lib/hierarchy";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
 import "./explore-page.css";
@@ -27,7 +29,6 @@ const SKELETON_CAPTION = "The map shows one dot per research concept. Size = pap
 
 const STAT_HELP = {
   shown: "Research concepts currently on the map, after filters.",
-  links: "Pairs of concepts that already share 3 or more papers.",
   papers: "Papers tagged with the concepts shown. A paper with several concepts is counted for each.",
   predicted: "Predicted new links that involve the selected concept.",
 } as const;
@@ -39,6 +40,11 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [detail, setDetail] = useState<ConceptResponse | null | undefined>(undefined);
   const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
+  const [perBranch, setPerBranch] = useState(DEFAULT_PER_BRANCH);
+  const [showGaps, setShowGaps] = useState(false);
+  const [gapCount, setGapCount] = useState(8);
+  const [synth, setSynth] = useState<string | null>(null);
+  const [ranked, setRanked] = useState<GapSummary[]>([]);
 
   const showMap = map.year === selectedYear && !loading;
   const skeleton = showMap && (map.placeholder || (map.concepts.length === 0 && !map.no_data));
@@ -49,6 +55,8 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   // Single selection: the store toggles and appends, so set the list directly.
   function pick(id: string) {
     if (!live) return;
+    if (isSynthetic(id)) { setSynth((cur) => (cur === id ? null : id)); setFocusReq((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 })); return; }
+    setSynth(null);
     const current = useWhitespaceStore.getState().selectedConcepts;
     if (current.length !== 1 || current[0] !== id) useWhitespaceStore.setState({ selectedConcepts: [id] });
     else onSelectConcept(id); // clicking the selected concept again toggles it off
@@ -69,6 +77,13 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     return () => { current = false; };
   }, [selectedId]);
 
+  useEffect(() => {
+    let current = true;
+    api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
+    return () => { current = false; };
+  }, [selectedYear]);
+  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, showGaps ? ranked.slice(0, gapCount) : [], perBranch) : null), [live, map.concepts, ranked, perBranch, showGaps, gapCount]);
+
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
   const areas = useMemo(() => {
     const counts = new Map<string, number>();
@@ -83,6 +98,22 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     return true;
   }), [map.concepts, filters.minPapers, filters.growth, offAreas]);
   const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
+  const shownNodes = useMemo(
+    () => (hierarchy
+      ? hierarchy.nodes.filter((n) => {
+        if (n.kind === "concept") return visibleIds.has(n.id);
+        // A hypothesis needs both of its concepts on screen, so filters never leave it floating alone.
+        if (n.kind === "hypothesis") return n.id.slice(4).split("|").every((id) => visibleIds.has(id));
+        return true;
+      })
+      : visible),
+    [hierarchy, visible, visibleIds],
+  );
+  const shownStructure = useMemo(() => {
+    const ids = new Set(shownNodes.map((n) => n.id));
+    return (hierarchy?.structure ?? []).filter((e) => ids.has(e.source) && ids.has(e.target));
+  }, [hierarchy, shownNodes]);
+
   const edges = useMemo(
     () => map.edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
     [map.edges, visibleIds],
@@ -91,6 +122,11 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     () => (map.linked_edges ?? []).filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
     [map.linked_edges, visibleIds],
   );
+  // Supporting links: the strongest predicted links, plus every link of the selected concept.
+  const supportEdges = useMemo(() => {
+    const own = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId) : [];
+    return own;
+  }, [edges, selectedId]);
   const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
   const hasCounts = visible.some((c) => typeof c.paper_count === "number");
   const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
@@ -108,9 +144,10 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   }
 
   const nothing = skeleton || !live;
+  const kindCount = (kind: string) => shownNodes.filter((n) => (n as { kind?: string }).kind === kind).length;
+  const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts, ${fmtInt(kindCount("branch"))} branches, ${fmtInt(kindCount("hypothesis"))} hypotheses` : "";
   const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
-    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: "Dots on the map" },
-    { label: "Links", value: nothing || !hasLinked ? fmtInt(null) : fmtInt(linkedEdges.length), help: STAT_HELP.links, caption: "Pairs sharing 3+ papers" },
+    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
     { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
     { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
   ];
@@ -133,6 +170,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           areas={areas}
           selectedAreaIds={areas.filter((a) => !offAreas.has(a.id)).map((a) => a.id)}
           onToggleArea={(id) => setOffAreas((prev) => { const next = new Set(prev); if (!next.delete(id)) next.add(id); return next; })}
+          graph={hierarchy ? { perBranch, onPerBranch: setPerBranch, showGaps, onShowGaps: setShowGaps, gapCount, onGapCount: setGapCount } : undefined}
         />
       </aside>
 
@@ -155,12 +193,14 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
           <>
             <div className="ex__mapwrap">
               <MapCanvas3DLazy
-                concepts={visible}
-                allConcepts={map.concepts}
+                concepts={shownNodes}
+                allConcepts={hierarchy?.nodes ?? map.concepts}
                 resetKey={selectedYear}
-                edges={edges}
+                edges={hierarchy ? supportEdges : edges}
+                showAreaLabels={false}
                 linkedEdges={linkedEdges}
-                selectedConceptId={selectedId}
+                structure={shownStructure}
+                selectedConceptId={synth ?? selectedId}
                 focus={map.focus}
                 focusRequest={focusReq}
                 showPredicted={filters.showPredicted}
@@ -168,7 +208,20 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 placeholder={false}
               />
             </div>
-            <MapLegend view="3d" hasLinked={hasLinked} />
+            {hierarchy ? (
+              <div className="ex__heatlegend" aria-label="Colour key">
+                {showGaps && <span><strong>A gap</strong>: two topics not studied together yet. A line joins them with a purple dot in the middle; a bigger dot means a likelier link. Click the dot for details.</span>}
+                <span className="ex__heatlegend-bar" aria-hidden="true" />
+                <span>Red: branch hubs and their biggest subtopics</span>
+                <span>Blue: smaller subtopics</span>
+                <span>Dot size = papers</span>
+              </div>
+            ) : <MapLegend view="3d" hasLinked={hasLinked} />}
+            {hierarchy && (
+              <p className="ws-note ex__structure-note">
+                Graph structure: the hot red dots are branches (clusters found in the map layout, named for the words their concepts share), joined by the heavier lines. Around each branch, concepts cool from red for the biggest to blue for the smallest. With “Show gaps and their links” on, the top ranked gaps are drawn as bridges between the two concepts they join (choose how many with “Gaps shown”); selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
+              </p>
+            )}
           </>
         ) : (
           <div className="ex__loading" role="status" aria-live="polite">
@@ -179,6 +232,13 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
       {skeleton ? (
         <ConceptPanelSkeleton />
+      ) : synth && hierarchy ? (
+        <BranchPanel
+          branch={hierarchy.branchInfo.get(synth)}
+          hypothesis={hierarchy.hypothesisInfo.get(synth)}
+          onSelectConcept={pickAndFocus}
+          onClose={() => setSynth(null)}
+        />
       ) : (
         <ConceptPanel
           concept={selected}

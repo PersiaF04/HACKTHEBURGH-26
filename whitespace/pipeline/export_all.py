@@ -319,7 +319,7 @@ def production_label(run: Run, year: int, mode: str = "through-2020") -> str:
         model = (f"A model trained after the held-out test was scored: fit on origins {list(pc.fit_origins)} "
                  f"and Platt-calibrated at {list(pc.calibration_origins)}, which is the test origin, so its "
                  f"outcomes were used for training. This model was never itself held-out tested, and its "
-                 f"probabilities are not shown to be better calibrated than the backtest's")
+                 f"probabilities are not shown to be better calibrated than the backtest model's. It")
     return (
         f"Production forecast, not the held-out test. {model} ranks pairs that have not yet co-occurred "
         f"{LINK_THRESHOLD}+ times at the {year} snapshot, the last year in this export. Their outcomes "
