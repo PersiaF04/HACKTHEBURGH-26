@@ -55,6 +55,7 @@ from pathlib import Path
 
 from . import backtest
 from . import run_real as R
+from .backtest import is_real_run
 from .common import LINK_THRESHOLD, Work
 from .export_backtest import build_manifest, to_backtest_response, write_json
 from .export_coverage import code_link_evaluation, to_coverage_response
@@ -66,7 +67,6 @@ from .graphs import build_snapshot, vocabulary
 
 CONTRACT_DIR = Path(__file__).parent / "frontend_contract"  # tiny copies of web/mock/*.json (PR #159)
 FIRST_YEAR = 2015
-REAL_LABELS = ("real OpenAlex corpus", "real")
 EDGE_THRESHOLD, MAX_EDGES = 0.0, 300  # a display choice: the top predicted pairs, not a validated cut-off
 GAP_POOL, GAP_LIMIT, DETAIL_LIMIT, MAX_NEIGHBOURS = 2000, 50, 20, 25
 FORBIDDEN_KEYS = {"abstract", "abstract_excerpt", "abstract_inverted_index"}
@@ -132,24 +132,29 @@ def load_run(run_dir: str | Path) -> Run:
     return Run(d, manifest, metrics, examples, R.RunConfig(**cfg))
 
 
+def data_label(run: Run) -> str:
+    return (run.metrics.get("manifest") or {}).get("data_label") or "unlabelled"
+
+
 def synthetic_reasons(run: Run) -> list[str]:
-    """Why a run must stay synthetic (empty list: it is a real run). Anything not clearly real is synthetic."""
+    """Why a run must stay a placeholder (empty list: it is a real run).
+
+    The only test of "real" is ``backtest.is_real_run`` on the metrics manifest (label ``real`` and no
+    generator). A run the run script marked ``dry_run`` is also never real.
+    """
     reasons = []
+    if not is_real_run(run.metrics.get("manifest") or {}):
+        reasons.append(f"data_label is {data_label(run)!r}, not 'real' (or a generator is recorded)")
     if run.manifest.get("dry_run"):
         reasons.append("run_manifest.json says dry_run")
-    man = run.metrics.get("manifest") or {}
-    if man.get("data_label") not in REAL_LABELS:
-        reasons.append(f"metrics data_label is {man.get('data_label')!r}, not a real-corpus label")
-    if man.get("generator"):
-        reasons.append("metrics were produced from a synthetic generator")
     return reasons
 
 
 def runner_metrics(run: Run, synthetic: bool) -> dict:
-    """``metrics`` for ``export_backtest``, whose real/synthetic test is the labels "real" and "synthetic"."""
-    metrics = copy.copy(run.metrics)
-    metrics["manifest"] = {**(run.metrics.get("manifest") or {}), "data_label": "synthetic" if synthetic else "real"}
-    return metrics
+    """``metrics`` for ``export_backtest``; its real/placeholder test is the same ``is_real_run``."""
+    if synthetic and is_real_run(run.metrics.get("manifest") or {}):  # dry_run flag on an otherwise real label
+        return {**run.metrics, "manifest": {**run.metrics["manifest"], "data_label": "synthetic"}}
+    return run.metrics
 
 
 # ------------------------------------------------------------------ caches and model
@@ -333,7 +338,7 @@ def build_backtest(run: Run, synthetic: bool, hand_check_rows: list[dict] | None
     note = "Held-out test (scored once on the frozen model). The production forecast is gaps.json, a separate file."
     if not ex and not out["placeholder"]:
         note += " No backtest_examples.json in the run directory, so hits and misses are empty."
-    out.update(kind="held_out_backtest", note=note)
+    out.update(kind="held_out_backtest", note=note, synthetic=synthetic, data_label=data_label(run))
     return out
 
 
@@ -458,7 +463,10 @@ def export_run(run_dir, out_dir, *, corpus=None, join_dir=None, first_year: int 
     files.update(build_coverage(table, info, years, synthetic))
     for name, why in STATIC_PLACEHOLDERS.items():
         files[name] = placeholder(name, why, synthetic)
+    for payload in files.values():
+        payload["data_label"] = data_label(run)
     routes = build_routes(files, years, synthetic, final)
+    routes["data_label"] = data_label(run)
 
     paths = [write_payload(out, name, payload, synthetic) for name, payload in sorted(files.items())]
     routes_path = out / "routes.json"
@@ -676,6 +684,8 @@ def validate_export(directory: str | Path) -> list[str]:
     if not isinstance(synthetic, bool):
         errs.append("routes.json: 'synthetic' must be true or false")
         synthetic = False
+    if (routes_doc.get("data_label") == "real") == synthetic:
+        errs.append(f"routes.json: data_label {routes_doc.get('data_label')!r} disagrees with synthetic={synthetic}")
     templates = {r.get("route", "").split("?")[0] for r in routes if isinstance(r, dict)}
     for need in REQUIRED_ROUTES + ("/api/search", "/api/map", "/api/coverage"):
         if need not in templates:
@@ -724,6 +734,8 @@ def validate_export(directory: str | Path) -> list[str]:
         for flag in ("placeholder", "synthetic"):
             if not isinstance(payload.get(flag), bool):
                 errs.append(f"{name}: missing boolean {flag!r}")
+        if payload.get("data_label") != routes_doc.get("data_label"):
+            errs.append(f"{name}: data_label {payload.get('data_label')!r} differs from routes.json")
         if synthetic and not (payload.get("placeholder") is True and payload.get("synthetic") is True):
             errs.append(f"{name}: the export is synthetic, so every file must be a synthetic placeholder")
         if payload.get("synthetic") is True and payload.get("placeholder") is False:

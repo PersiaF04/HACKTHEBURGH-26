@@ -395,7 +395,7 @@ def run(corpus: Path, out: Path, config: RunConfig, *, caches_only: bool = False
         metrics = stages.run(
             "backtest", backtest.run_backtest, lambda t: load_works(out, t), bt, guard=guard,
             override_one_shot=override_one_shot,
-            data_label="dry-run synthetic (not data)" if dry_run else "real OpenAlex corpus",
+            data_label="synthetic" if dry_run else "real",
             generator=None, return_test_artifacts=True)
         # the guarded artifacts are used here, once, to pick the example hits and misses (ids only);
         # they are not JSON and are not kept, so nothing downstream re-reads a test label

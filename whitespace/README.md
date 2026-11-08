@@ -149,3 +149,18 @@ It draws 125 distinct new-style arXiv ids per year band (<=2017, 2018-2020, 2021
 `code_link_evaluation(hand_check_rows)` computes correct matches, precision, 95% Wilson interval, sample composition and protocol text from the completed 100-pair frame (`final_label`). With no table, or any row unlabelled, every field is null and `placeholder` is true.
 
 **Data label.** `run_backtest(..., data_label=...)` accepts exactly `real`, `synthetic` or `unlabelled` (free text is rejected). Only `is_real_run(manifest)` (label `real` and no generator) may be treated as a real result by the run script and every exporter; synthetic and unlabelled runs stay placeholders. **Model ranking.** Model metrics rank by the calibrated logit `a*d + b`, the ordering of the deployed probability; a non-positive fitted slope adds a `warning` and the reported slope.
+
+## Export for the frontend (`pipeline/export_all.py`, issue #175)
+
+```sh
+python -m whitespace.pipeline.run_real --corpus <corpus.jsonl> --out ~/whitespace-run        # the run
+python -m whitespace.pipeline.code_join_local ... --out ~/whitespace-join                    # optional (#173)
+python -m whitespace.pipeline.export_all ~/whitespace-run --out ~/whitespace-export --join-dir ~/whitespace-join
+```
+
+One flat directory: `routes.json` (every frontend route to its file, key, and `real` or `placeholder`), `manifest.json`, `meta.json`, `backtest.json` (`/api/backtest`), `map-<Y>.json` (`/api/map?year=Y`, Y from 2015 to the last corpus year), `gaps.json` (`/api/gaps`), `gap-details.json` (`/api/gap/{a}/{b}`, entry `"a|b"`, top gaps only), `concepts.json` (`/api/concept/{id}`, entry `id`), `coverage-<Y>.json` (`/api/coverage?year=Y`), `search.json` and `open-problems.json` (always placeholders). `gap-details.json` and `concepts.json` wrap their payloads in `entries`. Query parameters other than `year` are not applied. The CLI runs `validate_export` and exits 1 on any problem, 2 if the export could not run.
+
+- **Held-out versus production.** `backtest.json` is the held-out test (metrics plus hits and misses that `run_real` picked from the runner's guarded artifacts into `backtest_examples.json`; the export never reads test labels). `gaps.json` is labelled a production forecast: the model frozen for the backtest (fit and calibration origins only, re-trained deterministically and compared with the run's recorded coefficients) scored at the last corpus year. Its outcomes are unknown and nothing in it was evaluated.
+- **No later knowledge.** Each `map-<Y>.json` uses the origin-Y vocabulary and works dated up to 31 Dec Y, and a layout of that year (points can move between years). Missing origin caches are built from the corpus (`--corpus`, sha256 checked). `meta.json` states the corpus end; later years are absent, not zero.
+- **Real or placeholder.** Only `backtest.is_real_run` on the run's metrics manifest (label `real`, no generator) makes a real export; a dry run, synthetic or unlabelled run writes every file as `placeholder: true` and `synthetic: true` with no numbers except years, and the writer raises otherwise. Coverage is a placeholder without `--join-dir`.
+- **Validator.** `validate_export(dir)` checks routes resolve to files and keys, strict JSON without NaN, the key sets and value types of the frontend fixtures (copied to `pipeline/frontend_contract/` from PR #159) and `api.ts`, no abstract keys or pasted text, the production label, and placeholder/synthetic consistency.

@@ -46,7 +46,7 @@ def test_dry_run_end_to_end(tmp_path, caplog):
         assert key in manifest
     assert manifest["corpus"]["sha256"] and "2020" in manifest["corpus"]["per_year"]
     metrics = json.loads((out / "metrics.json").read_text())
-    assert metrics["manifest"]["data_label"].startswith("dry-run")
+    assert metrics["manifest"]["data_label"].== "synthetic"
     assert set(metrics["manifest"]["n_works"]) == {"2010", "2011", "2014", "2017"}
     assert "2017" in metrics["test"]
     assert any("stage backtest" in r.message for r in caplog.records)
