@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { fmtYear } from "../lib/format";
 
 type TimeSliderProps = {
   year: number;
@@ -38,7 +39,7 @@ export function TimeSlider({ year, minYear, maxYear, onChange, loading = false }
   return (
     <div className="whitespace-time-slider" aria-busy={loading}>
       <div className="whitespace-time-slider__head">
-        <span className="whitespace-time-slider__selected">Snapshot origin: {local}</span>
+        <span className="whitespace-time-slider__selected">Snapshot origin: {fmtYear(local)}</span>
         <span className="whitespace-time-slider__status" role="status" aria-live="polite">
           {loading ? "Loading snapshot…" : ""}
         </span>
@@ -57,13 +58,13 @@ export function TimeSlider({ year, minYear, maxYear, onChange, loading = false }
             step={1}
             value={local}
             onChange={handleChange}
-            aria-valuetext={`Snapshot origin ${local}`}
+            aria-valuetext={`Snapshot origin ${fmtYear(local)}`}
             className="whitespace-time-slider__input"
             style={{ background: `linear-gradient(to right, var(--ws-ink) ${fill}%, var(--ws-track) ${fill}%)` }}
           />
           <div className="whitespace-time-slider__labels" aria-hidden="true">
-            <span>{minYear}</span>
-            <span>{maxYear}</span>
+            <span>{fmtYear(minYear)}</span>
+            <span>{fmtYear(maxYear)}</span>
           </div>
         </div>
         <button type="button" onClick={() => step(1)} disabled={local >= maxYear} aria-label="Next year">›</button>

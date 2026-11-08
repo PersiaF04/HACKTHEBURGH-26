@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { ConceptPoint, PredictedEdge } from "../api";
+import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import { GROWTH_STEPS } from "./MapLegend";
 import "./map.css";
 
 type MapFocus = { x: number; y: number } | null;
@@ -12,6 +14,8 @@ type MapCanvasProps = {
   edges: PredictedEdge[];
   selectedConceptId: string | null;
   focus: MapFocus;
+  /** Explicit "go to this concept" request (search, panel link). Each new tick recentres on the concept. */
+  focusRequest?: { id: string; tick: number } | null;
   placeholder?: boolean;
   onSelectConcept: (id: string) => void;
   /** Optional observed links (3+ shared papers), drawn as solid grey lines. Absent from the current export. */
@@ -38,13 +42,6 @@ const MAX_LABELS = 60;
 const FONT_SANS = "'IBM Plex Sans', system-ui, sans-serif";
 const FONT_MONO = "'IBM Plex Mono', ui-monospace, monospace";
 
-const GROWTH_STEPS = [
-  { color: "#C3C7CF", label: "Shrinking" },
-  { color: "#F0C9A0", label: "0 to 15%" },
-  { color: "#EDA060", label: "15 to 30%" },
-  { color: "#E07432", label: "30 to 45%" },
-  { color: "#BF4A0E", label: "45% or more" },
-] as const;
 const UNKNOWN_COLOR = "#9AA0AA";
 /** Bucket index 0..4 for GROWTH_STEPS, 5 for unknown growth. */
 const COLORS: string[] = [...GROWTH_STEPS.map((step) => step.color), UNKNOWN_COLOR];
@@ -74,11 +71,7 @@ function growthBucket(growth: number | null): number {
 }
 
 function nodeDescription(concept: ConceptPoint): string {
-  const papers = typeof concept.paper_count === "number"
-    ? `${concept.paper_count.toLocaleString("en-GB")} papers`
-    : "paper count unavailable";
-  const growth = concept.growth === null ? "growth unavailable" : `growth ${(concept.growth * 100).toFixed(1)}%`;
-  return `${concept.label}; ${papers}; ${growth}`;
+  return `${fmtText(concept.label)}; papers ${fmtInt(concept.paper_count)}; 3-yr growth ${fmtGrowth(concept.growth)}`;
 }
 
 /** Marker radius on screen: grows gently with zoom so dense maps stay legible. */
@@ -87,7 +80,7 @@ function screenRadius(r: number, scale: number): number {
 }
 
 export function MapCanvas({
-  concepts, edges, selectedConceptId, focus, onSelectConcept,
+  concepts, edges, selectedConceptId, focus, focusRequest, onSelectConcept,
   linkedEdges, showPredicted = true, showAreaLabels = true,
 }: MapCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -327,7 +320,7 @@ export function MapCanvas({
         const na = s.nodes[e.a], nb = s.nodes[e.b];
         const mx = sx((na.wx + nb.wx) / 2), my = sy((na.wy + nb.wy) / 2);
         if (!inView(mx, my)) continue;
-        const text = `P ${e.p.toFixed(2)}`;
+        const text = `P ${fmtP(e.p)}`;
         const w = ctx.measureText(text).width + 12;
         ctx.fillStyle = "#2952E3";
         ctx.beginPath();
@@ -363,12 +356,19 @@ export function MapCanvas({
     return () => observer.disconnect();
   }, [schedule, hasConcepts]);
 
+  const focusTick = focusRequest?.tick;
   useEffect(() => {
-    if (!focus || !concepts.length) return;
-    const [wx, wy] = toWorld(focus.x, focus.y);
-    viewRef.current = { ...viewRef.current, cx: wx, cy: wy };
+    if (!hasConcepts) return;
+    const target = focusRequest ? scene.current.nodes[scene.current.indexById.get(focusRequest.id) ?? -1] : undefined;
+    if (target) viewRef.current = { ...viewRef.current, cx: target.wx, cy: target.wy };
+    else if (focus) {
+      const [wx, wy] = toWorld(focus.x, focus.y);
+      viewRef.current = { ...viewRef.current, cx: wx, cy: wy };
+    } else return;
     schedule();
-  }, [focus?.x, focus?.y, concepts.length, toWorld, schedule]);
+    // Recentre only on a new request or a new initial focus, not whenever filters change the node list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusTick, focus?.x, focus?.y, hasConcepts]);
 
   useEffect(() => setListPage(0), [concepts]);
 
@@ -486,12 +486,11 @@ export function MapCanvas({
     if (index >= 0) setListPage(Math.floor(index / LIST_PAGE_SIZE));
   }
 
-  const hasLinked = (linkedEdges?.length ?? 0) > 0;
   const iconProps = { width: 14, height: 14, viewBox: "0 0 14 14", "aria-hidden": true } as const;
 
   return (
-    <section className="whitespace-map" aria-label="Research concept map">
-      <div className="whitespace-map__stage">
+    <section className="whitespace-map" aria-label="Research concept map (2D)">
+      <div className="whitespace-map__stage" title="Drag to pan, scroll to zoom, click a dot for details">
         {!concepts.length ? (
           <div className="whitespace-map__empty" role="status">No concepts to show</div>
         ) : (
@@ -518,27 +517,6 @@ export function MapCanvas({
           <button type="button" onClick={() => zoomAt(0.8)} aria-label="Zoom out"><svg {...iconProps}><path d="M2 7h10" stroke="#15171C" strokeWidth="1.6" strokeLinecap="round" /></svg></button>
           <button type="button" onClick={resetView} aria-label="Reset view"><svg {...iconProps}><rect x="2" y="2" width="10" height="10" rx="1.5" fill="none" stroke="#15171C" strokeWidth="1.5" /></svg></button>
         </div>
-      </div>
-
-      <div className="whitespace-map__legend" role="group" aria-label="Legend">
-        <span className="whitespace-map__legend-scale">
-          <span>Shrinking</span>
-          <span className="whitespace-map__legend-swatches">
-            {GROWTH_STEPS.map((step) => (
-              <i key={step.label} style={{ background: step.color }} aria-hidden="true" />
-            ))}
-          </span>
-          <span>Fast-growing</span>
-          <span className="whitespace-map__legend-sub">{"\u00b7"} colour = 3-yr paper growth</span>
-        </span>
-        <span>
-          <span className="whitespace-map__legend-sizes" aria-hidden="true">
-            <i style={{ width: 6, height: 6 }} /><i style={{ width: 11, height: 11 }} /><i style={{ width: 17, height: 17 }} />
-          </span>
-          Size = papers
-        </span>
-        {hasLinked && <span><i className="whitespace-map__legend-solid" aria-hidden="true" />Linked {"\u00b7"} 3+ shared papers</span>}
-        <span><i className="whitespace-map__legend-dash" aria-hidden="true" />Predicted link {"\u00b7"} next 3 years</span>
       </div>
 
       <div className="whitespace-map__browse">
