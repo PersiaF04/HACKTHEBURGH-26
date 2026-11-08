@@ -1,0 +1,75 @@
+{
+ "corpus_last_year": 2023,
+ "data_label": "real",
+ "layout_version": 1,
+ "map_years": [
+  2023
+ ],
+ "note": "Static route map for the files in this directory. Strip the query string except 'year'; 'kind' says how to find the payload; 'status' is placeholder when the file has no data.",
+ "routes": [
+  {
+   "file": "meta.json",
+   "kind": "static",
+   "route": "/api/meta",
+   "status": "real"
+  },
+  {
+   "file": "backtest.json",
+   "kind": "static",
+   "route": "/api/backtest",
+   "status": "real"
+  },
+  {
+   "file": "map-2023.json",
+   "kind": "by_year",
+   "route": "/api/map?year=2023",
+   "status": "real",
+   "year": 2023
+  },
+  {
+   "file": "gaps.json",
+   "kind": "static",
+   "note": "query parameters (concepts, min_p, sort, limit) are not applied; filter client-side",
+   "route": "/api/gaps",
+   "status": "real"
+  },
+  {
+   "file": "gap-details.json",
+   "key": "{a}|{b}",
+   "kind": "keyed",
+   "note": "a and b are the URL-decoded concept ids; only the top gaps have an entry, others are null",
+   "route": "/api/gap/{a}/{b}",
+   "status": "real"
+  },
+  {
+   "file": "concepts.json",
+   "key": "{id}",
+   "kind": "keyed",
+   "note": "the URL-decoded concept id; a missing entry means no such concept",
+   "route": "/api/concept/{id}",
+   "status": "real"
+  },
+  {
+   "file": "search.json",
+   "kind": "static",
+   "note": "query ignored; placeholder",
+   "route": "/api/search?q={q}&k={k}",
+   "status": "placeholder"
+  },
+  {
+   "file": "open-problems.json",
+   "kind": "static",
+   "note": "query ignored; placeholder",
+   "route": "/api/open-problems",
+   "status": "placeholder"
+  },
+  {
+   "file": "coverage-2023.json",
+   "kind": "by_year",
+   "route": "/api/coverage?year=2023",
+   "status": "real",
+   "year": 2023
+  }
+ ],
+ "synthetic": false
+}
