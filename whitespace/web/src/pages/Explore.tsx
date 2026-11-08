@@ -42,6 +42,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const [offAreas, setOffAreas] = useState<Set<string>>(new Set());
   const [gaps, setGaps] = useState<GapSummary[] | undefined>(undefined);
   const [perBranch, setPerBranch] = useState(DEFAULT_PER_BRANCH);
+  const [showGaps, setShowGaps] = useState(false);
   const [synth, setSynth] = useState<string | null>(null);
   const [ranked, setRanked] = useState<GapSummary[]>([]);
 
@@ -81,7 +82,7 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
     api.gaps({ limit: 50 }).then((value) => { if (current) setRanked(value.items); }).catch(() => { if (current) setRanked([]); });
     return () => { current = false; };
   }, [selectedYear]);
-  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, ranked, perBranch) : null), [live, map.concepts, ranked, perBranch]);
+  const hierarchy = useMemo(() => (live ? buildHierarchy(map.concepts, showGaps ? ranked : [], perBranch) : null), [live, map.concepts, ranked, perBranch, showGaps]);
 
   const maxPapers = useMemo(() => map.concepts.reduce((max, c) => Math.max(max, c.paper_count ?? 0), 0), [map.concepts]);
   const areas = useMemo(() => {
@@ -123,10 +124,10 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   );
   // Supporting links: the strongest predicted links, plus every link of the selected concept.
   const supportEdges = useMemo(() => {
-    const top = [...edges].sort((x, y) => y.p_link - x.p_link).slice(0, 40);
+    const top = showGaps ? [...edges].sort((x, y) => y.p_link - x.p_link).slice(0, 40) : [];
     const own = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId) : [];
     return [...new Set([...top, ...own])];
-  }, [edges, selectedId]);
+  }, [edges, selectedId, showGaps]);
   const fromSelection = selectedId ? edges.filter((e) => e.source === selectedId || e.target === selectedId).length : 0;
   const hasCounts = visible.some((c) => typeof c.paper_count === "number");
   const papers = visible.reduce((sum, c) => sum + (c.paper_count ?? 0), 0);
@@ -214,11 +215,15 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
                 <label htmlFor="ex-per-branch">Concepts per branch</label>
                 <input id="ex-per-branch" type="range" min={10} max={1000} step={10} value={perBranch} onChange={(e) => setPerBranch(Number(e.currentTarget.value))} />
                 <span className="whitespace-mono">{perBranch}</span>
+                <label className="ex__perbranch-gaps">
+                  <input type="checkbox" checked={showGaps} onChange={(e) => setShowGaps(e.currentTarget.checked)} />
+                  Show gaps and their links
+                </label>
               </div>
             )}
             {hierarchy && (
               <p className="ws-note ex__structure-note">
-                Graph structure: large white dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Grey dots are the largest concepts in each branch. Blue dots are the top ranked hypotheses (gaps), linked to the two concepts they join; dashed lines are other predicted links. Branches are derived in the app, not exported by the pipeline.
+                Graph structure: large white dots are branches (clusters found in the map layout, named by their biggest concept), joined by the heavier lines. Grey dots are the largest concepts in each branch. With “Show gaps and their links” on, blue dots are the top ranked hypotheses (gaps), linked to the two concepts they join, and dashed lines are the strongest predicted links; selecting a concept always shows its own predicted links. Branches are derived in the app, not exported by the pipeline.
               </p>
             )}
           </>

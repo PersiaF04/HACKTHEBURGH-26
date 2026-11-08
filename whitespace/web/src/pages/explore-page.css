@@ -42,3 +42,5 @@
 .ex__structure-note { font-size: 12px; line-height: 1.4; color: var(--ws-muted); margin: 8px 0 0; }
 .ex__perbranch { display: flex; align-items: center; gap: 12px; margin: 8px 0 0; font-size: 13px; color: var(--ws-ink); }
 .ex__perbranch input { flex: 1; max-width: 320px; }
+.ex__perbranch-gaps { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; white-space: nowrap; }
+.ex__perbranch { flex-wrap: wrap; }
