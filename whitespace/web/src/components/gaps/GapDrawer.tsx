@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
-import type { GapDetail, GapPaper } from "../../api";
+import type { GapDetail, GapPaper, GapSummary } from "../../api";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import "./gaps.css";
+import "./gaps-drawer.css";
 
-function safeExternalUrl(url: string): string | null {
+export function safeExternalUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
   try {
     const parsed = new URL(url);
     return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
@@ -28,11 +30,19 @@ export interface GapDrawerProps {
   onClose: () => void;
 }
 
+function linkStatement(summary: GapSummary): string {
+  const w = summary.starting_weight;
+  const shared = w == null ? "Not yet linked: fewer than 3 shared papers." : `Not yet linked: ${w} shared ${w === 1 ? "paper" : "papers"}, fewer than 3.`;
+  const p = summary.p_link;
+  if (p == null || !Number.isFinite(p)) return `${shared} P(link) not available.`;
+  return `${shared} P(link) is ${(p * 100).toFixed(1)}%, the model chance that they reach 3 or more shared papers within three years.`;
+}
+
 function PaperList({ id, title, papers }: { id: string; title: string; papers: GapPaper[] }) {
   return (
     <section className="gap-drawer__section" aria-labelledby={`${id}-heading`}>
       <h3 id={`${id}-heading`}>{title}</h3>
-      {papers.length === 0 ? <p>No papers returned for this side.</p> : (
+      {papers.length === 0 ? <p>Not available: no papers returned for this side.</p> : (
         <ul className="gap-paper-list">
           {papers.map((paper) => (
             <li key={paper.id}>
@@ -102,7 +112,8 @@ export function GapDrawer({ detail, open, loading = false, error, placeholder = 
         <header className="gap-drawer__header">
           <div>
             <p className="gap-eyebrow">Candidate link</p>
-            <h2 id="gap-drawer-title">{title}</h2>
+            <h2 id="gap-drawer-title">{detail ? <>{detail.summary.a_label} <span className="gap-drawer__arrow" aria-hidden="true">↔</span><span className="gap-sr-only"> and </span> {detail.summary.b_label}</> : title}</h2>
+            {detail && <p className="gap-drawer__link-statement">{linkStatement(detail.summary)}</p>}
           </div>
           <button ref={closeRef} className="gap-drawer__close" type="button" onClick={onClose} aria-label="Close gap details">Close</button>
         </header>
@@ -119,8 +130,8 @@ export function GapDrawer({ detail, open, loading = false, error, placeholder = 
               <PaperList id="closest-b" title={`Closest papers: ${detail.summary.b_label}`} papers={detail.closest_b} />
             </div>
             <section className="gap-drawer__section" aria-labelledby="shared-neighbours-heading">
-              <h3 id="shared-neighbours-heading">Shared neighbours</h3>
-              {detail.shared_neighbours.length === 0 ? <p>No shared neighbours returned.</p> : (
+              <h3 id="shared-neighbours-heading">Shared neighbouring concepts</h3>
+              {detail.shared_neighbours.length === 0 ? <p>Not available: no shared neighbouring concepts returned.</p> : (
                 <ul className="gap-neighbours">
                   {detail.shared_neighbours.map((concept) => <li key={concept.id}>{concept.label}</li>)}
                 </ul>
@@ -128,7 +139,7 @@ export function GapDrawer({ detail, open, loading = false, error, placeholder = 
             </section>
             <section className="gap-drawer__section" aria-labelledby="stated-problems-heading">
               <h3 id="stated-problems-heading">Authors’ stated open problems</h3>
-              {detail.open_problems.length === 0 ? <p>No linked open-problem statements returned.</p> : (
+              {detail.open_problems.length === 0 ? <p>Not available: no linked open-problem statements returned.</p> : (
                 <ul className="gap-problem-list">
                   {detail.open_problems.map((problem) => (
                     <li key={`${problem.paper.id}-${problem.sentence}`}>
