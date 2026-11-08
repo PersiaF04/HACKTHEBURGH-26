@@ -187,6 +187,18 @@ One flat directory: `routes.json` (every frontend route to its file, key, and `r
 - **Real or placeholder.** Only `backtest.is_real_run` on the run's metrics manifest (label `real`, no generator) makes a real export; a dry run, synthetic or unlabelled run writes every file as `placeholder: true` and `synthetic: true` with no numbers except years, and the writer raises otherwise. Coverage is a placeholder without `--join-dir`.
 - **Validator.** `validate_export(dir)` checks routes resolve to files and keys, strict JSON without NaN, the key sets and value types of the frontend fixtures (copied to `pipeline/frontend_contract/` from PR #159) and `api.ts`, no abstract keys or pasted text, the production label, and placeholder/synthetic consistency.
 
+## Open problems (`pipeline/open_problems.py`, issues #270 and #278)
+
+Author-stated open problems, future work and limitations are extracted from abstracts by a regex prefilter (PRD section 13), one streaming pass over `corpus.jsonl`. Sentences are quoted whole (40 to 400 characters, never a whole abstract), attributed to and linked to their paper. Extraction quality is **unmeasured** until a labelled sample is reported in `meta.json`. Rates are display only and never feed the gap score or the backtest.
+
+```sh
+python -m whitespace.pipeline.open_problems extract <corpus.jsonl> --vocabulary <vocabulary.json> --out <cache dir>   # about 40 s on 16 cores; the cache stays out of Git
+python -m whitespace.pipeline.open_problems attach --export-dir <export> --cache <cache dir> [--out <copy>]          # seconds; validates and fails if not OK
+python -m whitespace.pipeline.export_all <run> --out <export> --open-problems <cache dir> ...                       # the same selection inside a full export
+```
+
+`attach` fills `open-problems.json` and the `open_problems` fields (top 50 gaps and top 200 concepts plus every gap concept, 5 sentences each), updates `meta.json`, `routes.json` and the `manifest.json` hashes, records the step under `manifest.export.open_problems` (cache hashes, tool commit) and runs `validate_export`. Output is deterministic.
+
 **`routes.json` shape.** `{layout_version, synthetic, data_label, corpus_last_year, map_years: [..], note, routes: [...]}`. `map_years` lists the years that have a `map-<Y>.json` and a `coverage-<Y>.json`; any year outside it (for the real corpus, everything after 2023) has no file and the frontend should show "no data for this year" (absent, not zero). Each route is `{route, file, kind, status, [year], [key], [note]}`:
 
 | route pattern | file | selection | status |
