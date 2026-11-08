@@ -301,7 +301,7 @@
 
 .gap-score__formula code {
   color: var(--ws-ink);
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--ws-mono);
 }
 
 .gap-score__row {
@@ -382,3 +382,6 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Numbers in IBM Plex Mono with tabular figures, per the design spec. */
+.gap-table td { font-family: var(--ws-mono); font-size: 0.9em; font-variant-numeric: tabular-nums; }
