@@ -109,16 +109,13 @@ export function OpenProblemsPage({
     onTypeChange(event.currentTarget.value as OpenProblemsPageProps['selectedType']);
 
   return (
-    <main className="ws-page ws-open-problems">
+    <section className="ws-page ws-open-problems" aria-label="Open problems">
       <header className="ws-page__header">
-        <p className="ws-eyebrow">Explore the literature</p>
-        <h1>Open problems</h1>
         <p className="ws-lede">
           Questions and limitations stated by authors, linked to the papers where they appear.
         </p>
       </header>
 
-      {placeholder && <p className="ws-notice" role="status">Example data — these are placeholders, not research findings.</p>}
 
       <section className="ws-filters" aria-label="Filter open problems">
         <label>
@@ -186,6 +183,6 @@ export function OpenProblemsPage({
           </ul>
         </>
       )}
-    </main>
+    </section>
   );
 }
