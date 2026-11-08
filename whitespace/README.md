@@ -185,4 +185,3 @@ One flat directory: `routes.json` (every frontend route to its file, key, and `r
 | `/api/open-problems` | `open-problems.json` | none; query ignored | always placeholder |
 
 **Sample export.** `whitespace/tests/fixtures/export_sample/` is a small export of the SYNTHETIC dry run (made-up words) for the frontend to copy into `whitespace/web/public/data/` and test against. Every file is `placeholder: true` and `synthetic: true`. It contains NO real results.
-
