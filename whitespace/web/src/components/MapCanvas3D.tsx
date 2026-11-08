@@ -189,12 +189,14 @@ export function MapCanvas3D({
     const tmp = new THREE.Color();
     const themeHues = readMapTheme();
     const palette = themeHues.growth;
+    const pmax = Math.max(1, ...concepts.filter((c) => c.kind !== "branch" && c.kind !== "hypothesis").map((c) => c.paper_count ?? 0));
     concepts.forEach((c, i) => {
       const k = (layout.slot.get(c.id) ?? 0) * 3;
       pos[i * 3] = layout.pos[k]; pos[i * 3 + 1] = layout.pos[k + 1]; pos[i * 3 + 2] = layout.pos[k + 2];
       const g = c.growth === null || c.growth === undefined || Number.isNaN(c.growth) ? 0 : c.growth;
       heat[i] = c.heat !== undefined ? c.heat : Math.max(0, Math.min(1, (g / zRef + 1) / 2));
-      size[i] = Math.max(0.5, Math.min(3.2, Math.sqrt(Math.max(0, c.paper_count ?? 0)) * 0.07 + 0.3)); // world diameter
+      // Dot area is proportional to papers (diameter to its square root), scaled to the biggest concept drawn.
+      size[i] = 0.7 + 2.5 * Math.sqrt(Math.max(0, c.paper_count ?? 0) / pmax); // world diameter
       const b = growthBucket(c.growth);
       bucket[i] = b;
       if (c.scale) size[i] *= c.scale;
