@@ -1,0 +1,1 @@
+{"concepts":[],"data_label":"synthetic","edges":[],"focus":null,"note":"synthetic run: data_label is 'synthetic', not 'real' (or a generator is recorded); run_manifest.json is not a real run (label or generator); run_manifest.json says dry_run","placeholder":true,"synthetic":true,"year":2020}
