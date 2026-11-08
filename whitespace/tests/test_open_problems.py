@@ -79,3 +79,45 @@ def test_label_frame_is_reproducible_and_capped():
     a, b = op.label_frame(hits, n=10), op.label_frame(hits, n=10)
     assert a == b and len(a) == 10 and Counter(x["correct"] for x in a) == {"": 10}
     assert len(op.label_frame(hits, n=100)) == 30
+
+
+def _hit(i, concepts, conf=0.8, year=2022, kind="open_problem", sentence=None):
+    return {"sentence": sentence or f"Synthetic sentence number {i} says this toy topic remains unexplored today.",
+            "type": kind, "confidence": conf, "paper": {"id": f"W{i}", "title": f"Toy paper {i}", "year": year},
+            "concept_ids": concepts, "sentence_level": True}
+
+
+def test_build_export_shapes_caps_and_display_only_rates():
+    hits = [_hit(i, ["a", "b"] if i % 2 else ["a"]) for i in range(1, 12)] + [_hit(50, ["zzz"])]
+    counts = {("", 2022): (100, 10), ("a", 2022): (40, 8), ("b", 2022): (20, 2), ("zzz", 2022): (5, 1)}
+    out = op.build_export(hits, counts, [("a", "b")], ["a", "b"], lambda i: f"https://example.org/{i}", 2022)
+    d = out["gap_details"]["a|b"]
+    assert len(d) == op.PER_GAP and all({"a", "b"} <= set(x["concept_ids"]) for x in d)  # both-concept hits first
+    assert len(out["concepts"]["a"]) == op.PER_CONCEPT and "zzz" not in out["concepts"]
+    f = out["file"]
+    assert f["placeholder"] is False and f["quality"] == "unmeasured" and f["attribution"]
+    assert f["rates_by_year"] == [{"year": 2022, "concept_rate": None, "ai_ml_rate": 0.1}]
+    assert out["gap_rates"]["a"][0]["rate"] == 0.2
+    assert all(i["paper"]["url"].startswith("https://example.org/") for i in f["items"])
+
+
+def test_validator_accepts_short_quotes_and_rejects_long_or_unattributed():
+    from whitespace.pipeline import export_all as E
+
+    good = {"sentence": "Whether this synthetic effect generalises remains an open question for the toy field.",
+            "type": "open_problem", "confidence": 0.8, "concept_ids": [],
+            "paper": {"id": "W1", "title": "Toy", "year": 2020, "url": "https://example.org/W1"}}
+    errs: list[str] = []
+    E._check_open_problem_items([good], "x", errs)
+    assert errs == []
+    bad_long = {**good, "sentence": "x" * 500}
+    bad_link = {**good, "paper": {**good["paper"], "url": ""}}
+    bad_type = {**good, "type": "opinion"}
+    errs = []
+    E._check_open_problem_items([bad_long, bad_link, bad_type], "x", errs)
+    assert len(errs) == 3
+    payload = {"placeholder": False, "synthetic": False, "concept_options": [], "rates_by_year": [],
+               "items": [good]}  # no attribution / quality label
+    errs = []
+    E.check_contract("open-problems.json", payload, errs)
+    assert any("attribution" in e for e in errs)

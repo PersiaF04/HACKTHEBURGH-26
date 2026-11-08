@@ -242,3 +242,75 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# ------------------------------------------------------------------ export (reduced version)
+
+TOP_CONCEPTS, PER_CONCEPT, PER_GAP, MAX_ITEMS = 200, 5, 5, 1200
+QUALITY_NOTE = ("Extraction quality is unmeasured: sentences were picked by a regex prefilter and have not been "
+                "hand-labelled, so some are not real author-stated open problems.")
+ATTRIBUTION = ("Short sentences (at most 400 characters) quoted from paper abstracts in OpenAlex (CC0, "
+               "https://openalex.org); each is attributed to and linked to its paper, copyright stays with the "
+               "authors. No full abstracts are included.")
+
+
+def load_cache(cache_dir: Path) -> tuple[list[dict], dict]:
+    """``(hits, papers_counter_inputs)`` written by ``main``: every hit and the (concept, year) counts."""
+    hits = [json.loads(line) for line in (cache_dir / "hits.jsonl").read_text(encoding="utf-8").splitlines() if line]
+    doc = json.loads((cache_dir / "counts.json").read_text(encoding="utf-8"))
+    return hits, {(c, y): (n, w) for c, y, n, w in doc["rows"]}
+
+
+def _item(h: dict, url, keep: set[str]) -> dict:
+    p = h["paper"]
+    return {"sentence": h["sentence"], "type": h["type"], "confidence": h["confidence"],
+            "paper": {"id": p["id"], "title": p.get("title") or p["id"], "year": p["year"], "url": url(p["id"])},
+            "concept_ids": [c for c in h["concept_ids"] if c in keep]}
+
+
+def build_export(hits: list[dict], counts: dict, gap_pairs: list[tuple[str, str]], concept_pool: list[str],
+                 url, final_year: int, exclude: frozenset[str] = frozenset()) -> dict:
+    """Reduced open-problems payloads: ``gap_details`` {a|b: items}, ``concepts`` {id: items}, ``file`` (open-problems.json).
+
+    ``concept_pool`` are the concepts that exist in the export; the top ``TOP_CONCEPTS`` of them by papers in the
+    last year plus every gap concept get sentences. Rates are display only and never feed the gap score.
+    """
+    pool = set(concept_pool)
+    gap_concepts = {c for pair in gap_pairs for c in pair} & pool
+    by_papers = sorted(pool - exclude, key=lambda c: (-counts.get((c, final_year), (0, 0))[0], c))
+    chosen = set(by_papers[:TOP_CONCEPTS]) | gap_concepts
+    keep = chosen | pool  # item concept ids stay within concepts that exist in the export
+    per = select_for_concepts(hits, chosen, per_concept=PER_CONCEPT)
+    gap_details: dict[str, list[dict]] = {}
+    for a, b in gap_pairs:
+        merged = {id(h): h for c in (a, b) for h in select_for_concepts(hits, {c}, 50).get(c, [])}.values()
+        both = lambda h: -(a in h["concept_ids"] and b in h["concept_ids"])  # noqa: E731
+        ranked = sorted(merged, key=lambda h: (both(h), -h["confidence"], not h["sentence_level"], -h["paper"]["year"],
+                                               h["paper"]["id"] or ""))
+        gap_details[f"{a}|{b}"] = [_item(h, url, keep) for h in ranked[:PER_GAP]]
+    concepts = {c: [_item(h, url, keep) for h in v] for c, v in per.items()}
+    seen, items = set(), []
+    for src in (list(gap_details.values()), list(concepts.values())):
+        for lst in src:
+            for it in lst:
+                key = (it["paper"]["id"], it["sentence"])
+                if key not in seen and len(items) < MAX_ITEMS:
+                    seen.add(key)
+                    items.append(it)
+    rate_years = sorted({y for (c, y) in counts if c == "" and y <= final_year})
+    rates_by_year = [{"year": y, "concept_rate": None,
+                      "ai_ml_rate": round(counts[("", y)][1] / counts[("", y)][0], 6)} for y in rate_years]
+    rates_by_concept = {c: [{"year": y, "papers": counts[(c, y)][0], "with_open_problem": counts[(c, y)][1],
+                             "rate": round(counts[(c, y)][1] / counts[(c, y)][0], 6)}
+                            for y in rate_years if (c, y) in counts and counts[(c, y)][0]]
+                        for c in sorted(chosen)}
+    return {
+        "gap_details": gap_details, "concepts": concepts, "gap_rates": rates_by_concept,
+        "file": {"placeholder": False, "synthetic": False, "items": items,
+                 "concept_options": [{"id": c, "label": c} for c in sorted(chosen) if c in per],
+                 "rates_by_year": rates_by_year, "rates_by_concept": rates_by_concept,
+                 "quality": "unmeasured", "note": QUALITY_NOTE, "attribution": ATTRIBUTION,
+                 "rate_note": "ai_ml_rate is the share of all corpus papers with a stated open problem; "
+                              "concept_rate is not exported (see rates_by_concept). Display only: not used in any "
+                              "gap score or backtest."},
+    }
