@@ -344,7 +344,7 @@ export function MapCanvas3D({
     const placeRing = (el: HTMLElement, i: number) => {
       const depth = i >= 0 ? screen[i * 3 + 2] : -1;
       if (!(depth > 0)) { el.style.display = "none"; return; }
-      const d = pxSize(i, depth) + 8;
+      const d = Math.max(pxSize(i, depth) + 12, el === selRing ? 34 : 0);
       el.style.display = "block";
       el.style.width = `${d}px`;
       el.style.height = `${d}px`;
@@ -437,8 +437,8 @@ export function MapCanvas3D({
         place(el, spot[0], spot[1] + (hub ? 0 : -1));
         return true;
       };
+      if (selIdx >= 0) tryLabel(selIdx, true, true); // the picked node is always named first, in the bold chip
       for (let i = 0; i < s.concepts.length; i += 1) if (s.concepts[i].kind === "branch") tryLabel(i, true, true);
-      if (selIdx >= 0) tryLabel(selIdx, true);
       if (hov >= 0 && hov !== selIdx) tryLabel(hov, true);
       let count = used;
       let checked = 0;
@@ -522,7 +522,7 @@ export function MapCanvas3D({
       let flying = false;
       if (flight) {
         const k = Math.min(1, (now - flight.t0) / flight.dur);
-        const e = 1 - (1 - k) ** 3;
+        const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2; // ease in and out: starts and settles gently
         controls.target.lerpVectors(flight.fromT, flight.toT, e);
         // Swing round the target on an arc (spherical interpolation) while the distance eases, instead of cutting straight through it.
         const lf = flight.fromO.length(), lt = flight.toO.length();
@@ -840,9 +840,15 @@ export function MapCanvas3D({
       const fromO = camera.position.clone().sub(controls.target);
       const isHub = live.current.concepts[index]?.kind === "branch";
       const dist = Math.max(controls.minDistance, Math.min(fromO.length(), isHub ? 70 : 45));
-      // Face the node from the centre side, so its own cluster fans out in front of the camera; tilt up a little for depth.
+      // Face the node from the centre side (its cluster fans out in front of the camera), tilted for depth.
+      // The move is always a clear swing: if that view is already close to the current one, turn 80 degrees round the node anyway.
       const outward = toT.clone().sub(d.center);
-      const toO = isHub || outward.lengthSq() < 1 ? fromO.clone().setLength(dist) : new THREE.Vector3(-outward.x, -outward.y, Math.max(18, -outward.z + 28)).setLength(dist);
+      const want = outward.lengthSq() < 1
+        ? fromO.clone()
+        : new THREE.Vector3(-outward.x, -outward.y, 0).normalize().multiplyScalar(1).add(new THREE.Vector3(0, 0, 0.55)).normalize();
+      const fromDir = fromO.clone().normalize();
+      if (fromDir.angleTo(want) < 1.0) want.copy(fromDir).applyAxisAngle(new THREE.Vector3(0, 0, 1), 1.4).add(new THREE.Vector3(0, 0, 0.25 - fromDir.z * 0.5)).normalize();
+      const toO = want.setLength(dist);
       lockIdx = index;
       lockPrev.copy(toT);
       if (instant || reduced) {
@@ -853,7 +859,7 @@ export function MapCanvas3D({
         requestRender();
         return;
       }
-      flight = { t0: performance.now(), dur: 800, fromT: controls.target.clone(), toT, fromO, toO };
+      flight = { t0: performance.now(), dur: 1100, fromT: controls.target.clone(), toT, fromO, toO };
       requestRender();
     };
 
