@@ -11,7 +11,7 @@ import pytest
 
 from whitespace.pipeline.backtest import BacktestConfig, train
 from whitespace.pipeline.export_map_gaps import (
-    build_export, clean, compute_layout, gap_score_parts, headline_from_backtest, sigmoid,
+    MOMENTUM_K, build_export, clean, compute_layout, gap_score_parts, headline_from_backtest, sigmoid,
     trained_predictor, write_export,
 )
 from whitespace.pipeline.graphs import build_snapshot, vocabulary
@@ -112,7 +112,7 @@ def test_gap_components_multiply(export):
         f = it["factors"]
         assert f["gap_factor"] == 1.0  # open problems not mined: factor omitted
         assert it["gap_score"] == pytest.approx(f["p_link"] * f["momentum"] * f["novelty"] * f["gap_factor"])
-        assert it["momentum"] == pytest.approx(sigmoid(it["growth_a"] + it["growth_b"]))
+        assert it["momentum"] == pytest.approx(sigmoid(MOMENTUM_K * min(it["growth_a"], it["growth_b"])))
         assert it["novelty"] == pytest.approx(1 - it["neighbour_overlap"])
         assert it["cosine"] is None and it["gap_rate"] is None
         assert it["p_lo"] is None and it["p_hi"] is None
@@ -121,12 +121,26 @@ def test_gap_components_multiply(export):
     assert scores == sorted(scores, reverse=True)
 
 
+def test_momentum_requires_both_topics_growing():
+    both = gap_score_parts(0.2, 1.0, 1.0, neighbour_overlap=0.3)["momentum"]
+    shrinking = gap_score_parts(0.2, 1.9, -0.35, neighbour_overlap=0.3)["momentum"]
+    assert shrinking < both
+    assert shrinking == pytest.approx(sigmoid(MOMENTUM_K * -0.35))
+    for ga, gb in [(6.0, 6.0), (-5.0, -5.0), (0.0, 0.0), (1.9, -0.35)]:
+        assert 0.0 < gap_score_parts(0.2, ga, gb, neighbour_overlap=0.3)["momentum"] < 1.0
+
+
+def test_gaps_json_states_momentum_formula(export):
+    assert export["gaps.json"]["momentum_formula"] == "sigmoid(2.0 * min(growth_a, growth_b))"
+    assert "min(growth_a, growth_b)" in export["gaps.json"]["formula_used"]
+
+
 def test_gap_score_parts_with_all_inputs():
     p = gap_score_parts(0.2, 0.5, 0.25, neighbour_overlap=0.3, cosine=0.6, gap_rate_a=0.1, gap_rate_b=0.2)
-    assert p["gap_score"] == pytest.approx(0.2 * sigmoid(0.75) * (1 - 0.6) * (1 + 0.1 + 0.2))
+    assert p["gap_score"] == pytest.approx(0.2 * sigmoid(0.5) * (1 - 0.6) * (1 + 0.1 + 0.2))
     assert p["gap_rate"] == pytest.approx(0.3)
     missing = gap_score_parts(0.2, 0.5, 0.25, neighbour_overlap=0.3)
-    assert missing["gap_score"] == pytest.approx(0.2 * sigmoid(0.75) * 0.7)
+    assert missing["gap_score"] == pytest.approx(0.2 * sigmoid(0.5) * 0.7)
     assert missing["gap_rate"] is None
 
 

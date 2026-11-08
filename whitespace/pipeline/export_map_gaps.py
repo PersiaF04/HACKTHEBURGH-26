@@ -36,8 +36,10 @@ from .graphs import PairSet, Snapshot, build_snapshot, vocabulary
 
 COORD_RANGE = 1.0  # layout coordinates lie in [-COORD_RANGE, COORD_RANGE] (the frontend rescales)
 LAYOUT_SEED = 0
+MOMENTUM_K = 2.0  # slope of the momentum sigmoid on the weaker partner's growth (issue #276)
+MOMENTUM_FORMULA = "sigmoid(2.0 * min(growth_a, growth_b))"  # keep in step with MOMENTUM_K
 GAP_FORMULA_FULL = (
-    "p_link * sigmoid(growth_a + growth_b) * (1 - max(cosine, neighbour_overlap)) "
+    "p_link * sigmoid(2.0 * min(growth_a, growth_b)) * (1 - max(cosine, neighbour_overlap)) "
     "* (1 + gap_rate_a + gap_rate_b)"
 )
 GAP_NOTE = (
@@ -346,11 +348,11 @@ def gap_score_parts(
 ) -> dict:
     """Score factors as documented. A missing input omits its factor (it is 1), never a guess.
 
-    ``score = p_link * momentum * novelty * gap_factor`` where ``momentum = sigmoid(growth_a +
-    growth_b)``, ``novelty = 1 - max(cosine, neighbour_overlap)`` (cosine dropped if None) and
+    ``score = p_link * momentum * novelty * gap_factor`` where ``momentum = sigmoid(MOMENTUM_K *
+    min(growth_a, growth_b))`` (both topics must be growing), ``novelty = 1 - max(cosine, neighbour_overlap)`` (cosine dropped if None) and
     ``gap_factor = 1 + gap_rate_a + gap_rate_b`` (1 if either rate is None).
     """
-    momentum = sigmoid(growth_a + growth_b)
+    momentum = sigmoid(MOMENTUM_K * min(growth_a, growth_b))
     novelty = 1.0 - (neighbour_overlap if cosine is None else max(cosine, neighbour_overlap))
     have_rates = gap_rate_a is not None and gap_rate_b is not None
     gap_factor = 1.0 + gap_rate_a + gap_rate_b if have_rates else 1.0
@@ -415,7 +417,7 @@ def build_gaps(
         omitted.append("gap_rate (open problems not mined)")
     gaps = {
         "placeholder": False, "year": year, "items": items, "note": GAP_NOTE,
-        "formula_used": gap_formula(bool(gap_rates)), "omitted_components": omitted,
+        "formula_used": gap_formula(bool(gap_rates)), "momentum_formula": MOMENTUM_FORMULA, "omitted_components": omitted,
         "ranking_pool": f"top {pool} eligible pairs by p_link",
     }
     if stoplist:
@@ -429,7 +431,7 @@ def stoplist_record(stoplist: frozenset[str], hidden: int) -> dict:
 
 
 def gap_formula(has_gap_rates: bool) -> str:
-    base = "p_link * sigmoid(growth_a + growth_b) * (1 - neighbour_overlap)"
+    base = "p_link * sigmoid(2.0 * min(growth_a, growth_b)) * (1 - neighbour_overlap)"
     return base + (" * (1 + gap_rate_a + gap_rate_b)" if has_gap_rates else "")
 
 

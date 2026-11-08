@@ -189,7 +189,7 @@ The spike must verify each proposed model and dependency can be installed and ru
 - Sentence-split abstracts, then use a regex prefilter for phrases such as future work, remains unclear/open/unexplored, has not been, little is known, limitation, open problem/question, and we leave.
 - Apply a zero-shot classifier and keep candidates above confidence 0.6. Before calling this useful, evaluate sentence-level precision and recall on a separately annotated sample, record how disagreements are adjudicated, and link every displayed sentence to its source paper and abstract context. Report measured results; no acceptable threshold has been selected yet.
 - Gap rate is the share of a concept's papers that contain a stated open problem.
-- Proposed score: p_link × sigmoid(growth_a + growth_b) × (1 − max(cosine, neighbour_overlap)) × (1 + gap_rate_a + gap_rate_b).
+- Proposed score: p_link × sigmoid(2 × min(growth_a, growth_b)) × (1 − max(cosine, neighbour_overlap)) × (1 + gap_rate_a + gap_rate_b).
 - Show every score component next to the score. Do not describe the combined gap score as a probability.
 - Show code readiness separately: share of a concept's papers with a linked repository. It is a lower bound and must not be multiplied into gap_score.
 
