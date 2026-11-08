@@ -29,7 +29,6 @@ const SKELETON_CAPTION = "The map shows one dot per research concept. Size = pap
 
 const STAT_HELP = {
   shown: "Research concepts currently on the map, after filters.",
-  links: "Pairs of concepts that already share 3 or more papers.",
   papers: "Papers tagged with the concepts shown. A paper with several concepts is counted for each.",
   predicted: "Predicted new links that involve the selected concept.",
 } as const;
@@ -149,7 +148,6 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts, ${fmtInt(kindCount("branch"))} branches, ${fmtInt(kindCount("hypothesis"))} hypotheses` : "";
   const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
     { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
-    { label: "Links", value: nothing || !hasLinked ? fmtInt(null) : fmtInt(linkedEdges.length), help: STAT_HELP.links, caption: "Pairs sharing 3+ papers" },
     { label: "Papers covered", value: nothing || !hasCounts ? fmtInt(null) : fmtInt(papers), help: STAT_HELP.papers, caption: "Across the concepts shown" },
     { label: "Predicted from selection", value: nothing || !selectedId ? fmtInt(null) : fmtInt(fromSelection), help: STAT_HELP.predicted, caption: "New links for the selected dot", accent: true },
   ];
