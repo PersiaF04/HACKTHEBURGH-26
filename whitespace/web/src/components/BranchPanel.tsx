@@ -1,5 +1,5 @@
 import type { GapSummary } from "../api";
-import { fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
+import { fmtCompact, fmtGrowth, fmtInt, fmtP, fmtText } from "../lib/format";
 import type { BranchInfo } from "../lib/hierarchy";
 
 type Props = {
@@ -60,7 +60,7 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Pr
       </header>
       <dl className="whitespace-concept__stats">
         <div><dt>Concepts</dt><dd>{fmtInt(branch.total)}</dd></div>
-        <div><dt>Papers</dt><dd>{fmtInt(branch.papers)}</dd></div>
+        <div title={`${fmtInt(branch.papers)} papers`}><dt>Papers</dt><dd>{fmtCompact(branch.papers)}</dd></div>
         <div><dt>3-yr growth</dt><dd>{sane(branch.growth) ? fmtGrowth(branch.growth) : "—"}</dd></div>
       </dl>
       <section className="whitespace-concept__card">
@@ -73,13 +73,15 @@ export function BranchPanel({ branch, hypothesis, onSelectConcept, onClose }: Pr
         </p>
         <p className="whitespace-help">Summary written from the export&rsquo;s counts, not by a language model.</p>
       </section>
-      <section className="whitespace-concept__card">
+      <section className="whitespace-concept__card whitespace-subareas">
         <h3>Sub-areas</h3>
-        <ul className="whitespace-concept__list">
+        <ul className="whitespace-subareas__list">
           {top.slice(0, 12).map((c) => (
             <li key={c.id}>
-              <button type="button" onClick={() => onSelectConcept(c.id)}>{fmtText(c.label)}</button>
-              <span className="whitespace-mono"> {fmtInt(c.paper_count)} papers · {trend(c.growth)}</span>
+              <button type="button" onClick={() => onSelectConcept(c.id)} title={fmtText(c.label)}>
+                <span className="whitespace-subareas__name">{fmtText(c.label)}</span>
+                <span className="whitespace-subareas__meta">{fmtCompact(c.paper_count)} papers · {trend(c.growth)}</span>
+              </button>
             </li>
           ))}
         </ul>

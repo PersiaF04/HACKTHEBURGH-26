@@ -9,7 +9,7 @@ import MapCanvas3DLazy from "../components/MapCanvas3DLazy";
 import { MapLegend } from "../components/MapLegend";
 import { MapSkeleton } from "../components/MapSkeleton";
 import { SearchBar } from "../components/SearchBar";
-import { fmtInt } from "../lib/format";
+import { fmtCompact, fmtInt } from "../lib/format";
 import { buildHierarchy, DEFAULT_PER_BRANCH, isSynthetic } from "../lib/hierarchy";
 import { useWhitespaceStore } from "../store/useWhitespaceStore";
 import "../components/explore.css";
@@ -139,9 +139,9 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
   const nothing = skeleton || !live;
   const kindCount = (kind: string) => shownNodes.filter((n) => (n as { kind?: string }).kind === kind).length;
   const graphCaption = hierarchy ? `Graph draws ${fmtInt(kindCount("concept"))} concepts in ${fmtInt(kindCount("branch"))} branches${showGaps ? ` and ${fmtInt(kindCount("hypothesis"))} gaps` : ""}` : "";
-  const stats: { label: string; value: string; help: string; caption: string; accent?: boolean }[] = [
-    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtInt(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
-    { label: "Papers in the corpus", value: nothing || works === null ? fmtInt(null) : fmtInt(works), help: STAT_HELP.papers, caption: "Distinct papers in the export" },
+  const stats: { label: string; value: string; full?: number | null; help: string; caption: string; accent?: boolean }[] = [
+    { label: "Concepts shown", value: nothing ? fmtInt(null) : fmtCompact(visible.length), help: STAT_HELP.shown, caption: hierarchy ? graphCaption : "Dots on the map" },
+    { label: "Papers in the corpus", value: nothing || works === null ? fmtInt(null) : fmtCompact(works), full: works, help: STAT_HELP.papers, caption: "Distinct papers in the export" },
   ];
   return (
     <div className="ex">
@@ -168,8 +168,8 @@ export function Explore({ map, selectedYear, loading, selectedConceptId, onSelec
 
       <section className="ex__centre" aria-label="Research map" data-tour="map-canvas">
         <dl className="ex-stats" aria-label="Map summary">
-          {stats.map(({ label, value, help, caption, accent }) => (
-            <div key={label} title={help}>
+          {stats.map(({ label, value, full, help, caption, accent }) => (
+            <div key={label} title={typeof full === "number" ? `${fmtInt(full)}. ${help}` : help}>
               <dt>{label}</dt>
               <dd className={accent ? "ex-stats__accent" : undefined}>{value}</dd>
               <dd className="ex-stats__caption">{caption}</dd>
